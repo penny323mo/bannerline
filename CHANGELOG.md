@@ -42,3 +42,7 @@
 - 加速 and 加固 can be bought mid-match from a friendly building. The cost is troops, and the mark shows on that building.
 - Shadows bake when the island mounts, and static props share meshes, so a full match stays at or above 50 fps at 390×844.
 - Node tests cover AI orders, upgrade math, and the map JSON. Rebuilt `static/app.js`.
+
+## Round 6 fixes
+
+- The 390×844 review found no critical, major, or minor defects. The glow, headquarters trickle and pulse, Cantonese sheets, and tower-versus-hall silhouettes were already in `static/app.js`. Tests stayed at 46/46.

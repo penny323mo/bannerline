@@ -110,7 +110,7 @@ test('a building under attack does not sit idle past the reaction window', () =>
     z: 6.55,
     mode: 'march',
   });
-  stepMatch(state, 2.5);
+  stepMatch(state, 1);
   const sally = state.squads.find((s) => s.owner === 'enemy');
   assert.ok(sally, 'enemy should march out while the barracks is threatened');
   assert.ok(sally.count >= 1);

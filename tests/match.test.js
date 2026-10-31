@@ -113,15 +113,15 @@ test('both starting stacks together cannot crack the enemy headquarters', () => 
   assert.notEqual(state.status, 'win');
 });
 
-test('a full barracks can take the enemy headquarters', () => {
+test('a full barracks alone does not crack the reinforced headquarters', () => {
   const state = createMatch();
   state.ai = false;
   const bar = buildingById(state, 'player-bar');
   bar.count = bar.cap;
   assert.equal(sendSquad(state, 'player-bar', 'enemy-hq').ok, true);
   stepMatch(state, 12, { ai: false });
-  assert.equal(buildingById(state, 'enemy-hq').owner, 'player');
-  assert.equal(state.status, 'win');
+  assert.equal(buildingById(state, 'enemy-hq').owner, 'enemy');
+  assert.notEqual(state.status, 'win');
 });
 
 test('reinforcing a friendly building deposits the squad', () => {
@@ -243,7 +243,7 @@ test('the same rush with a garrison does not win 中 before 90s', () => {
 
 test('idling loses the headquarters', () => {
   const state = createMatch();
-  stepMatch(state, 45);
+  stepMatch(state, 65);
   assert.equal(state.status, 'lose');
   assert.equal(buildingById(state, 'player-hq').owner, 'enemy');
 });

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import * as THREE from 'three';
 import { createMatch, playerHold, sendSquad, stepMatch, buildingById } from '../src/sim/match.js';
@@ -72,7 +73,7 @@ test('a double send on 雙橋 as the opening wave comes due still wins on 中', 
 
 function playMeasured(difficulty, margin) {
   const state = createMatch({ mapId: 'crossing', difficulty });
-  while (state.status === 'playing' && state.t < 160) {
+  while (state.status === 'playing' && state.t < 250) {
     stepMatch(state, 1);
     const enemyHq = buildingById(state, 'enemy-hq');
     const playerHq = buildingById(state, 'player-hq');
@@ -99,7 +100,7 @@ function playMeasured(difficulty, margin) {
   return state;
 }
 
-test('a measured player on 中 takes more than a minute, and the same line loses on 難', () => {
+test('a measured player on 中 takes more than a minute, and the same line wins later on 難', () => {
   const times = [];
   for (const margin of [6, 8, 12]) {
     const state = playMeasured('normal', margin);
@@ -110,7 +111,62 @@ test('a measured player on 中 takes more than a minute, and the same line loses
   const average = times.reduce((sum, t) => sum + t, 0) / times.length;
   assert.ok(average > 60, `average ${average}`);
   const hard = playMeasured('hard', 8);
-  assert.equal(hard.status, 'lose');
+  assert.equal(hard.status, 'win', `hard ended ${hard.status} at ${hard.t}`);
+  assert.ok(hard.t > 120 && hard.t < 240, `hard won at ${hard.t}`);
+  assert.ok(hard.t > times[1], '難 takes longer than the same line on 中');
+});
+
+test('a barracks chain on 中 does not win before 90s, and the defence shows', () => {
+  const state = createMatch({ mapId: 'crossing', difficulty: 'normal' });
+  let relief = false;
+  let counterAt = null;
+  const seen = new Set();
+  while (state.status === 'playing' && state.t < 90) {
+    stepMatch(state, 0.5);
+    for (let i = 0; i < state.squads.length; i++) {
+      const squad = state.squads[i];
+      if (squad.owner !== 'enemy' || seen.has(squad.id)) continue;
+      seen.add(squad.id);
+      if (squad.targetId === 'enemy-bar' || squad.targetId === 'enemy-hq') relief = true;
+      if (squad.targetId === 'player-bar' || squad.targetId === 'player-hq') {
+        if (counterAt == null) counterAt = state.t;
+      }
+    }
+    const enemyBar = buildingById(state, 'enemy-bar');
+    const enemyHq = buildingById(state, 'enemy-hq');
+    const objective = enemyBar && enemyBar.owner === 'enemy'
+      ? 'enemy-bar'
+      : (enemyHq && enemyHq.owner === 'enemy' ? 'enemy-hq' : null);
+    if (!objective) break;
+    for (let i = 0; i < state.buildings.length; i++) {
+      const building = state.buildings[i];
+      if (building.owner !== 'player' || building.id === objective) continue;
+      const hold = playerHold(building);
+      if (building.count - hold >= 8) sendSquad(state, building.id, objective, hold);
+    }
+  }
+  assert.notEqual(state.status, 'win', `chain won at ${state.t}`);
+  assert.equal(relief, true);
+  assert.ok(counterAt != null && counterAt <= 40, `counter at ${counterAt}`);
+  assert.equal(state.holdWall, true);
+  assert.equal(state.difficulty, 'normal');
+});
+
+test('the 中 button stores the id createMatch reads', () => {
+  const src = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.match(src, /difficulty = id/);
+  assert.match(src, /createMatch\(\{ mapId, difficulty/);
+  assert.equal(DIFFICULTIES.normal.label, '中');
+  assert.equal(DIFFICULTIES.hard.label, '難');
+  const normal = createMatch({ mapId: 'crossing', difficulty: 'normal' });
+  const hard = createMatch({ mapId: 'crossing', difficulty: 'hard' });
+  assert.equal(normal.difficulty, 'normal');
+  assert.equal(normal.holdWall, true);
+  assert.ok(normal.reliefCap >= 16);
+  assert.ok(normal.counterCap >= 10);
+  assert.equal(hard.hqGrace, 12);
+  assert.ok(hard.reactDelay < normal.reactDelay);
+  assert.ok(DIFFICULTIES.easy.reactDelay > normal.reactDelay);
 });
 
 test('易 still falls to one barracks rush', () => {

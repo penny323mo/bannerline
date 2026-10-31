@@ -84,3 +84,10 @@
 ## Round 12 fixes
 
 - The 390×844 review shipped with no critical, major, or minor defects. The round-8 art list stays closed on this bundle: muted olive terrain, bunker and hangar, soldier squads, sharp HUD, formal zh-HK copy, and the rebuilt `static/app.js`. Round-11 balance, grace, and the upgrade chip stay. Tests stayed at 54/54.
+
+## Round 13 fixes
+
+- On 中 a threatened barracks holds, and the nearest neighbour sends one reinforcement (at most 24) and then a counter (at most 16). After that pair the headquarters keeps the rest of its pile. A player who sends from every owned building, resends as troops return, and chains a capture into the enemy headquarters loses; a relief squad and a counter both appear inside 40s, so the chain is not a win before 90s. A measured player still wins, and those wins take more than a minute. The same measured line on 難 wins later, between two and four minutes, and is still playing at 45s. 易 still falls to one barracks rush. Headquarters grace stays 36/20/12, and the「敵軍打緊司令部」toast stays. Idling still loses the headquarters. A double send on 雙橋 still wins on 中.
+- The ⬆ chip is a 26px plate with a 22px glyph, centered in the hex, clear of the count. Squad 行軍 and 交戰 are 12px. Troop totals stay off the home screen and appear once the match is running.
+- Soldiers stay on the instanced mesh. The torso is darker, the helmet is larger, and the rifle is longer and darker, at instance scale 1.8. Shadows and antialiasing stay off.
+- 56 tests passed. Rebuilt `static/app.js`. At 390×844 a warmed match averaged 60.0 fps, p95 about 16.8ms.

@@ -11,13 +11,22 @@ function blankBuilding(spec, diff) {
   const scale = spec.owner === 'enemy' ? (diff.regenScale > 0 ? diff.regenScale : 1) : 1;
   let regen = spec.regen * scale;
   if (spec.owner === 'enemy' && spec.kind === 'hq' && diff.hqRegen > 0) regen += diff.hqRegen;
+  let count = spec.count;
+  let cap = spec.cap;
+  if (spec.owner === 'enemy' && spec.kind === 'barracks' && diff.barBonus > 0) {
+    count = Math.min(spec.cap, spec.count + diff.barBonus);
+  }
+  if (spec.owner === 'enemy' && spec.kind === 'hq' && diff.hqBonus > 0) {
+    count = spec.count + diff.hqBonus;
+    cap = Math.max(spec.cap, count);
+  }
   return {
     id: spec.id,
     kind: spec.kind,
     owner: spec.owner,
     node: spec.node,
-    count: spec.count,
-    cap: spec.cap,
+    count,
+    cap,
     regen,
     baseRegen: spec.regen,
     bank: 0,
@@ -61,9 +70,15 @@ export function createMatch(opts = {}) {
     holdWall: !!diff.holdWall,
     riposte: diff.riposte > 0 ? diff.riposte : 0,
     counterKeep: diff.counterKeep > 0 ? diff.counterKeep : 0,
+    waveKeep: diff.waveKeep > 0 ? diff.waveKeep : 0,
+    maxRelief: diff.maxRelief > 0 ? diff.maxRelief : 0,
+    reliefCap: diff.reliefCap > 0 ? diff.reliefCap : 12,
+    counterCap: diff.counterCap > 0 ? diff.counterCap : 10,
     alarmAt: null,
     answered: {},
     opened: {},
+    waveTurn: {},
+    reliefCount: {},
   };
 }
 
@@ -271,9 +286,9 @@ function planEnemy(state) {
   if (under) {
     if (state.alarmAt == null) state.alarmAt = state.t;
   } else if (state.alarmAt != null) {
+    // Drop the alarm, but keep `answered`. A gap between waves must not
+    // grant a second reaction before the riposte. nextSendAt is the cooldown.
     state.alarmAt = null;
-    const answered = state.answered;
-    for (const key in answered) answered[key] = false;
   }
   const threatened = buildingById(state, threatSlot.id);
   const pressing = under && threatSlot.dist <= RULES.arriveRadius;
@@ -324,15 +339,36 @@ function planEnemy(state) {
       reliefKeep: state.reliefKeep || 0,
       holdWall: !!state.holdWall,
       counterKeep: state.counterKeep || 0,
-      relieve: !!(relieverId && relieverId === b.id && !opened[b.id] && threatened.kind === 'hq'),
+      waveKeep: state.waveKeep || 0,
+      wave: state.waveTurn[b.id] || 0,
+      reliefCap: state.reliefCap || 0,
+      counterCap: state.counterCap || 0,
+      riposte: state.riposte || 0,
+      threatenedKind: threatened ? threatened.kind : '',
+      // Even turns reinforce the building under attack. Odd turns counter.
+      // The first answer is a reinforcement, so a barracks rush meets troops.
+      relieve: !!(
+        relieverId
+        && relieverId === b.id
+        && threatened
+        && threatened.owner === 'enemy'
+        && threatened.kind === 'barracks'
+        && threatened.count >= 12
+        && state.maxRelief > 0
+        && (state.reliefCount[b.id] || 0) < state.maxRelief
+        && ((state.waveTurn[b.id] || 0) % 2 === 0)
+      ),
     }, orderSlot);
     if (!ready) continue;
     const res = sendSquad(state, b.id, orderSlot.targetId, orderSlot.keep);
     if (!res.ok) continue;
     opened[b.id] = true;
+    if (orderSlot.relief || orderSlot.counter) {
+      state.waveTurn[b.id] = (state.waveTurn[b.id] || 0) + 1;
+    }
+    if (orderSlot.relief) state.reliefCount[b.id] = (state.reliefCount[b.id] || 0) + 1;
     let delay = state.sendPeriod;
-    if (orderSlot.relief && state.riposte > 0) delay = state.riposte;
-    else if (orderSlot.counter && state.riposte > 0) delay = state.riposte + state.sendPeriod;
+    if ((orderSlot.relief || orderSlot.counter) && state.riposte > 0) delay = state.riposte;
     state.nextSendAt[b.id] = state.t + delay;
     if (under) state.answered[b.id] = true;
   }

@@ -1,0 +1,13 @@
+You are the coder. cd /workspace/sidequest/top-force-like. The supervisor's live 390px audit of the round-12 build is NOT SHIP; read /workspace/sidequest/top-force-like/review/loop-r12/live-audit.md. Keep matching PLAN.md and ART-STYLE.md (mature military look, do NOT regress toward pastel/rounded/toy). Do not edit reviews/ or prompts/. Run the tests. Append '## Round 13 fixes' to CHANGELOG.md. Do not git commit.
+
+Priority:
+1. [MAJOR] 中 is STILL passive live, even though tests/match.test.js "does not win 中 before 90s" passes. A real player on 對岸 中 won in 37s: dragged HQ + barracks troops onto the red barracks, took it at ~20s with no AI reinforcement or counter-attack, then sent everything at the enemy HQ (garrison fell 47 -> 9 -> captured). Your sim test must be scripting a different rush than what a human does. First reproduce THIS exact human sequence in a node test (send from every owned building, chain the captured barracks into the HQ attack, re-send as troops regenerate) and make it fail to win before ~90s on 中. Also verify the live code path actually uses the 中 AI params (check difficulty wiring from the menu tap -> match -> ai.js; a mismatch between the UI difficulty value and what ai.js reads would explain this). The 中 AI must visibly reinforce a threatened barracks and launch counter-attacks / waves within the first 30-40s.
+2. [MAJOR] 難 is over-tuned: the same rush LOST in 19s on 難 (AI captured the player barracks almost instantly). Tune so 難 is clearly harder than 中 but a measured player can win in ~2-4 minutes; no loss before ~45s if the player plays sensibly. Keep HQ grace and the 「敵軍打緊司令部」 toast. 易 stays beatable by a rush.
+3. [MINOR] ⬆ upgrade chip still looks ~16px live; make the visible chip (not just hit area) at least 22px.
+4. [MINOR] 行軍/交戰 squad badge text is ~8px; raise to >=11px readable at 390px.
+5. [MINOR] Soldiers still read as colour blocks; make helmet/torso/rifle silhouettes clearer (contrast, slight size), keep InstancedMesh and >=50fps.
+6. [MINOR] Home screen shows 我軍 42 vs 敵軍 62 before any match starts with no explanation; hide the troop totals until a match is running (or label it clearly as the map preview).
+Rebuild static/app.js so the live Pages bundle carries the changes.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-13.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-13.done

@@ -29,14 +29,14 @@ function shade(geo, value) {
 }
 
 export function soldierGeometry() {
-  const torso = shade(new THREE.BoxGeometry(0.15, 0.26, 0.1), 0.82);
+  const torso = shade(new THREE.BoxGeometry(0.16, 0.28, 0.11), 0.52);
   torso.translate(0, 0.22, 0);
-  const helmet = shade(new THREE.BoxGeometry(0.16, 0.1, 0.15), 1);
-  helmet.translate(0, 0.41, -0.01);
-  const rifle = shade(new THREE.BoxGeometry(0.04, 0.045, 0.36), 0.28);
-  rifle.translate(0.08, 0.22, -0.2);
-  const stock = shade(new THREE.BoxGeometry(0.045, 0.07, 0.08), 0.34);
-  stock.translate(0.08, 0.2, -0.01);
+  const helmet = shade(new THREE.BoxGeometry(0.2, 0.12, 0.18), 1);
+  helmet.translate(0, 0.44, -0.01);
+  const rifle = shade(new THREE.BoxGeometry(0.055, 0.05, 0.5), 0.12);
+  rifle.translate(0.1, 0.22, -0.26);
+  const stock = shade(new THREE.BoxGeometry(0.06, 0.08, 0.1), 0.18);
+  stock.translate(0.1, 0.2, 0);
   const geo = mergeGeometries([torso, helmet, rifle, stock]);
   geo.computeVertexNormals();
   return geo;
@@ -122,8 +122,7 @@ export function createCrowds(scene) {
       const lz = r * spacing;
       rotateXZ(lx, lz, yaw, _slot);
       const bob = 1 + ((i * 17) % 5) * 0.015;
-      // 1.68 is 1.4× the previous 1.2, inside the 1.3–1.5× read at 390px.
-      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.68 * bob, track && i === 0);
+      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.8 * bob, track && i === 0);
     }
   }
 

@@ -145,29 +145,31 @@ body {
   border-radius: 0;
 }
 
-.badge.squad .num { font-size: 13px; }
-.badge.squad .tag { font-size: 9px; letter-spacing: 0.02em; }
+.badge.squad .num { font-size: 14px; }
+.badge.squad .tag { font-size: 12px; letter-spacing: 0.02em; }
+.badge.squad .sub { font-size: 12px; }
 
 .badge.can-up {
-  padding-right: 40px;
+  padding-right: 48px;
 }
 
 .badge.can-up::after {
   content: "⬆";
   position: absolute;
-  top: 2px;
-  right: 11%;
+  top: 50%;
+  right: 18%;
   z-index: 2;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 2px;
   background: var(--panel);
   color: var(--paper);
   border: 1px solid var(--edge);
-  font-size: 14px;
+  font-size: 22px;
   font-weight: 800;
-  line-height: 20px;
+  line-height: 24px;
   text-align: center;
+  transform: translateY(-50%);
 }
 
 #hud {
@@ -188,6 +190,10 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.hud-row[hidden] {
+  display: none;
 }
 
 .brand {

@@ -23,6 +23,7 @@ const upHaste = document.getElementById('up-haste');
 const upWall = document.getElementById('up-bulwark');
 const scoreMine = document.getElementById('score-mine');
 const scoreFoe = document.getElementById('score-foe');
+const scoresEl = document.querySelector('.scores');
 const coachEl = document.getElementById('coach');
 const toastEl = document.getElementById('toast');
 const sheetTimeEl = document.getElementById('sheet-time');
@@ -134,6 +135,7 @@ function syncHud() {
 
 function showHome(on) {
   homeEl.hidden = !on;
+  if (scoresEl) scoresEl.hidden = !!on;
   if (on) upgradesEl.hidden = true;
   syncCoach();
 }

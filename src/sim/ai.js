@@ -81,6 +81,10 @@ export function writeOrder(ctx, out) {
     ctx.answered,
   );
   if (!ready || ctx.count < 2) return false;
+  // After the headquarters has reinforced and counter-attacked, it holds
+  // the pile. A gap between player waves must not march that reserve off,
+  // or the follow-up either walks into the HQ or one-shots the player.
+  if (ctx.kind === 'hq' && (ctx.wave || 0) >= 2) return false;
 
   // On 中 and 難 a threatened building with a real garrison stays and fights.
   // A thin stack still sallies, so a siege cannot freeze a building that
@@ -97,6 +101,9 @@ export function writeOrder(ctx, out) {
   // The nearest other building reinforces once. Later orders from it,
   // and every other building, counter-attack even during the opening timer.
   const helping = wall && !threatenedHere;
+  // The relief already left. Do not spend the pile on a probe before the
+  // counter, or in the quiet after a player squad dies on the wall.
+  if (ctx.kind === 'hq' && (ctx.wave || 0) >= 1 && !helping) return false;
   if (helping) {
     const reliefFrac = ctx.reliefKeep > 0 ? ctx.reliefKeep : 0.35;
     const counterFrac = ctx.counterKeep > 0 ? ctx.counterKeep : reliefFrac;
@@ -106,6 +113,17 @@ export function writeOrder(ctx, out) {
       const capped = ctx.count - ctx.marchCap;
       if (capped > keep) keep = capped;
     }
+    // A reinforcement has to read as a squad on the map, not a trickle.
+    const reliefCap = ctx.reliefCap > 0 ? ctx.reliefCap : 12;
+    const counterCap = ctx.counterCap > 0 ? ctx.counterCap : 10;
+    if (ctx.relieve) {
+      const send = Math.min(reliefCap, ctx.count - 1);
+      const room = ctx.count - send;
+      if (room > keep) keep = room;
+    } else {
+      const capped = ctx.count - counterCap;
+      if (capped > keep) keep = capped;
+    }
     if (ctx.count - keep < 1) return false;
     if (ctx.relieve) {
       out.targetId = ctx.threatenedId;
@@ -113,6 +131,16 @@ export function writeOrder(ctx, out) {
       out.relief = true;
       return true;
     }
+    // A counter against a headquarters waits out the riposte. Otherwise it
+    // steps off the barracks into a stack that is already walking past,
+    // and the two sides wipe each other on the bridge. A barracks fight
+    // still counters on the relief's timer.
+    if (
+      ctx.threatenedKind === 'hq'
+      && ctx.riposte > 0
+      && ctx.alarmAt != null
+      && ctx.t < ctx.alarmAt + ctx.riposte
+    ) return false;
     const skipHq = ctx.hqGrace > 0 && ctx.t < ctx.hqGrace;
     const target = counterTarget(ctx.targets, ctx.targetCount, skipHq);
     if (!target) return false;
@@ -153,12 +181,20 @@ export function writeOrder(ctx, out) {
   const target = bestTarget(ctx.personality, ctx.targets, ctx.targetCount, skipHq);
   if (!target) return false;
   let keep = 0;
-  if (ctx.kind === 'hq' && !defending) keep = hqKeep(ctx.count);
+  if (ctx.kind === 'hq' && !defending) {
+    keep = hqKeep(ctx.count);
+    const reserve = ctx.count - 14;
+    if (reserve > keep) keep = reserve;
+  }
   else if (defending) keep = ctx.count >= 3 ? 1 : 0;
   else if (ctx.personality === 'cautious') keep = Math.min(ctx.count - 1, Math.max(0, Math.floor(ctx.count * 0.3)));
   if (ctx.marchCap > 0 && !defending) {
     const capped = ctx.count - ctx.marchCap;
     if (capped > keep) keep = capped;
+  }
+  if (!defending && ctx.waveKeep > 0 && ctx.kind !== 'hq') {
+    const kept = Math.floor(ctx.count * ctx.waveKeep);
+    if (kept > keep) keep = Math.min(kept, ctx.count - 1);
   }
   if (ctx.count - keep < 1) return false;
   out.targetId = target.id;

@@ -2,19 +2,36 @@
 <html lang="zh-HK">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#b7e6f8" />
   <title>據點號令 · Bannerline</title>
-  <style>
-    html, body { margin: 0; height: 100%; background: #e8f5ee; font-family: system-ui, sans-serif; }
-    main { display: grid; place-items: center; height: 100%; color: #1a5c3a; text-align: center; padding: 24px; }
-  </style>
+  <link rel="icon" href="./favicon.svg" />
+  <script type="module" crossorigin src="./static/app.js"></script>
+  <link rel="stylesheet" crossorigin href="./static/style.css">
 </head>
 <body>
-  <main>
-    <div>
-      <h1>據點號令</h1>
-      <p>Bannerline — building M1…</p>
+  <div id="app">
+    <canvas id="view"></canvas>
+    <div id="badges"></div>
+    <header id="hud">
+      <div class="hud-row">
+        <div class="brand">據點號令</div>
+        <button id="mute" type="button" aria-pressed="false" aria-label="靜音">有聲</button>
+      </div>
+      <div class="hud-row scores">
+        <span class="pill mine">我軍 <b id="score-mine">0</b></span>
+        <span class="pill foe">敵軍 <b id="score-foe">0</b></span>
+      </div>
+    </header>
+    <p id="hint">點我軍建築，再點目標出兵</p>
+    <div id="sheet" hidden>
+      <div class="card">
+        <p class="kicker" id="sheet-kicker">對戰結束</p>
+        <h2 id="sheet-title">勝利</h2>
+        <p id="sheet-body">攻陷咗對方司令部</p>
+        <button id="retry" type="button">再戰</button>
+      </div>
     </div>
-  </main>
+  </div>
 </body>
 </html>

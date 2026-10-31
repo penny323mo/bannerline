@@ -90,6 +90,7 @@ export function createBadges(host) {
         else if (mark) extra = mark;
         else if (b.count >= b.cap) extra = '滿';
         setText(node, '.sub', extra);
+        node.classList.toggle('is-danger', extra === '危');
         const p = layout[b.node];
         if (!p) {
           node.hidden = true;
@@ -113,6 +114,7 @@ export function createBadges(host) {
         node.classList.toggle('player', s.owner === 'player');
         node.classList.toggle('enemy', s.owner === 'enemy');
         node.classList.toggle('can-up', false);
+        node.classList.toggle('is-danger', false);
         setText(node, '.tag', s.mode === 'siege' ? '攻城' : '行軍');
         setText(node, '.num', String(Math.max(0, Math.floor(s.count))));
         setText(node, '.sub', s.mode === 'fight' ? '交戰' : '');

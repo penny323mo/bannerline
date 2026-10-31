@@ -14,14 +14,14 @@
     <header id="hud">
       <div class="hud-row">
         <div class="brand">據點號令</div>
+        <div class="scores" hidden>
+          <span class="pill mine">我軍 <b id="score-mine">0</b></span>
+          <span class="pill foe">敵軍 <b id="score-foe">0</b></span>
+        </div>
         <div class="hud-actions">
           <button id="home-btn" type="button">揀地圖</button>
           <button id="mute" type="button" aria-pressed="false" aria-label="靜音">🔊</button>
         </div>
-      </div>
-      <div class="hud-row scores" hidden>
-        <span class="pill mine">我軍 <b id="score-mine">0</b></span>
-        <span class="pill foe">敵軍 <b id="score-foe">0</b></span>
       </div>
     </header>
     <div id="upgrades" hidden>

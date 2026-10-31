@@ -289,6 +289,23 @@ function writeRgb(hex, target, offset) {
  * (enemy red). The halves do not share vertices, so the GPU cannot mix them.
  * The stripe is a thin hard split in the faction mains, not a glowing ribbon.
  */
+export function frontierCoreGeometry() {
+  const half = 0.045;
+  const positions = new Float32Array([
+    -0.5, -half, 0, 0.5, -half, 0, 0.5, 0, 0, -0.5, 0, 0,
+    -0.5, 0, 0, 0.5, 0, 0, 0.5, half, 0, -0.5, half, 0,
+  ]);
+  const colors = new Float32Array(8 * 3);
+  for (let i = 0; i < 4; i++) writeRgb(0xc8ffd8, colors, i * 3);
+  for (let i = 4; i < 8; i++) writeRgb(0xffd0c8, colors, i * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
+
 export function frontierBandGeometry() {
   const half = 0.14;
   const positions = new Float32Array([
@@ -398,9 +415,9 @@ function addEdges(group, map, roadGeo, roadMat) {
 function buildIsland(map, reduceMotion) {
   const group = new THREE.Group();
   const box = boundsOf(map);
-  const beach = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.08, 0.5, 10), mat(PALETTE.sand, { roughness: 0.92 }));
-  const spanX = Math.max(5.2, (box.maxX - box.minX) * 0.72);
-  const spanZ = Math.max(8.2, (box.maxZ - box.minZ) * 0.62);
+  const beach = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.08, 0.5, 10), mat(PALETTE.meadow, { roughness: 0.94 }));
+  const spanX = Math.max(7.6, (box.maxX - box.minX) * 1.05);
+  const spanZ = Math.max(12.2, (box.maxZ - box.minZ) * 0.92);
   beach.scale.set(spanX, 1, spanZ);
   beach.position.y = -0.28;
   beach.receiveShadow = true;
@@ -416,19 +433,22 @@ function buildIsland(map, reduceMotion) {
     const z = map.zones[i];
     const owner = ownerById[z.buildingId];
     const slab = owner ? ownerPaint(owner).slab : PALETTE.meadow;
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.05, 0.32, 6), mat(slab));
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(1, 1.02, 0.045, 18),
+      mat(slab, { roughness: 0.96, metalness: 0 }),
+    );
     if (owner) mesh.userData.owner = owner;
     mesh.scale.set(z.rx, 1, z.rz);
-    mesh.position.set(z.x, -0.1, z.z);
-    mesh.rotation.y = i * 0.18;
+    mesh.position.set(z.x, 0.02 + i * 0.006, z.z);
+    mesh.rotation.y = 0;
     mesh.receiveShadow = true;
-    mesh.castShadow = true;
+    mesh.castShadow = false;
     group.add(mesh);
     zoneMeshes.set(z.buildingId, mesh);
   }
 
   const stream = new THREE.Mesh(
-    new THREE.BoxGeometry(Math.max(6.4, box.maxX - box.minX + 0.8), 0.08, 1.15),
+    new THREE.BoxGeometry(Math.max(6.4, box.maxX - box.minX + 0.8), 0.05, 0.58),
     mat(PALETTE.stream, { roughness: 0.28 }),
   );
   stream.position.set(0, 0.08, 0);
@@ -505,6 +525,9 @@ function buildIsland(map, reduceMotion) {
     exitDir(map, spec.node, dir);
     groupB.position.set(p.x, 0.06, p.z);
     groupB.rotation.y = yawForFacing(dir.x, dir.z);
+    const fit = spec.kind === 'hq' ? 0.72 : 0.78;
+    groupB.userData.baseScale = fit;
+    groupB.scale.setScalar(fit);
     groupB.userData.owner = spec.owner;
     groupB.traverse((obj) => {
       if (obj.userData && obj.userData.flutter) flags.push(obj);
@@ -512,20 +535,20 @@ function buildIsland(map, reduceMotion) {
     if (spec.kind === 'barracks') {
       const tank = makeTank(ownerPaint(spec.owner));
       // Local +x is the building's right. The barrel stays on local −z, the road facing.
-      tank.position.set(1.85, 0, -0.15);
+      tank.position.set(1.15, 0, -0.35);
       groupB.add(tank);
     }
     group.add(groupB);
     buildings.set(spec.id, groupB);
-    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.35 : 1.05, 8);
+    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.55 : 1.2, 10);
     blob.rotateX(-Math.PI / 2);
-    blob.translate(p.x, 0.03, p.z);
+    blob.translate(p.x, 0.045, p.z);
     blobs.push(blob);
   }
   addMerged(group, blobs, new THREE.MeshBasicMaterial({
     color: PALETTE.ink,
     transparent: true,
-    opacity: 0.28,
+    opacity: 0.46,
     depthWrite: false,
   }));
 
@@ -541,15 +564,26 @@ function buildIsland(map, reduceMotion) {
   const tintMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.2,
     depthWrite: false,
     depthTest: true,
     side: THREE.DoubleSide,
     toneMapped: false,
   });
   const bandGeo = frontierBandGeometry();
+  const coreGeo = frontierCoreGeometry();
+  const coreMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    depthTest: true,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
   const glows = [];
   const tints = [];
+  const cores = [];
   for (let i = 0; i < 8; i++) {
     const band = makeGlow(bandGeo, glowMat);
     group.add(band);
@@ -557,6 +591,10 @@ function buildIsland(map, reduceMotion) {
     const tint = makeGlow(bandGeo, tintMat);
     group.add(tint);
     tints.push(tint);
+    const core = makeGlow(coreGeo, coreMat);
+    core.renderOrder = 7;
+    group.add(core);
+    cores.push(core);
   }
 
   const boxed = boxMapZones(map.zones);
@@ -565,7 +603,7 @@ function buildIsland(map, reduceMotion) {
 
   const ringGeo = new THREE.TorusGeometry(1.05, 0.05, 8, 32);
   ringGeo.rotateX(Math.PI / 2);
-  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xd5ddd4 }));
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x3dce7a }));
   ring.position.y = 0.2;
   ring.visible = false;
   group.add(ring);
@@ -578,12 +616,19 @@ function buildIsland(map, reduceMotion) {
   group.add(hover);
 
   const ribbon = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.05, 0.05, 1, 6),
-    new THREE.MeshBasicMaterial({ color: PALETTE.player.main, transparent: true, opacity: 0.9 }),
+    new THREE.CylinderGeometry(0.07, 0.07, 1, 6),
+    new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.95 }),
   );
   ribbon.visible = false;
   ribbon.frustumCulled = false;
   group.add(ribbon);
+  const arrow = new THREE.Mesh(
+    new THREE.ConeGeometry(0.2, 0.46, 8),
+    new THREE.MeshBasicMaterial({ color: 0xfff4c8 }),
+  );
+  arrow.visible = false;
+  arrow.frustumCulled = false;
+  group.add(arrow);
 
   const dot = new THREE.Mesh(
     new THREE.SphereGeometry(0.12, 8, 6),
@@ -632,6 +677,7 @@ function buildIsland(map, reduceMotion) {
     group,
     resetDrag() {
       ribbon.visible = false;
+      arrow.visible = false;
       dot.visible = false;
       hover.visible = false;
     },
@@ -640,6 +686,7 @@ function buildIsland(map, reduceMotion) {
       const p = fromPos || (fromId && nodes[fromId]);
       if (!fromId || !world || !p) {
         ribbon.visible = false;
+        arrow.visible = false;
         dot.visible = false;
         return;
       }
@@ -648,12 +695,16 @@ function buildIsland(map, reduceMotion) {
       const len = Math.hypot(dx, dz);
       if (len < 0.08) {
         ribbon.visible = false;
+        arrow.visible = false;
       } else {
         ribbon.visible = true;
-        ribbon.scale.set(1, len, 1);
-        ribbon.position.set((p.x + world.x) / 2, 0.45, (p.z + world.z) / 2);
+        arrow.visible = true;
+        ribbon.scale.set(1.4, len, 1.4);
+        ribbon.position.set((p.x + world.x) / 2, 0.55, (p.z + world.z) / 2);
         _dir.set(dx / len, 0, dz / len);
         ribbon.quaternion.setFromUnitVectors(UP, _dir);
+        arrow.quaternion.copy(ribbon.quaternion);
+        arrow.position.set(world.x, 0.55, world.z);
       }
       dot.visible = true;
       dot.position.set(world.x, 0.28, world.z);
@@ -686,11 +737,12 @@ function buildIsland(map, reduceMotion) {
           mesh.userData.pip.visible = !!(ranks && (ranks.haste > 0 || ranks.bulwark > 0));
         }
         const danger = b.kind === 'hq' && (b.count <= 0 || sieged(state, b.id, b.owner));
+        const fit = mesh.userData.baseScale || 1;
         if (danger && !reduceMotion) {
-          const s = 1 + 0.045 * Math.sin(time * 9);
-          mesh.scale.set(s, s, s);
+          const s = fit * (1 + 0.045 * Math.sin(time * 9));
+          mesh.scale.setScalar(s);
         } else {
-          mesh.scale.set(1, 1, 1);
+          mesh.scale.setScalar(fit);
         }
         const pulse = mesh.userData.pulse;
         if (pulse) {
@@ -712,9 +764,11 @@ function buildIsland(map, reduceMotion) {
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
+        const core = cores[i];
         if (!seg) {
           band.visible = false;
           tints[i].visible = false;
+          core.visible = false;
           continue;
         }
         const alongX = seg.axis !== 'z';
@@ -722,17 +776,25 @@ function buildIsland(map, reduceMotion) {
         const cx = alongX ? (seg.x0 + seg.x1) / 2 : seg.x;
         const cz = alongX ? seg.z : (seg.z0 + seg.z1) / 2;
         const flip = seg.plusOwner === 'player' ? 0 : Math.PI;
+        const yaw = alongX ? flip : Math.PI / 2 + flip;
         band.visible = true;
-        band.position.set(cx, 0.34, cz);
-        band.scale.set(span, 1, 2.4);
-        band.rotation.y = alongX ? flip : Math.PI / 2 + flip;
+        band.position.set(cx, 0.22, cz);
+        band.scale.set(span, 1, 3.2);
+        band.rotation.y = yaw;
         const tint = tints[i];
         tint.visible = true;
-        tint.position.set(cx, 0.16, cz);
-        tint.scale.set(span, 1, 11);
-        tint.rotation.y = band.rotation.y;
+        tint.position.set(cx, 0.08, cz);
+        tint.scale.set(span, 1, 4.2);
+        tint.rotation.y = yaw;
+        core.visible = true;
+        core.position.set(cx, 0.62, cz);
+        core.scale.set(span, 1, 8);
+        core.rotation.y = yaw;
       }
-      for (let i = segs.length; i < tints.length; i++) tints[i].visible = false;
+      for (let i = segs.length; i < tints.length; i++) {
+        tints[i].visible = false;
+        cores[i].visible = false;
+      }
 
       placeMarker(ring, selectedId, state);
       if (!reduceMotion && ring.visible) ring.rotation.y = time * 0.8;
@@ -788,13 +850,38 @@ function skyDome() {
 export function createWorld(scene) {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   scene.add(skyDome());
-  const water = new THREE.Mesh(
-    new THREE.CircleGeometry(18, 28),
-    mat(PALETTE.water, { roughness: 0.35, metalness: 0.04 }),
+  const fieldGeo = new THREE.CircleGeometry(26, 48);
+  const fieldPos = fieldGeo.attributes.position;
+  const fieldColors = new Float32Array(fieldPos.count * 3);
+  const meadowA = new THREE.Color(PALETTE.meadow);
+  const meadowB = new THREE.Color(PALETTE.meadowDeep);
+  const meadowC = new THREE.Color(0x7d8a58);
+  const meadowTone = new THREE.Color();
+  for (let i = 0; i < fieldPos.count; i++) {
+    const x = fieldPos.getX(i);
+    const y = fieldPos.getY(i);
+    const n = Math.sin(x * 0.55) * Math.cos(y * 0.47) + Math.sin((x + y) * 0.23) * 0.4;
+    meadowTone.copy(n > 0.35 ? meadowC : n < -0.25 ? meadowB : meadowA);
+    fieldColors[i * 3] = meadowTone.r;
+    fieldColors[i * 3 + 1] = meadowTone.g;
+    fieldColors[i * 3 + 2] = meadowTone.b;
+  }
+  fieldGeo.setAttribute('color', new THREE.BufferAttribute(fieldColors, 3));
+  const field = new THREE.Mesh(
+    fieldGeo,
+    mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }),
   );
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = -0.62;
-  scene.add(water);
+  field.rotation.x = -Math.PI / 2;
+  field.position.y = -0.66;
+  field.receiveShadow = true;
+  scene.add(field);
+  const shore = new THREE.Mesh(
+    new THREE.RingGeometry(16.5, 26, 40),
+    mat(PALETTE.water, { roughness: 0.4, metalness: 0.04 }),
+  );
+  shore.rotation.x = -Math.PI / 2;
+  shore.position.y = -0.64;
+  scene.add(shore);
 
   const holder = new THREE.Group();
   scene.add(holder);

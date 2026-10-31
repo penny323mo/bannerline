@@ -5,9 +5,8 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-// World height stays under the hangar roof (~1.0). The closer camera supplies the pixels.
-const SOLDIER_SCALE = 1.9;
-const RANK_SPACING = 0.44;
+const SOLDIER_SCALE = 1.48;
+const RANK_SPACING = 0.3;
 const _slot = { x: 0, z: 0 };
 const _nose = new THREE.Vector3();
 const _vel = new THREE.Vector3();
@@ -32,32 +31,77 @@ function shade(geo, value) {
   return geo;
 }
 
+function limb(radiusTop, radiusBottom, height, sides) {
+  return new THREE.CylinderGeometry(radiusTop, radiusBottom, height, sides);
+}
+
 export function soldierGeometry() {
-  // Adult block-out: legs, torso, arms, helmet with brim, pack on +z, rifle on local −z.
-  // The rifle's −z extent is the facing cue yawForFacing aims along travel.
-  const legL = shade(new THREE.BoxGeometry(0.055, 0.16, 0.07), 0.26);
-  legL.translate(-0.045, 0.08, 0.01);
-  const legR = shade(new THREE.BoxGeometry(0.055, 0.16, 0.07), 0.2);
-  legR.translate(0.045, 0.08, 0.01);
-  const torso = shade(new THREE.BoxGeometry(0.15, 0.22, 0.1), 0.42);
-  torso.translate(0, 0.25, 0);
-  const armL = shade(new THREE.BoxGeometry(0.045, 0.15, 0.05), 0.3);
-  armL.translate(-0.105, 0.25, -0.02);
-  const armR = shade(new THREE.BoxGeometry(0.045, 0.13, 0.05), 0.28);
-  armR.translate(0.1, 0.26, -0.05);
-  const helmet = shade(new THREE.BoxGeometry(0.22, 0.16, 0.2), 1);
-  helmet.translate(0, 0.44, -0.02);
-  const brim = shade(new THREE.BoxGeometry(0.28, 0.032, 0.24), 0.72);
-  brim.translate(0, 0.355, -0.05);
-  const rifle = shade(new THREE.BoxGeometry(0.042, 0.045, 0.52), 0.08);
-  rifle.translate(0.11, 0.24, -0.28);
-  const stock = shade(new THREE.BoxGeometry(0.04, 0.055, 0.08), 0.14);
-  stock.translate(0.1, 0.21, -0.02);
-  const pack = shade(new THREE.BoxGeometry(0.09, 0.11, 0.055), 0.22);
-  pack.translate(0, 0.26, 0.08);
-  const geo = mergeGeometries([legL, legR, torso, armL, armR, helmet, brim, rifle, stock, pack]);
+  // Helmeted infantry. Local −z is the rifle, which yawForFacing aims along travel.
+  const legL = shade(limb(0.035, 0.042, 0.2, 5), 0.22);
+  legL.translate(-0.05, 0.1, 0);
+  const legR = shade(limb(0.035, 0.042, 0.2, 5), 0.16);
+  legR.translate(0.05, 0.1, 0);
+  const torso = shade(limb(0.09, 0.1, 0.22, 6), 0.4);
+  torso.translate(0, 0.28, 0);
+  const armL = shade(limb(0.028, 0.03, 0.16, 4), 0.28);
+  armL.translate(-0.12, 0.3, -0.02);
+  const armR = shade(limb(0.028, 0.03, 0.14, 4), 0.26);
+  armR.translate(0.11, 0.3, -0.06);
+  const head = shade(limb(0.055, 0.06, 0.09, 6), 0.55);
+  head.translate(0, 0.42, 0);
+  const helmet = shade(limb(0.068, 0.08, 0.08, 7), 1);
+  helmet.translate(0, 0.48, -0.01);
+  const brim = shade(new THREE.BoxGeometry(0.2, 0.02, 0.16), 0.78);
+  brim.translate(0, 0.45, -0.04);
+  const rifle = shade(new THREE.BoxGeometry(0.028, 0.03, 0.56), 0.07);
+  rifle.translate(0.12, 0.3, -0.32);
+  const stock = shade(new THREE.BoxGeometry(0.035, 0.05, 0.08), 0.12);
+  stock.translate(0.12, 0.28, -0.04);
+  const pack = shade(new THREE.BoxGeometry(0.08, 0.1, 0.05), 0.2);
+  pack.translate(0, 0.3, 0.08);
+  const geo = mergeGeometries([legL, legR, torso, armL, armR, head, helmet, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;
+}
+
+/** Grey shade on soldierGeometry becomes uniform, helmet, skin, and rifle. */
+function troopGeometry(uniformHex, helmetHex) {
+  const geo = soldierGeometry();
+  const src = geo.getAttribute('color');
+  const colors = new Float32Array(src.count * 3);
+  const uniform = new THREE.Color(uniformHex);
+  const deep = uniform.clone().multiplyScalar(0.42);
+  const helmet = new THREE.Color(helmetHex);
+  const brim = helmet.clone().multiplyScalar(0.62);
+  const skin = new THREE.Color(0xc4a882);
+  const rifle = new THREE.Color(0x161816);
+  const cloth = new THREE.Color();
+  for (let i = 0; i < src.count; i++) {
+    const v = src.getX(i);
+    let tone = uniform;
+    if (v >= 0.95) tone = helmet;
+    else if (v >= 0.7) tone = brim;
+    else if (v >= 0.5) tone = skin;
+    else if (v <= 0.14) tone = rifle;
+    else {
+      cloth.copy(deep).lerp(uniform, Math.min(1, (v - 0.14) / 0.36));
+      tone = cloth;
+    }
+    colors[i * 3] = tone.r;
+    colors[i * 3 + 1] = tone.g;
+    colors[i * 3 + 2] = tone.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+function exitReach(nodeId) {
+  const nexts = activeGraph[nodeId] || [];
+  const next = nexts[0];
+  const a = activeNodes[nodeId];
+  const b = next && activeNodes[next];
+  if (!a || !b) return 1.8;
+  return Math.hypot(b.x - a.x, b.z - a.z);
 }
 
 let activeNodes = NODES;
@@ -73,25 +117,20 @@ function exitYaw(nodeId) {
 }
 
 export function createCrowds(scene) {
-  const geo = soldierGeometry();
+  const troopMat = () => new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    roughness: 0.74,
+    metalness: 0.04,
+  });
   const green = new THREE.InstancedMesh(
-    geo,
-    new THREE.MeshStandardMaterial({
-      color: PALETTE.player.main,
-      vertexColors: true,
-      roughness: 0.62,
-      metalness: 0.08,
-    }),
+    troopGeometry(PALETTE.player.main, 0x8fbf9a),
+    troopMat(),
     MAX,
   );
   const red = new THREE.InstancedMesh(
-    geo,
-    new THREE.MeshStandardMaterial({
-      color: PALETTE.enemy.main,
-      vertexColors: true,
-      roughness: 0.62,
-      metalness: 0.08,
-    }),
+    troopGeometry(PALETTE.enemy.main, 0xd48980),
+    troopMat(),
     MAX,
   );
   // Soldiers do not cast. A few hundred casters blow the 1024 shadow map.
@@ -142,7 +181,7 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const cols = n > 18 ? 6 : n > 6 ? 4 : n;
+    const cols = n > 20 ? 9 : n > 8 ? 6 : Math.max(1, n);
     const spacing = RANK_SPACING;
     for (let i = 0; i < n; i++) {
       const c = i % cols;
@@ -181,10 +220,11 @@ export function createCrowds(scene) {
         const p = nodes[b.node];
         if (!p) continue;
         const yaw = exitYaw(b.node);
-        // Crowd stands in front of the door. Local −z is that facing; ranks extend +z, behind it.
+        // Crowd stands in front of the door, short of the next node. Ranks extend back toward the building.
+        const reach = Math.min(2.45, Math.max(1.2, exitReach(b.node) * 0.82));
         rotateXZ(0, -1, yaw, _slot);
-        const anchorX = p.x + _slot.x * 1.45;
-        const anchorZ = p.z + _slot.z * 1.45;
+        const anchorX = p.x + _slot.x * reach;
+        const anchorZ = p.z + _slot.z * reach;
         formation(b.owner, anchorX, anchorZ, yaw, b.count, false);
       }
 

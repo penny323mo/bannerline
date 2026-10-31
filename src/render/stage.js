@@ -6,13 +6,24 @@ import { PALETTE } from './palette.js';
  * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  // Closer and less steep than the round-15 perch (fov 52 at y 16.4).
-  // Screen-right stays world +x: the camera sits on +z, up is +y, look is toward −z.
-  camera.fov = 42;
+  // Whole island in the 390×844 play frame. Screen-right is world +x:
+  // camera sits on +z, up is +y, look is toward −z.
+  camera.fov = 46;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.15, 9.46, 18.77);
+  camera.position.set(0.18, 12.4, 16.6);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0.15, 0.8, 1.3);
+  camera.lookAt(0.05, 0.35, -0.15);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+}
+
+/** Menu frame. The home card covers the lower half, so both bases sit above it. */
+export function frameHomeCamera(camera, aspect) {
+  camera.fov = 46;
+  if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
+  camera.position.set(0.1, 8.2, 22);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(0, 0, 8);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
@@ -62,16 +73,16 @@ export function createStage(canvas) {
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(PALETTE.sky, 22, 48);
+  scene.fog = new THREE.Fog(PALETTE.sky, 28, 62);
   scene.background = new THREE.Color(PALETTE.sky);
 
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 90);
+  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xc5d4e2, 0x5a6b42, 0.62));
-  scene.add(new THREE.AmbientLight(0xe7eeea, 0.38));
+  scene.add(new THREE.HemisphereLight(0xd4e2ee, 0x3d4c34, 0.5));
+  scene.add(new THREE.AmbientLight(0xe7eeea, 0.26));
 
-  const sun = new THREE.DirectionalLight(0xfff4e2, 1.22);
+  const sun = new THREE.DirectionalLight(0xfff1d6, 1.48);
   sun.position.set(-7.5, 18, 9.2);
   sun.target.position.set(0, 0, 0);
   scene.add(sun);

@@ -4,7 +4,7 @@ import { createBadges } from './render/badges.js';
 import { createCrowds } from './render/crowds.js';
 import { createFx } from './render/fx.js';
 import { attachInput } from './render/input.js';
-import { createStage } from './render/stage.js';
+import { createStage, frameDioramaCamera, frameHomeCamera } from './render/stage.js';
 import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
 import { DIFFICULTIES, MAP_LIST } from './sim/maps.js';
@@ -136,6 +136,12 @@ function syncHud() {
   scoreFoe.textContent = String(sideStrength(state, 'enemy'));
 }
 
+function applyFrame() {
+  const cam = stage.camera;
+  if (homeEl && !homeEl.hidden) frameHomeCamera(cam, cam.aspect);
+  else frameDioramaCamera(cam, cam.aspect);
+}
+
 function showHome(on) {
   homeEl.hidden = !on;
   if (scoresEl) {
@@ -143,6 +149,7 @@ function showHome(on) {
     scoresEl.classList.toggle('is-preview', !!on);
   }
   if (on) upgradesEl.hidden = true;
+  applyFrame();
   syncCoach();
 }
 
@@ -337,13 +344,24 @@ function bindTap(el, fn) {
 function mapThumb(map) {
   const thumb = document.createElement('canvas');
   thumb.className = 'map-thumb';
-  thumb.width = 168;
-  thumb.height = 112;
+  const W = 320;
+  const H = 180;
+  thumb.width = W;
+  thumb.height = H;
   const g = thumb.getContext('2d');
-  g.fillStyle = '#4e5c3c';
-  g.fillRect(0, 0, 168, 112);
-  g.fillStyle = '#6b7a4e';
-  g.fillRect(6, 6, 156, 100);
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#9eb8c8');
+  sky.addColorStop(0.22, '#7fa8c4');
+  sky.addColorStop(0.45, '#6b7a4e');
+  sky.addColorStop(1, '#4e5c38');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 70; i++) {
+    g.fillStyle = i % 3 ? 'rgba(90,104,64,0.55)' : 'rgba(125,139,88,0.7)';
+    const x = (i * 47) % (W - 8);
+    const y = 50 + ((i * 29) % (H - 58));
+    g.fillRect(x, y, 4, 6);
+  }
   const nodes = map.nodes || {};
   const ids = Object.keys(nodes);
   let minX = Infinity;
@@ -362,15 +380,31 @@ function mapThumb(map) {
   // +z is the near / player side, which sits at the bottom of the thumbnail.
   function pt(p) {
     return {
-      x: 16 + ((p.x - minX) / sx) * 136,
-      y: 16 + ((p.z - minZ) / sz) * 80,
+      x: 28 + ((p.x - minX) / sx) * (W - 56),
+      y: 36 + ((p.z - minZ) / sz) * (H - 64),
     };
   }
   const mid = pt({ x: 0, z: (minZ + maxZ) / 2 });
-  g.fillStyle = '#3e6f8f';
-  g.fillRect(8, mid.y - 7, 152, 14);
+  g.fillStyle = '#2f5a72';
+  g.fillRect(0, mid.y - 9, W, 18);
+  g.fillStyle = '#4e86a8';
+  g.fillRect(0, mid.y - 3, W, 5);
+  for (let i = 0; i < 8; i++) {
+    const tx = 8 + i * 40;
+    g.fillStyle = '#2f4530';
+    g.beginPath();
+    g.moveTo(tx, mid.y - 28);
+    g.lineTo(tx + 7, mid.y - 10);
+    g.lineTo(tx - 7, mid.y - 10);
+    g.fill();
+    g.beginPath();
+    g.moveTo(tx, mid.y + 12);
+    g.lineTo(tx + 6, mid.y + 26);
+    g.lineTo(tx - 6, mid.y + 26);
+    g.fill();
+  }
   g.strokeStyle = '#5c5348';
-  g.lineWidth = 4;
+  g.lineWidth = 7;
   g.lineCap = 'round';
   g.beginPath();
   const seen = new Set();
@@ -399,10 +433,30 @@ function mapThumb(map) {
     const p = nodes[b.node];
     if (!p) continue;
     const at = pt(p);
-    g.fillStyle = b.owner === 'player' ? '#2f9e5b' : '#c43c32';
-    const w = b.kind === 'hq' ? 16 : 12;
-    const h = b.kind === 'hq' ? 11 : 8;
-    g.fillRect(at.x - w / 2, at.y - h / 2, w, h);
+    const paint = b.owner === 'player' ? '#2f9e5b' : '#c43c32';
+    const deep = b.owner === 'player' ? '#1b6b3d' : '#8e241c';
+    if (b.kind === 'hq') {
+      g.fillStyle = '#8a7a5c';
+      g.fillRect(at.x - 16, at.y - 8, 32, 18);
+      g.fillStyle = paint;
+      g.fillRect(at.x - 10, at.y - 14, 20, 16);
+      g.fillStyle = deep;
+      g.fillRect(at.x - 5, at.y - 22, 10, 8);
+      g.fillStyle = '#8e9694';
+      g.beginPath();
+      g.arc(at.x + 8, at.y - 20, 4, 0, Math.PI * 2);
+      g.fill();
+    } else {
+      g.fillStyle = '#c8b48a';
+      g.fillRect(at.x - 18, at.y - 8, 6, 5);
+      g.fillRect(at.x + 12, at.y - 8, 6, 5);
+      g.fillStyle = paint;
+      g.fillRect(at.x - 14, at.y - 6, 28, 12);
+      g.fillStyle = '#1a2220';
+      g.fillRect(at.x - 6, at.y - 2, 12, 3);
+    }
+    g.fillStyle = deep;
+    for (let k = 0; k < 6; k++) g.fillRect(at.x - 14 + k * 5, at.y + 10, 3, 4);
   }
   return thumb;
 }
@@ -472,6 +526,7 @@ document.getElementById('retry').addEventListener('click', () => {
 
 function resize() {
   stage.resize();
+  applyFrame();
 }
 
 const ro = new ResizeObserver(resize);

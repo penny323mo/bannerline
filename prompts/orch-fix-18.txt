@@ -1,0 +1,16 @@
+You are the coder. cd /workspace/sidequest/top-force-like. This round is an ART OVERHAUL, driven by the supervisor's authoritative live 390px audit (verdict NOT SHIP, scores models 2, lighting 2, effects 1, HUD 4, type 4, terrain 3, density 1, controls 5, balance 3). The code review said SHIP but the live game looks nothing like the owner-approved target. Read:
+- review/loop-r17/live-audit.md (full gap list) and screenshots/audit-r17/*.png (what it looks like now)
+- review/art-mockup-v2/01-combat-390x844.png, 02-home-390x844.png, 03-siege-390x844.png (THE acceptance bar; open the images and look at them), plus review/art-mockup-v2/COMPARE.md and THREEJS-PATH.md (implementation path)
+Owner said the previous look was 「垃圾級」. Do not stop at palette tweaks. Fix in this priority order, all CRITICAL/MAJOR in the audit:
+1. Soldiers: replace voxel blocks with recognisable helmeted infantry (head+helmet, torso, legs, rifle), InstancedMesh, and render squads as DENSE crowds that read as armies (visual bodies scale with count, e.g. a 95-count squad = a packed formation of dozens of figures). Original geometry only, no copied assets.
+2. Buildings: HQ = concrete bunker/tower with faction stripe, dish and mast (see mockup 01/03); barracks = sandbagged roll-door hangar. Fix scale so HQ and barracks never overlap each other or hide count badges; place badges above, unoccluded.
+3. Lighting/materials: MeshStandardMaterial, ACES tone mapping, one DirectionalLight with soft shadow map (fallback to blob contact shadows when fps<40), sky gradient and terrain filling the frame (no empty void / flat water).
+4. Terrain: layered meadow + dirt roads + rocks + pine clusters, edge vignette like the mockup; glowing green/red ownership border ribbon that follows the frontier.
+5. Combat juice: muzzle flashes, dust/smoke puffs at clashes and march, capture pulse, 「司令部 危」 badge on a threatened HQ, siege fire on the building (mockup 03).
+6. HUD: gunmetal hard panels, condensed military display title, top-right 我軍/敵軍 totals fully visible (not clipped at x=0), ⬆ and 加速/加固 buttons fully inside the 390px viewport, embossed 出戰 button, map cards with real terrain thumbnails, styled result screen, thick bottom hint bar like mockup 01.
+7. Controls: show a drag/aim preview line from source to target and clear selected/target highlight; targets ≥44px.
+8. Balance: 中 start shows 敵 96 vs 我 42 and the player loses in ~40s; make starts symmetric and 中 winnable by a reasonable player in 2–4 min while keeping round-13 balance tests meaningful.
+Keep 60fps-ish on mobile (cap instances ~480, particles ≤1k pooled). Keep PLAN.md rules and existing tests passing; add tests where cheap. Do not edit reviews/ or prompts/ or review/. Run `npm test` and `npm run build`, then render your own 390x844 screenshots of home, combat and siege into screenshots/fix-18/ and compare them side by side to the mockup; do not finish while they are obviously far from it. Append '## Round 18 art overhaul' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-18.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-18.done

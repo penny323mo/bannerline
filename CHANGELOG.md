@@ -69,3 +69,7 @@
 - Count badges are short hexes. The rifle mark and the tabular count stay, and the ⬆ chip sits clear of the label.
 - The result sheet adds 地圖 beside 再戰. It returns to the map list. The post-match hint says 再戰，或者揀地圖.
 - 52 tests passed. Rebuilt `static/app.js`.
+
+## Round 10 fixes
+
+- The 390×844 review shipped with no critical, major, or minor defects. The military palette, bunker and hangar, soldier squads, hex badges, and the result-sheet 地圖 button were already in `static/app.js`. Tests stayed at 52/52.

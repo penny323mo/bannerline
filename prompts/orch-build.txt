@@ -1,0 +1,20 @@
+You are the coder for 據點號令 / Bannerline (grok 4.7). cd /workspace/sidequest/top-force-like.
+
+Read PLAN.md (authoritative). Build M1 — a COMPLETE playable vertical slice — as a static, mobile-first (iPhone 390×844 portrait) Vite + Three.js web game.
+
+M1 must include ALL of:
+1. Soft bright low-poly 3D map (toy diorama lighting). Player mint-green vs enemy coral-red. Glowing ownership border.
+2. Player HQ + barracks, enemy HQ + barracks. Barracks generate troop counts over time; floating count badges.
+3. Touch: drag or tap-from → tap-to to send a squad from an owned building toward a target. Squads march as dense instanced crowds with badges.
+4. Combat = count subtraction on contact; survivor continues. Capture empty/overrun buildings (at least HQs must flip).
+5. Win sheet when enemy HQ captured; lose sheet when player HQ lost.
+6. Mute toggle in HUD (placeholder SFX/BGM OK if mute works and preference persists).
+7. Cantonese UI labels where users see text. Relative paths only. No secrets.
+8. Node tests under tests/ for combat math + capture helpers. `npm test` must pass.
+9. Art: original meshes/colors only. Do NOT copy assets or branding from assets/ref/inspiration-ad.png (reference for feel only). Never use names Top Force / 最強統帥 / RUSSIA or real-nation labels.
+10. At the END: npm run build (or equivalent that outputs static files suitable for GitHub Pages from repo root or documented dist→root publish), git add -A, commit, and push to origin main so https://penny323mo.github.io/bannerline/ updates. Do not force-push. Never commit secrets.
+
+Quality bar: commercial casual mobile RTS feel — not a grey tech demo. Prefer InstancedMesh for soldiers; target smooth 390px play.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/build.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/build.done

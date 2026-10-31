@@ -3,7 +3,7 @@ import test from 'node:test';
 import { yawForFacing, rotateXZ } from '../src/sim/facing.js';
 import { NODES } from '../src/sim/mapdata.js';
 import { FIRST_SEND, startingBuildings } from '../src/sim/balance.js';
-import { createMatch, playerHold, sendSquad, stepMatch, buildingById } from '../src/sim/match.js';
+import { createMatch, playerHold, retargetSquad, sendSquad, stepMatch, buildingById } from '../src/sim/match.js';
 import { findPath } from '../src/sim/path.js';
 
 test('yaw faces local −z along travel, and +z is behind the rank', () => {
@@ -149,6 +149,56 @@ test('friendly reinforce stops at the cap and keeps the surplus with the squad',
   assert.equal(state.squads[0].count, 7);
   assert.equal(state.squads[0].targetId, 'player-hq');
   assert.equal(Math.hypot(state.squads[0].x - NODES['player-hq'].x, state.squads[0].z - NODES['player-hq'].z) < 0.2, true);
+});
+
+test('a parked surplus squad can be ordered onward without touching the garrison', () => {
+  const state = createMatch();
+  state.ai = false;
+  const hq = buildingById(state, 'player-hq');
+  hq.count = hq.cap;
+  buildingById(state, 'player-bar').count = 9;
+  assert.equal(sendSquad(state, 'player-bar', 'player-hq').ok, true);
+  stepMatch(state, 8, { ai: false });
+  assert.equal(state.squads.length, 1);
+  const parked = state.squads[0];
+  assert.equal(parked.count, 9);
+  assert.equal(hq.count, hq.cap);
+  const res = retargetSquad(state, parked.id, 'enemy-bar');
+  assert.equal(res.ok, true);
+  assert.equal(hq.count, hq.cap);
+  assert.equal(parked.targetId, 'enemy-bar');
+  assert.equal(parked.mode, 'march');
+  assert.equal(parked.path[0], 'player-hq');
+  assert.ok(parked.path.length >= 2);
+  const z0 = parked.z;
+  stepMatch(state, 0.4, { ai: false });
+  assert.ok(parked.z < z0, `surplus should march toward −z, z=${parked.z}`);
+  assert.equal(hq.count, hq.cap);
+});
+
+test('retarget keeps a marching squad on its current segment', () => {
+  const state = createMatch();
+  state.ai = false;
+  state.squads.push({
+    id: 'sqX',
+    owner: 'player',
+    count: 5,
+    targetId: 'enemy-hq',
+    path: ['player-road', 'mid', 'enemy-road', 'enemy-hq'],
+    seg: 0,
+    x: 0,
+    z: 1.5,
+    mode: 'march',
+  });
+  const res = retargetSquad(state, 'sqX', 'player-hq');
+  assert.equal(res.ok, true);
+  const squad = state.squads[0];
+  assert.equal(squad.path[0], 'player-road');
+  assert.equal(squad.path[1], 'mid');
+  assert.equal(squad.mode, 'march');
+  assert.equal(squad.targetId, 'player-hq');
+  stepMatch(state, 0.2, { ai: false });
+  assert.ok(squad.z < 1.5, `should finish the segment toward mid, z=${squad.z}`);
 });
 
 test('a player order leaves a garrison, and a full barracks still outnumbers the enemy headquarters', () => {

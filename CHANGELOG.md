@@ -20,3 +20,8 @@
 - A friendly arrival fills a building only up to its cap. Extra soldiers stay with the squad.
 - A player order leaves a small garrison. The enemy barracks waits until after the player barracks first reads 滿, and a 14-troop enemy headquarters can still probe.
 - The ownership glow reuses one zone list and one segment buffer.
+
+## Round 2 fixes
+
+- Rebuilt `static/app.js` so the shipped page uses the 44px screen pick for count pills, roofs, and flags.
+- A friendly squad waiting outside a full building can be tapped or dragged to another building. That order retargets the squad and leaves the garrison where it is.

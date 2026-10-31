@@ -45,6 +45,47 @@ export function buildingById(state, id) {
   return null;
 }
 
+export function squadById(state, id) {
+  if (!state) return null;
+  for (let i = 0; i < state.squads.length; i++) {
+    if (state.squads[i].id === id) return state.squads[i];
+  }
+  return null;
+}
+
+/**
+ * Send a squad that is already on the map toward a building.
+ * The new path starts on the segment the squad is walking, so it does not
+ * snap back to the node it has left.
+ */
+export function retargetSquad(state, squadId, targetId) {
+  if (!state || state.status !== 'playing') return { ok: false, reason: 'over' };
+  const squad = squadById(state, squadId);
+  const target = buildingById(state, targetId);
+  if (!squad || squad.owner !== 'player' || squad.count <= 0) return { ok: false, reason: 'bad-squad' };
+  if (!target) return { ok: false, reason: 'bad-target' };
+  const path = squad.path || [];
+  if (!path.length) return { ok: false, reason: 'no-path' };
+  const atEnd = squad.seg >= path.length - 1;
+  const behind = atEnd ? path[path.length - 1] : path[squad.seg];
+  const next = atEnd ? null : path[squad.seg + 1];
+  let rebuilt;
+  if (!next) {
+    rebuilt = findPath(behind, target.node);
+  } else {
+    const rest = findPath(next, target.node);
+    if (!rest) return { ok: false, reason: 'no-path' };
+    rebuilt = rest[0] === behind ? rest : [behind, ...rest];
+  }
+  if (!rebuilt || rebuilt.length < 2) return { ok: false, reason: 'same' };
+  squad.targetId = target.id;
+  squad.path = rebuilt;
+  squad.seg = 0;
+  squad.mode = 'march';
+  state.events.push({ type: 'retarget', squadId, targetId, owner: squad.owner });
+  return { ok: true };
+}
+
 export function sideStrength(state, owner) {
   let n = 0;
   for (let i = 0; i < state.buildings.length; i++) {

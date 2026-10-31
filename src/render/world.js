@@ -384,15 +384,30 @@ export function createWorld(scene) {
 
   const ownerScratch = {};
 
-  function placeMarker(mesh, id) {
-    if (!id || !NODES[id]) {
+  function placeMarker(mesh, id, state) {
+    let x;
+    let z;
+    const node = id && NODES[id];
+    if (node) {
+      x = node.x;
+      z = node.z;
+    } else if (state && id) {
+      const squads = state.squads;
+      for (let i = 0; i < squads.length; i++) {
+        if (squads[i].id === id) {
+          x = squads[i].x;
+          z = squads[i].z;
+          break;
+        }
+      }
+    }
+    if (x === undefined) {
       mesh.visible = false;
       return;
     }
-    const p = NODES[id];
     mesh.visible = true;
-    mesh.position.x = p.x;
-    mesh.position.z = p.z;
+    mesh.position.x = x;
+    mesh.position.z = z;
   }
 
   return {
@@ -401,13 +416,13 @@ export function createWorld(scene) {
       dot.visible = false;
       hover.visible = false;
     },
-    setDrag(fromId, world, hoverId) {
-      if (!fromId || !world || !NODES[fromId]) {
+    setDrag(fromId, world, hoverId, fromPos) {
+      const p = fromPos || (fromId && NODES[fromId]);
+      if (!fromId || !world || !p) {
         ribbon.visible = false;
         dot.visible = false;
         return;
       }
-      const p = NODES[fromId];
       const dx = world.x - p.x;
       const dz = world.z - p.z;
       const len = Math.hypot(dx, dz);
@@ -422,7 +437,7 @@ export function createWorld(scene) {
       }
       dot.visible = true;
       dot.position.set(world.x, 0.28, world.z);
-      if (hoverId && hoverId !== fromId) {
+      if (hoverId && hoverId !== fromId && NODES[hoverId]) {
         hover.visible = true;
         const h = NODES[hoverId];
         hover.position.x = h.x;
@@ -464,7 +479,7 @@ export function createWorld(scene) {
         glowMat.opacity = reduceMotion ? 0.85 : 0.72 + pulse * 0.2;
       }
 
-      placeMarker(ring, selectedId);
+      placeMarker(ring, selectedId, state);
       if (!reduceMotion && ring.visible) ring.rotation.y = time * 0.8;
 
       for (let i = 0; i < flags.length; i++) {

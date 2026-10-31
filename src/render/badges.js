@@ -1,5 +1,5 @@
 import { NODES } from '../sim/mapdata.js';
-import { BADGE_LIFT, projectToCss } from './pointer-math.js';
+import { BADGE_LIFT, SQUAD_LIFT, projectToCss, squadMarkX } from './pointer-math.js';
 
 export function createBadges(host) {
   const pool = new Map();
@@ -66,8 +66,7 @@ export function createBadges(host) {
         setText(node, '.tag', s.mode === 'siege' ? '攻城' : '行軍');
         setText(node, '.num', String(Math.max(0, Math.floor(s.count))));
         setText(node, '.sub', s.mode === 'fight' ? '交戰' : '');
-        const ox = s.mode === 'siege' ? (s.owner === 'player' ? 0.85 : -0.85) : 0;
-        move(node, s.x + ox, 1.05, s.z, camera, w, h);
+        move(node, squadMarkX(s.x, s.owner, s.mode), SQUAD_LIFT, s.z, camera, w, h);
       }
 
       const stale = [];

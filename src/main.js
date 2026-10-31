@@ -6,7 +6,8 @@ import { attachInput } from './render/input.js';
 import { createStage } from './render/stage.js';
 import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
-import { buildingById, createMatch, playerHold, sendSquad, sideStrength, stepMatch } from './sim/match.js';
+import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, sideStrength, squadById, stepMatch } from './sim/match.js';
+import { squadMarkX } from './render/pointer-math.js';
 
 const app = document.getElementById('app');
 const canvas = document.getElementById('view');
@@ -89,9 +90,10 @@ function consumeEvents(now) {
 
 function dispatch(fromId, toId) {
   if (state.status !== 'playing' || !fromId || !toId || fromId === toId) return false;
-  const from = buildingById(state, fromId);
-  if (!from || from.owner !== 'player') return false;
-  const res = sendSquad(state, fromId, toId, playerHold(from));
+  const squad = squadById(state, fromId);
+  const res = squad
+    ? retargetSquad(state, fromId, toId)
+    : sendFromBuilding(fromId, toId);
   if (res.ok) {
     audio.sfx('send');
     selected = null;
@@ -102,12 +104,29 @@ function dispatch(fromId, toId) {
   return false;
 }
 
+function sendFromBuilding(fromId, toId) {
+  const from = buildingById(state, fromId);
+  if (!from || from.owner !== 'player') return { ok: false };
+  return sendSquad(state, fromId, toId, playerHold(from));
+}
+
 attachInput(canvas, stage.camera, () => {
   const list = [];
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
     const p = NODES[b.node];
     list.push({ id: b.id, owner: b.owner, kind: b.kind, x: p.x, z: p.z });
+  }
+  for (let i = 0; i < state.squads.length; i++) {
+    const s = state.squads[i];
+    if (s.owner !== 'player' || s.count <= 0) continue;
+    list.push({
+      id: s.id,
+      owner: s.owner,
+      kind: 'squad',
+      x: squadMarkX(s.x, s.owner, s.mode),
+      z: s.z,
+    });
   }
   return list;
 }, {
@@ -121,15 +140,24 @@ attachInput(canvas, stage.camera, () => {
       setHint('idle');
       return;
     }
-    const building = buildingById(state, id);
     if (selected && selected !== id) {
-      const from = buildingById(state, selected);
-      if (from && from.owner === 'player') {
+      const fromSquad = squadById(state, selected);
+      const fromBuilding = buildingById(state, selected);
+      const fromPlayer = (fromSquad && fromSquad.owner === 'player')
+        || (fromBuilding && fromBuilding.owner === 'player');
+      if (fromPlayer) {
         dispatch(selected, id);
         return;
       }
     }
+    const building = buildingById(state, id);
     if (building && building.owner === 'player') {
+      selected = selected === id ? null : id;
+      setHint(selected ? 'selected' : 'idle');
+      return;
+    }
+    const squad = squadById(state, id);
+    if (squad && squad.owner === 'player') {
       selected = selected === id ? null : id;
       setHint(selected ? 'selected' : 'idle');
     }
@@ -140,7 +168,8 @@ attachInput(canvas, stage.camera, () => {
     setHint('drag');
   },
   onDragMove(worldPoint, hoverId) {
-    world.setDrag(selected, worldPoint, hoverId);
+    const squad = squadById(state, selected);
+    world.setDrag(selected, worldPoint, hoverId, squad ? { x: squad.x, z: squad.z } : null);
   },
   onDragEnd(fromId, toId) {
     dragging = false;
@@ -204,8 +233,12 @@ window.__BL = {
   get state() {
     return state;
   },
+  pick: 'screen-44',
   send(fromId, toId) {
     return sendSquad(state, fromId, toId);
+  },
+  retarget(squadId, targetId) {
+    return retargetSquad(state, squadId, targetId);
   },
   step(seconds) {
     stepMatch(state, seconds);

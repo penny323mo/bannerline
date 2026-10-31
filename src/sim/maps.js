@@ -39,9 +39,10 @@ export const DIFFICULTIES = {
     hqRegen: 0.1,
     waveKeep: 0.58,
     maxRelief: 1,
-    // The barracks opens on the map count. The headquarters keeps a pile so a blind rush is not a win.
+    // The barracks opens on the map count. Ten extra headquarters troops are the
+    // smallest pile that still stops one full barracks when the defence is off.
     barBonus: 0,
-    hqBonus: 16,
+    hqBonus: 10,
     reliefCap: 24,
     counterCap: 16,
   },

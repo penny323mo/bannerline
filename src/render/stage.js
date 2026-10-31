@@ -8,11 +8,11 @@ import { PALETTE } from './palette.js';
 export function frameDioramaCamera(camera, aspect) {
   // Whole island in the 390×844 play frame. Screen-right is world +x:
   // camera sits on +z, up is +y, look is toward −z.
-  camera.fov = 46;
+  camera.fov = 44;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.18, 12.4, 16.6);
+  camera.position.set(0.16, 11.2, 17.2);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0.05, 0.35, -0.15);
+  camera.lookAt(0.08, 0.45, 0.2);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }

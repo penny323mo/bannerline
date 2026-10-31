@@ -5,8 +5,8 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-const SOLDIER_SCALE = 1.48;
-const RANK_SPACING = 0.3;
+const SOLDIER_SCALE = 1.9;
+const RANK_SPACING = 0.42;
 const _slot = { x: 0, z: 0 };
 const _nose = new THREE.Vector3();
 const _vel = new THREE.Vector3();
@@ -37,26 +37,26 @@ function limb(radiusTop, radiusBottom, height, sides) {
 
 export function soldierGeometry() {
   // Helmeted infantry. Local −z is the rifle, which yawForFacing aims along travel.
-  const legL = shade(limb(0.035, 0.042, 0.2, 5), 0.22);
+  const legL = shade(limb(0.035, 0.042, 0.2, 3), 0.22);
   legL.translate(-0.05, 0.1, 0);
-  const legR = shade(limb(0.035, 0.042, 0.2, 5), 0.16);
+  const legR = shade(limb(0.035, 0.042, 0.2, 3), 0.16);
   legR.translate(0.05, 0.1, 0);
-  const torso = shade(limb(0.09, 0.1, 0.22, 6), 0.4);
+  const torso = shade(limb(0.09, 0.1, 0.22, 4), 0.4);
   torso.translate(0, 0.28, 0);
-  const armL = shade(limb(0.028, 0.03, 0.16, 4), 0.28);
+  const armL = shade(limb(0.028, 0.03, 0.16, 3), 0.28);
   armL.translate(-0.12, 0.3, -0.02);
-  const armR = shade(limb(0.028, 0.03, 0.14, 4), 0.26);
+  const armR = shade(limb(0.028, 0.03, 0.14, 3), 0.26);
   armR.translate(0.11, 0.3, -0.06);
-  const head = shade(limb(0.055, 0.06, 0.09, 6), 0.55);
+  const head = shade(limb(0.055, 0.06, 0.09, 4), 0.55);
   head.translate(0, 0.42, 0);
-  const helmet = shade(limb(0.068, 0.08, 0.08, 7), 1);
-  helmet.translate(0, 0.48, -0.01);
-  const brim = shade(new THREE.BoxGeometry(0.2, 0.02, 0.16), 0.78);
-  brim.translate(0, 0.45, -0.04);
-  const rifle = shade(new THREE.BoxGeometry(0.028, 0.03, 0.56), 0.07);
-  rifle.translate(0.12, 0.3, -0.32);
-  const stock = shade(new THREE.BoxGeometry(0.035, 0.05, 0.08), 0.12);
-  stock.translate(0.12, 0.28, -0.04);
+  const helmet = shade(limb(0.092, 0.1, 0.16, 4), 1);
+  helmet.translate(0, 0.58, -0.01);
+  const brim = shade(new THREE.BoxGeometry(0.24, 0.03, 0.2), 0.78);
+  brim.translate(0, 0.5, -0.06);
+  const rifle = shade(new THREE.BoxGeometry(0.055, 0.05, 0.64), 0.07);
+  rifle.translate(0.14, 0.32, -0.38);
+  const stock = shade(new THREE.BoxGeometry(0.06, 0.07, 0.1), 0.12);
+  stock.translate(0.14, 0.3, -0.06);
   const pack = shade(new THREE.BoxGeometry(0.08, 0.1, 0.05), 0.2);
   pack.translate(0, 0.3, 0.08);
   const geo = mergeGeometries([legL, legR, torso, armL, armR, head, helmet, brim, rifle, stock, pack]);
@@ -220,8 +220,8 @@ export function createCrowds(scene) {
         const p = nodes[b.node];
         if (!p) continue;
         const yaw = exitYaw(b.node);
-        // Crowd stands in front of the door, short of the next node. Ranks extend back toward the building.
-        const reach = Math.min(2.45, Math.max(1.2, exitReach(b.node) * 0.82));
+        // Stay on this pad. A longer reach parks the headquarters rank inside the barracks rank.
+        const reach = Math.min(1.1, exitReach(b.node) * 0.82);
         rotateXZ(0, -1, yaw, _slot);
         const anchorX = p.x + _slot.x * reach;
         const anchorZ = p.z + _slot.z * reach;

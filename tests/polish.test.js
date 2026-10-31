@@ -174,8 +174,8 @@ test('中 opens within a small strength gap on 對岸', () => {
   const sum = (owner) => state.buildings.reduce((n, b) => n + (b.owner === owner ? b.count : 0), 0);
   const mine = sum('player');
   const foe = sum('enemy');
-  assert.ok(Math.abs(mine - foe) <= 40, `中 opens ${mine} vs ${foe}`);
-  assert.ok(foe < 90, `enemy pile ${foe} is the old 96-troop open`);
+  assert.ok(Math.abs(mine - foe) <= 30, `中 opens ${mine} vs ${foe}`);
+  assert.ok(foe < 80, `enemy pile ${foe} is still the old reinforced open`);
 });
 
 test('易 still falls to one barracks rush', () => {

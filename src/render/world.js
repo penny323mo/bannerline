@@ -287,25 +287,8 @@ function writeRgb(hex, target, offset) {
  * The quad starts in XY. rotateX(-π/2) maps (x, y, 0) → (x, 0, -y),
  * so local −Y becomes world +Z (player green) and local +Y becomes world −Z
  * (enemy red). The halves do not share vertices, so the GPU cannot mix them.
- * The stripe is a thin hard split in the faction mains, not a glowing ribbon.
+ * The stripe is a thin hard split in the faction mains, not a second pastel core.
  */
-export function frontierCoreGeometry() {
-  const half = 0.045;
-  const positions = new Float32Array([
-    -0.5, -half, 0, 0.5, -half, 0, 0.5, 0, 0, -0.5, 0, 0,
-    -0.5, 0, 0, 0.5, 0, 0, 0.5, half, 0, -0.5, half, 0,
-  ]);
-  const colors = new Float32Array(8 * 3);
-  for (let i = 0; i < 4; i++) writeRgb(0xc8ffd8, colors, i * 3);
-  for (let i = 4; i < 8; i++) writeRgb(0xffd0c8, colors, i * 3);
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geo.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
-  geo.rotateX(-Math.PI / 2);
-  return geo;
-}
-
 export function frontierBandGeometry() {
   const half = 0.14;
   const positions = new Float32Array([
@@ -571,19 +554,8 @@ function buildIsland(map, reduceMotion) {
     toneMapped: false,
   });
   const bandGeo = frontierBandGeometry();
-  const coreGeo = frontierCoreGeometry();
-  const coreMat = new THREE.MeshBasicMaterial({
-    vertexColors: true,
-    transparent: true,
-    opacity: 1,
-    depthWrite: false,
-    depthTest: true,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-  });
   const glows = [];
   const tints = [];
-  const cores = [];
   for (let i = 0; i < 8; i++) {
     const band = makeGlow(bandGeo, glowMat);
     group.add(band);
@@ -591,10 +563,6 @@ function buildIsland(map, reduceMotion) {
     const tint = makeGlow(bandGeo, tintMat);
     group.add(tint);
     tints.push(tint);
-    const core = makeGlow(coreGeo, coreMat);
-    core.renderOrder = 7;
-    group.add(core);
-    cores.push(core);
   }
 
   const boxed = boxMapZones(map.zones);
@@ -764,11 +732,9 @@ function buildIsland(map, reduceMotion) {
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
-        const core = cores[i];
         if (!seg) {
           band.visible = false;
           tints[i].visible = false;
-          core.visible = false;
           continue;
         }
         const alongX = seg.axis !== 'z';
@@ -786,15 +752,8 @@ function buildIsland(map, reduceMotion) {
         tint.position.set(cx, 0.08, cz);
         tint.scale.set(span, 1, 4.2);
         tint.rotation.y = yaw;
-        core.visible = true;
-        core.position.set(cx, 0.62, cz);
-        core.scale.set(span, 1, 8);
-        core.rotation.y = yaw;
       }
-      for (let i = segs.length; i < tints.length; i++) {
-        tints[i].visible = false;
-        cores[i].visible = false;
-      }
+      for (let i = segs.length; i < tints.length; i++) tints[i].visible = false;
 
       placeMarker(ring, selectedId, state);
       if (!reduceMotion && ring.visible) ring.rotation.y = time * 0.8;

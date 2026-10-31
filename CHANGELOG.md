@@ -143,3 +143,8 @@
 
 - The island builds one grey deck at each road crossing of the stream, using the same plank and rails as before. 對岸 and 長路 still cross at x 0, so the deck stays on that road. 雙橋 crosses at x −1.85 and x +1.85, so those two lanes each get a deck and the origin is open water. At 390×844 the centre of the 雙橋 stream reads as water, and the west lane rail reads as the neutral grey deck beside the rank.
 - 60 tests passed. Rebuilt `static/app.js` (552862 bytes).
+
+## Round 22 fixes
+
+- The round 22 review found no CRITICAL, MAJOR, or MINOR issues. The lane decks on 雙橋, the centre deck on 對岸 and 長路, the per-map cards, and the hidden home hint stay. Loop-r17 paints, the bunker and the hangar, the helmeted ranks, the mute glyphs, the formal copy, and the 中 open of 42 vs 72 stay closed.
+- 60 tests passed. No source or bundle change.

@@ -7,7 +7,7 @@ import {
   stepCapture,
 } from '../src/sim/capture.js';
 import { isMutedValue, muteStoreValue, MUTE_KEY } from '../src/sim/settings.js';
-import { frontierSegments } from '../src/sim/territory.js';
+import { frontierSegments, sortedZones } from '../src/sim/territory.js';
 
 const owners = {
   'player-hq': 'player',
@@ -68,32 +68,55 @@ test('headquarters outcome: lose beats a simultaneous reading, win needs your HQ
   assert.equal(matchOutcome('enemy', 'player'), 'lose');
 });
 
+function readFrontier(ownerById) {
+  return frontierSegments(ownerById).map((seg) => ({ ...seg }));
+}
+
 test('the glow frontier sits between different owners and moves when a slab flips', () => {
-  const start = frontierSegments(owners);
+  const start = readFrontier(owners);
   assert.equal(start.length, 1);
   assert.equal(start[0].plusOwner, 'player');
   assert.equal(start[0].minusOwner, 'enemy');
   assert.ok(Math.abs(start[0].z) < 0.35);
   assert.ok(start[0].x1 > start[0].x0);
 
-  const pushed = frontierSegments({ ...owners, 'enemy-bar': 'player' });
+  const pushed = readFrontier({ ...owners, 'enemy-bar': 'player' });
   assert.equal(pushed.length, 1);
   assert.ok(pushed[0].z < -3);
   assert.equal(pushed[0].plusOwner, 'player');
   assert.equal(pushed[0].minusOwner, 'enemy');
 
-  const lostBar = frontierSegments({ ...owners, 'player-bar': 'enemy' });
+  const lostBar = readFrontier({ ...owners, 'player-bar': 'enemy' });
   assert.equal(lostBar.length, 1);
   assert.ok(lostBar[0].z > 3);
   assert.equal(lostBar[0].minusOwner, 'enemy');
 
-  const allPlayer = frontierSegments({
+  const allPlayer = readFrontier({
     'player-hq': 'player',
     'player-bar': 'player',
     'enemy-bar': 'player',
     'enemy-hq': 'player',
   });
   assert.equal(allPlayer.length, 0);
+});
+
+test('the frontier reuses one zone list and one segment buffer', () => {
+  const zones = sortedZones();
+  assert.equal(sortedZones(), zones);
+  const first = frontierSegments(owners);
+  const again = frontierSegments(owners);
+  assert.equal(first, again);
+  const flipped = frontierSegments({ ...owners, 'enemy-bar': 'player' });
+  assert.equal(flipped, first);
+  assert.ok(flipped[0].z < -3);
+  const cleared = frontierSegments({
+    'player-hq': 'player',
+    'player-bar': 'player',
+    'enemy-bar': 'player',
+    'enemy-hq': 'player',
+  });
+  assert.equal(cleared, first);
+  assert.equal(cleared.length, 0);
 });
 
 test('mute preference is the persisted 1/0 flag', () => {

@@ -6,7 +6,7 @@ import { attachInput } from './render/input.js';
 import { createStage } from './render/stage.js';
 import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
-import { buildingById, createMatch, sendSquad, sideStrength, stepMatch } from './sim/match.js';
+import { buildingById, createMatch, playerHold, sendSquad, sideStrength, stepMatch } from './sim/match.js';
 
 const app = document.getElementById('app');
 const canvas = document.getElementById('view');
@@ -91,7 +91,7 @@ function dispatch(fromId, toId) {
   if (state.status !== 'playing' || !fromId || !toId || fromId === toId) return false;
   const from = buildingById(state, fromId);
   if (!from || from.owner !== 'player') return false;
-  const res = sendSquad(state, fromId, toId);
+  const res = sendSquad(state, fromId, toId, playerHold(from));
   if (res.ok) {
     audio.sfx('send');
     selected = null;
@@ -107,7 +107,7 @@ attachInput(canvas, stage.camera, () => {
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
     const p = NODES[b.node];
-    list.push({ id: b.id, owner: b.owner, x: p.x, z: p.z });
+    list.push({ id: b.id, owner: b.owner, kind: b.kind, x: p.x, z: p.z });
   }
   return list;
 }, {
@@ -146,7 +146,7 @@ attachInput(canvas, stage.camera, () => {
     dragging = false;
     world.resetDrag();
     if (fromId && toId) dispatch(fromId, toId);
-    else setHint(selected ? 'selected' : 'idle');
+    setHint(selected ? 'selected' : 'idle');
   },
 });
 

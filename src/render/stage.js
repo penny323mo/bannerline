@@ -5,6 +5,16 @@ import { PALETTE } from './palette.js';
  * Fixed diorama camera on the +z side, looking toward −z (enemy / top of the portrait).
  * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
+export function frameDioramaCamera(camera, aspect) {
+  camera.fov = 52;
+  if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
+  camera.position.set(0.2, 16.4, 14.35);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(0, 0.15, -0.25);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+}
+
 export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -23,8 +33,7 @@ export function createStage(canvas) {
   scene.background = new THREE.Color(PALETTE.sky);
 
   const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 90);
-  camera.position.set(0.2, 16.4, 14.35);
-  camera.lookAt(0, 0.15, -0.25);
+  frameDioramaCamera(camera);
 
   scene.add(new THREE.HemisphereLight(0xfff6e8, 0x8ed0a0, 0.92));
   scene.add(new THREE.AmbientLight(0xffffff, 0.28));

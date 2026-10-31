@@ -1,16 +1,5 @@
-import * as THREE from 'three';
 import { NODES } from '../sim/mapdata.js';
-
-const v = new THREE.Vector3();
-
-function project(x, y, z, camera, w, h, out) {
-  v.set(x, y, z);
-  v.project(camera);
-  if (v.z < -1 || v.z > 1) return false;
-  out.x = (v.x * 0.5 + 0.5) * w;
-  out.y = (-v.y * 0.5 + 0.5) * h;
-  return true;
-}
+import { BADGE_LIFT, projectToCss } from './pointer-math.js';
 
 export function createBadges(host) {
   const pool = new Map();
@@ -34,7 +23,7 @@ export function createBadges(host) {
   }
 
   function move(node, x, y, z, camera, w, h) {
-    if (!project(x, y, z, camera, w, h, spot)) {
+    if (!projectToCss(x, y, z, camera, w, h, spot)) {
       node.hidden = true;
       return;
     }
@@ -63,7 +52,7 @@ export function createBadges(host) {
         else if (b.kind === 'barracks' && b.count >= b.cap) extra = '滿';
         setText(node, '.sub', extra);
         const p = NODES[b.node];
-        const lift = b.kind === 'hq' ? 2.15 : 1.7;
+        const lift = BADGE_LIFT[b.kind] || BADGE_LIFT.barracks;
         move(node, p.x, lift, p.z, camera, w, h);
       }
 
@@ -94,7 +83,7 @@ export function createBadges(host) {
       const p = NODES[id];
       if (!p) return null;
       const rect = canvas.getBoundingClientRect();
-      if (!project(p.x, 0.4, p.z, camera, rect.width, rect.height, spot)) return null;
+      if (!projectToCss(p.x, 0.4, p.z, camera, rect.width, rect.height, spot)) return null;
       return { x: rect.left + spot.x, y: rect.top + spot.y };
     },
   };

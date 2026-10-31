@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import { clientToNdc } from './pointer-math.js';
-
-const PICK_RADIUS = 1.42;
+import { clientToNdc, pickBuilding } from './pointer-math.js';
 
 /**
  * Tap a friendly building, then tap a target — or drag between them.
- * Ground picks use the y=0 plane in the same camera that draws the map.
+ * Ground picks use the y=0 plane. Count pills, roofs, and flags also hit
+ * when the pointer is within 44 CSS pixels of those screen points.
  */
 export function attachInput(canvas, camera, getBuildings, handlers) {
   const raycaster = new THREE.Raycaster();
@@ -26,20 +25,19 @@ export function attachInput(canvas, camera, getBuildings, handlers) {
   }
 
   function pick(ev) {
-    const w = worldAt(ev);
-    if (!w) return { building: null, world: null };
-    let best = null;
-    let bestD = PICK_RADIUS;
-    const buildings = getBuildings();
-    for (let i = 0; i < buildings.length; i++) {
-      const b = buildings[i];
-      const d = Math.hypot(b.x - w.x, b.z - w.z);
-      if (d < bestD) {
-        bestD = d;
-        best = b;
-      }
-    }
-    return { building: best, world: w };
+    const rect = canvas.getBoundingClientRect();
+    const world = worldAt(ev);
+    if (rect.width < 1 || rect.height < 1) return { building: null, world };
+    const building = pickBuilding(
+      getBuildings(),
+      camera,
+      rect.width,
+      rect.height,
+      ev.clientX - rect.left,
+      ev.clientY - rect.top,
+      world,
+    );
+    return { building, world };
   }
 
   canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());

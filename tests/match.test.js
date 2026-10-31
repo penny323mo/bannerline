@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { yawForFacing, rotateXZ } from '../src/sim/facing.js';
 import { NODES } from '../src/sim/mapdata.js';
-import { createMatch, sendSquad, stepMatch, buildingById } from '../src/sim/match.js';
+import { FIRST_SEND, startingBuildings } from '../src/sim/balance.js';
+import { createMatch, playerHold, sendSquad, stepMatch, buildingById } from '../src/sim/match.js';
 import { findPath } from '../src/sim/path.js';
 
 test('yaw faces local −z along travel, and +z is behind the rank', () => {
@@ -133,6 +134,86 @@ test('reinforcing a friendly building deposits the squad', () => {
   assert.equal(buildingById(state, 'player-hq').count, 18);
   assert.equal(state.squads.length, 0);
   assert.equal(NODES['player-hq'].z > 0, true);
+});
+
+test('friendly reinforce stops at the cap and keeps the surplus with the squad', () => {
+  const state = createMatch();
+  state.ai = false;
+  const hq = buildingById(state, 'player-hq');
+  hq.count = hq.cap - 3;
+  buildingById(state, 'player-bar').count = 10;
+  sendSquad(state, 'player-bar', 'player-hq');
+  stepMatch(state, 8, { ai: false });
+  assert.equal(hq.count, hq.cap);
+  assert.equal(state.squads.length, 1);
+  assert.equal(state.squads[0].count, 7);
+  assert.equal(state.squads[0].targetId, 'player-hq');
+  assert.equal(Math.hypot(state.squads[0].x - NODES['player-hq'].x, state.squads[0].z - NODES['player-hq'].z) < 0.2, true);
+});
+
+test('a player order leaves a garrison, and a full barracks still outnumbers the enemy headquarters', () => {
+  const state = createMatch();
+  const bar = buildingById(state, 'player-bar');
+  bar.count = bar.cap;
+  const hold = playerHold(bar);
+  assert.ok(hold >= 1 && hold <= 6);
+  const sent = sendSquad(state, 'player-bar', 'enemy-hq', hold);
+  assert.equal(sent.ok, true);
+  assert.equal(bar.count, hold);
+  assert.ok(sent.count > 44);
+});
+
+test('the enemy barracks waits until after the player barracks first reads full', () => {
+  const bar = startingBuildings().find((b) => b.id === 'player-bar');
+  const fullAt = (bar.cap - bar.count) / bar.regen;
+  assert.ok(fullAt > 10 && fullAt < 11);
+  assert.ok(FIRST_SEND['enemy-bar'] > fullAt + 1);
+});
+
+test('a full send just after 滿 still takes the enemy headquarters', () => {
+  const state = createMatch();
+  stepMatch(state, 11.5);
+  const bar = buildingById(state, 'player-bar');
+  assert.ok(bar.count >= bar.cap);
+  assert.equal(sendSquad(state, 'player-bar', 'enemy-hq').ok, true);
+  stepMatch(state, 20);
+  assert.equal(buildingById(state, 'enemy-hq').owner, 'player');
+  assert.equal(state.status, 'win');
+});
+
+test('the same rush still wins when the player leaves a garrison', () => {
+  const state = createMatch();
+  stepMatch(state, 11.5);
+  const bar = buildingById(state, 'player-bar');
+  const hold = playerHold(bar);
+  assert.equal(sendSquad(state, 'player-bar', 'enemy-hq', hold).ok, true);
+  assert.equal(bar.count, hold);
+  stepMatch(state, 20);
+  assert.equal(state.status, 'win');
+});
+
+test('idling loses the headquarters', () => {
+  const state = createMatch();
+  stepMatch(state, 45);
+  assert.equal(state.status, 'lose');
+  assert.equal(buildingById(state, 'player-hq').owner, 'enemy');
+});
+
+test('an enemy headquarters of 14 still sends a probe and keeps a garrison', () => {
+  const state = createMatch();
+  for (let i = 0; i < state.buildings.length; i++) {
+    const b = state.buildings[i];
+    if (b.owner === 'enemy' && b.id !== 'enemy-hq') b.count = 0;
+  }
+  const hq = buildingById(state, 'enemy-hq');
+  hq.count = 14;
+  state.nextSendAt['enemy-hq'] = 0;
+  state.t = 30;
+  stepMatch(state, 0.2);
+  const squad = state.squads.find((s) => s.owner === 'enemy');
+  assert.ok(squad);
+  assert.ok(squad.count >= 8);
+  assert.ok(hq.count > 0 && hq.count < 14);
 });
 
 test('client NDC maps the canvas centre and corners', async () => {

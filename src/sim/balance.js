@@ -12,9 +12,14 @@ export const RULES = {
   substep: 0.05,
 };
 
-/** First moment each enemy building may march out. */
+/**
+ * First moment each enemy building may march out.
+ * The player barracks first reads 滿 at (54−30)/2.25 ≈ 10.7s. The enemy
+ * barracks waits until 16s so a rush a few seconds after 滿 is not met
+ * on the road by that wave.
+ */
 export const FIRST_SEND = {
-  'enemy-bar': 13,
+  'enemy-bar': 16,
   'enemy-hq': 22,
 };
 

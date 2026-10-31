@@ -58,6 +58,25 @@ export function sideStrength(state, owner) {
   return n;
 }
 
+/**
+ * Garrison left behind by a player order.
+ * A fifth of the stack, at least one soldier when there are two or more,
+ * and never more than 6 — a full barracks of 54 must still march more than
+ * the 44 troops in the enemy headquarters.
+ */
+export function playerHold(building) {
+  const count = Math.max(0, Math.floor(building.count || 0));
+  if (count <= 1) return 0;
+  const fraction = Math.max(1, Math.floor(count * 0.2));
+  return Math.min(fraction, 6, count - 1);
+}
+
+/** Headquarters reserve. A stack of 14 can still send an 8-troop probe. */
+function enemyHqKeep(count) {
+  const half = Math.floor(count * 0.5);
+  return Math.max(0, Math.min(half, count - 8));
+}
+
 export function sendSquad(state, fromId, targetId, keep = 0) {
   if (!state || state.status !== 'playing') return { ok: false, reason: 'over' };
   const from = buildingById(state, fromId);
@@ -146,13 +165,15 @@ function planEnemy(state) {
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
     if (b.owner !== 'enemy') continue;
-    if (b.count < RULES.enemySendMin) continue;
     if (state.t < (state.nextSendAt[b.id] ?? 0)) continue;
+    const keep = b.kind === 'hq' ? enemyHqKeep(b.count) : 0;
+    if (b.kind === 'hq') {
+      if (b.count < 14 || b.count - keep < 8) continue;
+    } else if (b.count < RULES.enemySendMin) {
+      continue;
+    }
     const target = nearestPlayerTarget(state, b);
     if (!target) continue;
-    // Headquarters keeps a garrison so it cannot march itself empty.
-    const keep = b.kind === 'hq' ? Math.max(14, Math.floor(b.count * 0.5)) : 0;
-    if (b.count - keep < 8) continue;
     const res = sendSquad(state, b.id, target.id, keep);
     if (res.ok) state.nextSendAt[b.id] = state.t + RULES.enemySendPeriod;
   }
@@ -204,9 +225,18 @@ function assignModes(state, paired) {
     const finished = s.seg >= s.path.length - 1;
     if (finished && dist <= RULES.arriveRadius) {
       if (target.owner === s.owner) {
-        target.count += s.count;
-        s.count = 0;
-        state.events.push({ type: 'reinforce', buildingId: target.id, owner: s.owner });
+        const room = Math.max(0, target.cap - target.count);
+        const take = Math.min(s.count, room);
+        if (take > 0) {
+          target.count += take;
+          s.count -= take;
+          state.events.push({ type: 'reinforce', buildingId: target.id, owner: s.owner });
+        }
+        if (s.count > 0) {
+          s.x = dest.x;
+          s.z = dest.z;
+          s.mode = 'march';
+        }
       } else {
         s.mode = 'siege';
         s.x = dest.x;

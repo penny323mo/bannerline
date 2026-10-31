@@ -12,3 +12,11 @@
 ## Round 0 — scaffold
 
 - PLAN.md, orch.json, build prompt, GitHub Pages target.
+
+## Round 1 fixes
+
+- Count pills, roofs, and flags take a tap or a drag-release within 44 CSS pixels. The ground disc still selects the building foot.
+- A drag that does not send puts the hint back on the real selection.
+- A friendly arrival fills a building only up to its cap. Extra soldiers stay with the squad.
+- A player order leaves a small garrison. The enemy barracks waits until after the player barracks first reads 滿, and a 14-troop enemy headquarters can still probe.
+- The ownership glow reuses one zone list and one segment buffer.

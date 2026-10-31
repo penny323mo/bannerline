@@ -351,6 +351,7 @@ export function createWorld(scene) {
   });
   const glows = [makeGlow(glowGeometry(), glowMat), makeGlow(glowGeometry(), glowMat), makeGlow(glowGeometry(), glowMat)];
   for (let i = 0; i < glows.length; i++) scene.add(glows[i]);
+  const frontierBuf = [];
 
   const ringGeo = new THREE.TorusGeometry(1.05, 0.05, 8, 32);
   ringGeo.rotateX(Math.PI / 2);
@@ -446,7 +447,7 @@ export function createWorld(scene) {
         }
       }
 
-      const segs = frontierSegments(ownerScratch);
+      const segs = frontierSegments(ownerScratch, frontierBuf);
       const pulse = reduceMotion ? 0.9 : 0.72 + 0.28 * Math.sin(time * 3.1);
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];

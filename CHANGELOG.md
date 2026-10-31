@@ -165,3 +165,8 @@
 - Spark size is 1 world unit, so siege fire and smoke stay on the building.
 - The headquarters badge lift is 1.05. The player disc sits on the bunker, and its top edge stays below the barracks crowd.
 - 63 tests passed. Rebuilt `static/app.js` (557339 bytes).
+
+## Round 25 fixes
+
+- The round 25 review found no CRITICAL, MAJOR, or MINOR issues. The helmeted ranks, the three battlefield cards, the siege sparks on the bunker, and the headquarters badge on the player bunker stay. Loop-r22’s road, frontier, scores, coach, and measured 中 / 難 timing stay closed.
+- 63 tests passed. No source or bundle change.

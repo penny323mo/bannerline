@@ -6,10 +6,12 @@ import {
   BADGE_LIFT,
   FLAG_Y,
   PICK_RADIUS,
+  PILL_GAP_PX,
   PILL_SHIFT_PX,
   ROOF_Y,
   SCREEN_HIT_PX,
   SQUAD_LIFT,
+  layoutPills,
   pickBuilding,
   projectToCss,
   squadMarkX,
@@ -45,6 +47,18 @@ function cameraAtPhone() {
 function project(camera, x, y, z) {
   const out = { x: 0, y: 0 };
   assert.equal(projectToCss(x, y, z, camera, WIDTH, HEIGHT, out), true);
+  return out;
+}
+
+function layoutOf(camera, list) {
+  const points = list.map((b) => ({
+    x: b.x,
+    y: b.kind === 'squad' ? SQUAD_LIFT : (BADGE_LIFT[b.kind] || BADGE_LIFT.barracks),
+    z: b.z,
+    squad: b.kind === 'squad' ? 1 : 0,
+  }));
+  const out = points.map(() => ({ px: 0, py: 0, ok: 0 }));
+  layoutPills(points, points.length, camera, WIDTH, HEIGHT, out);
   return out;
 }
 
@@ -110,14 +124,16 @@ test('a squad on a building keeps its pill and leaves the roof, flag, and foot',
     { id: 'sq-parked', kind: 'squad', owner: 'player', x: hq.x, z: hq.z },
   ];
   const building = project(camera, hq.x, BADGE_LIFT.hq, hq.z);
-  const squad = project(camera, hq.x, SQUAD_LIFT, hq.z);
+  const laid = layoutOf(camera, list);
+  assert.ok(Math.hypot(laid[0].px - building.x, laid[0].py - (building.y - PILL_SHIFT_PX)) < 0.6);
+  assert.ok(Math.hypot(laid[0].px - laid[1].px, laid[0].py - laid[1].py) >= PILL_GAP_PX - 0.6);
   const onSquad = pickBuilding(
     list,
     camera,
     WIDTH,
     HEIGHT,
-    squad.x,
-    squad.y - PILL_SHIFT_PX,
+    laid[1].px,
+    laid[1].py,
     { x: hq.x, z: hq.z },
   );
   assert.equal(onSquad && onSquad.id, 'sq-parked');
@@ -126,8 +142,8 @@ test('a squad on a building keeps its pill and leaves the roof, flag, and foot',
     camera,
     WIDTH,
     HEIGHT,
-    building.x,
-    building.y - PILL_SHIFT_PX,
+    laid[0].px,
+    laid[0].py,
     { x: hq.x, z: hq.z },
   );
   assert.equal(onBuilding && onBuilding.id, 'player-hq');
@@ -150,18 +166,20 @@ test('a squad sieging the enemy headquarters does not take its roof or flag', ()
     { id: 'sq-siege', kind: 'squad', owner: 'player', x: sx, z: hq.z },
   ];
   const building = project(camera, hq.x, BADGE_LIFT.hq, hq.z);
-  const squad = project(camera, sx, SQUAD_LIFT, hq.z);
+  const laid = layoutOf(camera, list);
   const roof = project(camera, hq.x, ROOF_Y.hq, hq.z);
   const flag = project(camera, hq.x, FLAG_Y.hq, hq.z);
+  assert.ok(Math.hypot(laid[0].px - building.x, laid[0].py - (building.y - PILL_SHIFT_PX)) < 0.6);
+  assert.ok(Math.hypot(laid[0].px - laid[1].px, laid[0].py - laid[1].py) >= PILL_GAP_PX - 0.6);
   assert.equal(
-    pickBuilding(list, camera, WIDTH, HEIGHT, building.x, building.y - PILL_SHIFT_PX, null).id,
+    pickBuilding(list, camera, WIDTH, HEIGHT, laid[0].px, laid[0].py, null).id,
     'enemy-hq',
   );
   assert.equal(pickBuilding(list, camera, WIDTH, HEIGHT, roof.x, roof.y, null).id, 'enemy-hq');
   assert.equal(pickBuilding(list, camera, WIDTH, HEIGHT, flag.x, flag.y, null).id, 'enemy-hq');
   assert.equal(pickBuilding(list, camera, WIDTH, HEIGHT, flag.x, flag.y + 37, null).id, 'enemy-hq');
   assert.equal(
-    pickBuilding(list, camera, WIDTH, HEIGHT, squad.x, squad.y - PILL_SHIFT_PX, null).id,
+    pickBuilding(list, camera, WIDTH, HEIGHT, laid[1].px, laid[1].py, null).id,
     'sq-siege',
   );
 });

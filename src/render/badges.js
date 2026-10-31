@@ -1,5 +1,6 @@
 import { NODES } from '../sim/mapdata.js';
-import { BADGE_LIFT, SQUAD_LIFT, projectToCss, squadMarkX } from './pointer-math.js';
+import { upgradeAffordance } from '../sim/upgrades.js';
+import { BADGE_LIFT, PILL_SHIFT_PX, SQUAD_LIFT, layoutPills, projectToCss, squadMarkX } from './pointer-math.js';
 
 export function createBadges(host) {
   const pool = new Map();
@@ -7,7 +8,20 @@ export function createBadges(host) {
   const seen = new Set();
   const stale = [];
   const MARKS = ['', '快', '固', '快固'];
+  const points = [];
+  const laid = [];
+  const refs = [];
   let nodes = NODES;
+
+  function pointAt(i) {
+    let row = points[i];
+    if (!row) {
+      row = { x: 0, y: 0, z: 0, squad: 0 };
+      points[i] = row;
+      laid[i] = { px: 0, py: 0, ok: 0 };
+    }
+    return row;
+  }
 
   function take(id) {
     let node = pool.get(id);
@@ -26,13 +40,14 @@ export function createBadges(host) {
     if (el.textContent !== text) el.textContent = text;
   }
 
-  function move(node, x, y, z, camera, w, h) {
-    if (!projectToCss(x, y, z, camera, w, h, spot)) {
+  function place(node, row) {
+    if (!row || !row.ok) {
       node.hidden = true;
       return;
     }
     node.hidden = false;
-    node.style.transform = `translate(${spot.x}px, ${spot.y}px) translate(-50%, -115%)`;
+    const anchorY = row.py + PILL_SHIFT_PX;
+    node.style.transform = `translate(${row.px}px, ${anchorY}px) translate(-50%, -115%)`;
   }
 
   function underAttack(state, id, owner) {
@@ -53,6 +68,7 @@ export function createBadges(host) {
       const h = canvas.clientHeight || 1;
       const layout = (state && state.nodes) || nodes;
       seen.clear();
+      let n = 0;
 
       for (let i = 0; i < state.buildings.length; i++) {
         const b = state.buildings[i];
@@ -61,6 +77,7 @@ export function createBadges(host) {
         node.classList.toggle('player', b.owner === 'player');
         node.classList.toggle('enemy', b.owner === 'enemy');
         node.classList.toggle('squad', false);
+        node.classList.toggle('can-up', upgradeAffordance(b));
         const label = b.kind === 'hq' ? '司令部' : '兵營';
         setText(node, '.tag', label);
         setText(node, '.num', String(Math.max(0, Math.floor(b.count))));
@@ -74,23 +91,42 @@ export function createBadges(host) {
         else if (b.count >= b.cap) extra = '滿';
         setText(node, '.sub', extra);
         const p = layout[b.node];
-        if (!p) continue;
-        const lift = BADGE_LIFT[b.kind] || BADGE_LIFT.barracks;
-        move(node, p.x, lift, p.z, camera, w, h);
+        if (!p) {
+          node.hidden = true;
+          continue;
+        }
+        const row = pointAt(n);
+        row.x = p.x;
+        row.y = BADGE_LIFT[b.kind] || BADGE_LIFT.barracks;
+        row.z = p.z;
+        row.squad = 0;
+        refs[n] = node;
+        n += 1;
       }
 
       for (let i = 0; i < state.squads.length; i++) {
         const s = state.squads[i];
+        if (s.count <= 0) continue;
         seen.add(s.id);
         const node = take(s.id);
         node.classList.add('squad');
         node.classList.toggle('player', s.owner === 'player');
         node.classList.toggle('enemy', s.owner === 'enemy');
+        node.classList.toggle('can-up', false);
         setText(node, '.tag', s.mode === 'siege' ? '攻城' : '行軍');
         setText(node, '.num', String(Math.max(0, Math.floor(s.count))));
         setText(node, '.sub', s.mode === 'fight' ? '交戰' : '');
-        move(node, squadMarkX(s.x, s.owner, s.mode), SQUAD_LIFT, s.z, camera, w, h);
+        const row = pointAt(n);
+        row.x = squadMarkX(s.x, s.owner, s.mode);
+        row.y = SQUAD_LIFT;
+        row.z = s.z;
+        row.squad = 1;
+        refs[n] = node;
+        n += 1;
       }
+
+      layoutPills(points, n, camera, w, h, laid);
+      for (let i = 0; i < n; i++) place(refs[i], laid[i]);
 
       stale.length = 0;
       for (const id of pool.keys()) {

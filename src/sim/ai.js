@@ -31,11 +31,12 @@ function attackScore(personality, target) {
   return -target.travel * 10 - target.count * 0.01;
 }
 
-export function bestTarget(personality, targets, count) {
+export function bestTarget(personality, targets, count, skipHq) {
   let best = null;
   let bestScore = -Infinity;
   const n = count == null ? targets.length : count;
   for (let i = 0; i < n; i++) {
+    if (skipHq && targets[i].kind === 'hq') continue;
     const score = attackScore(personality, targets[i]);
     if (score > bestScore) {
       bestScore = score;
@@ -71,7 +72,8 @@ export function writeOrder(ctx, out) {
   // A squad already standing on the building is a siege, not a march to cut off.
   const defending = !!(ctx.underAttack && ctx.threatenedId && !ctx.pressing);
   if (defending && ctx.buildingId !== ctx.threatenedId && ctx.ownsThreatened) {
-    const keep = Math.min(ctx.count - 1, Math.max(0, Math.floor(ctx.count * 0.35)));
+    const frac = ctx.reliefKeep > 0 ? ctx.reliefKeep : 0.35;
+    const keep = Math.min(ctx.count - 1, Math.max(0, Math.floor(ctx.count * frac)));
     if (ctx.count - keep < 1) return false;
     out.targetId = ctx.threatenedId;
     out.keep = keep;
@@ -87,12 +89,19 @@ export function writeOrder(ctx, out) {
     }
   }
 
-  const target = bestTarget(ctx.personality, ctx.targets, ctx.targetCount);
+  // Opening grace blocks a march on the player headquarters. Reinforcing an
+  // enemy building (above) is unchanged. marchCap trims offensive waves only.
+  const skipHq = ctx.hqGrace > 0 && ctx.t < ctx.hqGrace;
+  const target = bestTarget(ctx.personality, ctx.targets, ctx.targetCount, skipHq);
   if (!target) return false;
   let keep = 0;
   if (ctx.kind === 'hq' && !defending) keep = hqKeep(ctx.count);
   else if (defending) keep = ctx.count >= 3 ? 1 : 0;
   else if (ctx.personality === 'cautious') keep = Math.min(ctx.count - 1, Math.max(0, Math.floor(ctx.count * 0.3)));
+  if (ctx.marchCap > 0 && !defending) {
+    const capped = ctx.count - ctx.marchCap;
+    if (capped > keep) keep = capped;
+  }
   if (ctx.count - keep < 1) return false;
   out.targetId = target.id;
   out.keep = keep;

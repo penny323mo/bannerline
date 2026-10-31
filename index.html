@@ -17,8 +17,8 @@
       <div class="hud-row">
         <div class="brand">據點號令</div>
         <div class="hud-actions">
-          <button id="home-btn" type="button">地圖</button>
-          <button id="mute" type="button" aria-pressed="false" aria-label="靜音">有聲</button>
+          <button id="home-btn" type="button">揀地圖</button>
+          <button id="mute" type="button" aria-pressed="false" aria-label="靜音">🔊</button>
         </div>
       </div>
       <div class="hud-row scores">
@@ -30,6 +30,8 @@
       <button id="up-haste" type="button">加速 · 8</button>
       <button id="up-bulwark" type="button">加固 · 8</button>
     </div>
+    <button id="coach" type="button" hidden>撳自己建築可以升級</button>
+    <div id="toast" hidden role="status">敵軍打緊司令部</div>
     <p id="hint">揀地圖，再撳開戰</p>
     <div id="home">
       <div class="home-card">
@@ -46,6 +48,7 @@
         <p class="kicker" id="sheet-kicker">對戰結束</p>
         <h2 id="sheet-title">贏咗</h2>
         <p id="sheet-body">攻陷咗對方司令部</p>
+        <p id="sheet-time">用咗 0 秒</p>
         <button id="retry" type="button">再戰</button>
       </div>
     </div>

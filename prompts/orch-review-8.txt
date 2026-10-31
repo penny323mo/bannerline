@@ -1,0 +1,12 @@
+You are a strict senior code reviewer. cd /workspace/sidequest/top-force-like. Round 8 at viewport 390px.
+Read ART-STYLE.md and PLAN.md §4 (mature military strategy — NOT pastel toy). Do NOT modify project files. Run node tests if present; do not launch browsers.
+
+Authoritative open audit (must re-verify every item): /workspace/sidequest/top-force-like/review/loop-r8/coder-audit.md
+Also re-check that round-7 polish from review/loop-r7/coder-audit.md is still fixed (upgrades discoverable, HQ grace + danger warning, 易 AI attacks, pill de-overlap).
+
+SHIP is FORBIDDEN while any CRITICAL/MAJOR in loop-r8 remains open, or while the live/built app still reads as pastel toy / primary-school (rainbow border, cream candy trees, rounded candy HUD, HQ≈barracks silhouette).
+
+Write a numbered review ordered CRITICAL/MAJOR/MINOR with file:line and concrete fix, first line 'VERDICT: SHIP' or 'VERDICT: NOT READY', to /workspace/sidequest/top-force-like/reviews/orch-r8-grok.md. Keep to ~15 minutes.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/review-8.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/review-8.done

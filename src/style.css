@@ -115,13 +115,30 @@ body {
 .badge .sub:empty { display: none; }
 
 .badge.squad {
-  min-width: 44px;
-  padding: 2px 7px 4px;
+  min-width: 36px;
+  padding: 1px 5px 2px;
   border-radius: 999px;
 }
 
-.badge.squad .num { font-size: 16px; }
-.badge.squad .tag { letter-spacing: 0.02em; }
+.badge.squad .num { font-size: 13px; }
+.badge.squad .tag { font-size: 9px; letter-spacing: 0.02em; }
+
+.badge.can-up::after {
+  content: "⬆";
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffe56a;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 1px 0 rgba(30, 60, 48, 0.16);
+}
 
 #hud {
   position: absolute;
@@ -200,10 +217,60 @@ body {
   box-shadow: 0 3px 0 rgba(26, 90, 70, 0.12);
 }
 
+#home-btn { min-width: 76px; }
+
+#mute {
+  min-width: 44px;
+  padding: 0 10px;
+  font-size: 22px;
+  line-height: 44px;
+}
+
 #mute.is-muted {
   background: #ffe8e4;
   color: var(--coral);
 }
+
+#coach {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(112px + env(safe-area-inset-top));
+  z-index: 4;
+  display: block;
+  min-height: 44px;
+  border: 0;
+  border-radius: 16px;
+  background: #ffe56a;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgba(26, 90, 70, 0.16);
+}
+
+#coach[hidden] { display: none; }
+
+#toast {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 5;
+  transform: translateX(-50%);
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #ff5a4a;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 24px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(180, 40, 30, 0.28);
+}
+
+#toast[hidden] { display: none; }
 
 #hint {
   position: absolute;
@@ -269,6 +336,13 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: #3d564e;
+}
+
+#sheet-time {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #5b726b;
 }
 
 #retry {

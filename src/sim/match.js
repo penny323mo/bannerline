@@ -53,6 +53,9 @@ export function createMatch(opts = {}) {
     sendMin: RULES.enemySendMin * diff.sendMinScale,
     sendPeriod: RULES.enemySendPeriod * diff.periodScale,
     reactDelay: diff.reactDelay,
+    hqGrace: diff.hqGrace > 0 ? diff.hqGrace : 0,
+    marchCap: diff.marchCap > 0 ? diff.marchCap : 0,
+    reliefKeep: diff.reliefKeep > 0 ? diff.reliefKeep : 0,
     alarmAt: null,
     answered: {},
     opened: {},
@@ -292,6 +295,9 @@ function planEnemy(state) {
       targetCount,
       opened: !!opened[b.id],
       pressing,
+      hqGrace: state.hqGrace || 0,
+      marchCap: state.marchCap || 0,
+      reliefKeep: state.reliefKeep || 0,
     }, orderSlot);
     if (!ready) continue;
     const res = sendSquad(state, b.id, orderSlot.targetId, orderSlot.keep);

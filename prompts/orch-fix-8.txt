@@ -1,0 +1,16 @@
+You are the coder. cd /workspace/sidequest/top-force-like.
+
+TOP PRIORITY (Penny feedback 「又小學生lv」 — blocks SHIP): full art restyle per ART-STYLE.md and PLAN.md §4. Mature mobile military strategy, Top-Force-ad genre feel only (never copy assets/branding/nations/title). Still bright + readable on iPhone 390×844.
+
+Implement EVERY OPEN item in review/loop-r8/coder-audit.md. The three CRITICAL art items are mandatory first:
+1) muted olive terrain + strong faction green/red palette; no rainbow border/bridge; neutral bridges
+2) distinct 司令部 bunker+antenna vs 兵營 hangar silhouettes
+3) soldier squads + hard rifle badges (not toy bricks / giant pastel pills)
+Then MAJOR HUD (sharp panels, 🔊/🔇) and formal zh-HK copy; rebuild static/app.js for Pages.
+
+Also fix every CRITICAL/MAJOR still open in reviews/orch-r8-grok.md (written by the reviewer this round). Do not regress loop-r7 polish (upgrade coach/⬆, HQ grace + danger warning, 易 AI attacks, pill de-overlap).
+
+Keep M1/M2 behaviour, ≥50 fps at 390×844, buttons ≥44px. Do not edit reviews/ or prompts/. Run the tests. Append '## Round 8 fixes (art restyle — mature military)' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-8.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-8.done

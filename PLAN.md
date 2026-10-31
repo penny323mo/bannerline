@@ -9,9 +9,9 @@
 
 ## 1. Concept
 
-A bright, toy-like real-time strategy for one finger on an iPhone. Two coloured territories face each other on a soft low-poly 3D map. Your barracks spawn soldier squads; you drag or tap to send a squad to a road, a building, or the enemy HQ. When squads meet, **counts subtract** until one side is gone. Capture buildings to expand spawn and income. Win by taking the enemy headquarters.
+A bright, readable real-time strategy for one finger on an iPhone. Two coloured territories face each other on a compact low-poly operations map. Your barracks spawn soldier squads; you drag or tap to send a squad to a road, a building, or the enemy HQ. When squads meet, **counts subtract** until one side is gone. Capture buildings to expand spawn and income. Win by taking the enemy headquarters.
 
-Tone: cheerful miniature diorama, not grim war sim. Safe for a broad audience — no gore, no real-world nation labels, no copied faction names.
+Tone: mature mobile military strategy (command map, fortified bases) — **not** a pastel toy / primary-school look, and **not** a grim gore sim. Safe for a broad audience — no gore, no real-world nation labels, no copied faction names. Full visual rules: `ART-STYLE.md`.
 
 ### Elevator pitch (Cantonese UI)
 
@@ -49,7 +49,7 @@ Tone: cheerful miniature diorama, not grim war sim. Safe for a broad audience �
 | Layer | Choice |
 |-------|--------|
 | Bundler | Vite |
-| 3D | Three.js (WebGL) — soft lighting, low-poly meshes, instanced soldiers |
+| 3D | Three.js (WebGL) — clear daylight, muted terrain, low-poly military meshes, instanced soldiers |
 | UI | HTML/CSS overlay (or lightweight React) for HUD, mute, menus — 390px portrait |
 | Input | Pointer events (touch + mouse); drag from building to target with rubber-band preview |
 | Audio | Web Audio / Howler; BGM + SFX; **mute toggle persisted** |
@@ -65,16 +65,19 @@ Tone: cheerful miniature diorama, not grim war sim. Safe for a broad audience �
 
 ## 4. Art direction
 
-Match the **bright soft toy diorama** feel of the reference (ideas only):
+**Canonical brief:** `ART-STYLE.md` (v2, 2026-10-31). Supersedes the old pastel toy-diorama brief after Penny’s 「又小學生lv」 feedback.
 
-- Soft key light, gentle ambient, rounded low-poly terrain slabs  
-- Player = fresh mint/emerald green; Enemy = warm coral/tomato red (not nation-labelled)  
-- Barracks: chunky rounded blocks, tiny flags, readable silhouette at 390px  
-- Trees: white/cream cones or soft spheres — decorative, not camouflage  
-- Glow border: neon edge along ownership boundary (green↔red gradient)  
-- Squads: monochrome crowd blocks; unreadably tiny faces OK; **count badge always crisp**  
-- UI chrome: rounded pills, large tap targets (≥44px), Cantonese labels  
-- No photoreal textures, no blood, no dark desaturated military look  
+Genre feel only from the inspiration ad (never copy assets/branding/nations/title):
+
+- Clear daylight on a **muted olive / drab** terrain; units and buildings pop  
+- Player = strong command green; Enemy = strong operational red (not mint candy / coral pink; not nation-labelled)  
+- **司令部 (HQ):** fortified bunker + antenna/dish silhouette, distinct from barracks  
+- **兵營 (Barracks):** lower hangar / block building with spawn pad  
+- Trees: real green low-poly cones — not white/cream candy props  
+- Ownership border: **two-tone** green|red hard edge only — **no** rainbow / yellow middle; bridges neutral stone/metal  
+- Squads: dense soldier blocks + rifle badge; **count always crisp**  
+- UI: sharp military HUD panels (≤4px radius), ≥44px taps, formal zh-HK labels (司令部 / 兵營 / 出兵 / 攻陷 / 靜音)  
+- Still bright + readable on iPhone; no gore; no photoreal texture packs; no dark muddy “brown FPS” grade  
 
 Reference file (local only, never ship branding): `assets/ref/inspiration-ad.png`.
 
@@ -95,7 +98,7 @@ Map format: JSON (nodes, edges, building slots, spawn rates, AI personality). Ed
 
 ## 6. Audio
 
-- Loopable light martial / toy-march BGM  
+- Loopable light martial / command-march BGM (not playground jingle)  
 - SFX: spawn tick, march step (subtle), clash tick, capture chime, win/lose sting  
 - **Mute button** always visible in HUD; preference saved  
 
@@ -135,7 +138,7 @@ Every milestone must pass a **real 390×844 browser** walk (headless Chrome scre
 - [ ] Tutorial coach marks  
 - [ ] Campaign of ≥6 missions with progressive difficulty (never easier than prior)  
 - [ ] PWA installable (optional but preferred)  
-- [ ] Art pass: every building/tree/badge matches bright toy brief  
+- [ ] Art pass: every building/tree/badge/HUD matches `ART-STYLE.md` (mature military, not toy)  
 
 ### M4 — Meta
 
@@ -177,4 +180,4 @@ Every milestone must pass a **real 390×844 browser** walk (headless Chrome scre
 
 ## 10. Success bar
 
-Penny can open the live link on iPhone, mute on, play one full skirmish with one thumb, win by taking the red HQ, and say the game feels like a bright toy war map — not a tech demo.
+Penny can open the live link on iPhone, mute on, play one full skirmish with one thumb, win by taking the red HQ, and say it feels like a proper military strategy map (Top-Force-ad genre) — mature, readable, not primary-school / pastel toy, and not a tech demo.

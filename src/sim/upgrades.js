@@ -31,6 +31,13 @@ export function quoteUpgrade(building, id) {
  * Spend troops. Haste multiplies the map's base regen. Bulwark raises the cap.
  * Leaves at least one soldier in the building.
  */
+/** Player headquarters and barracks that can pay for haste or bulwark. */
+export function upgradeAffordance(building) {
+  if (!building || building.owner !== 'player') return false;
+  if (building.kind !== 'hq' && building.kind !== 'barracks') return false;
+  return quoteUpgrade(building, 'haste').ok || quoteUpgrade(building, 'bulwark').ok;
+}
+
 export function applyUpgrade(building, id) {
   const quote = quoteUpgrade(building, id);
   if (!quote.ok) return quote;

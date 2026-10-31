@@ -11,11 +11,13 @@ export const DIFFICULTIES = {
   easy: {
     id: 'easy',
     label: '易',
-    sendMinScale: 1.4,
-    periodScale: 1.4,
-    regenScale: 0.72,
-    reactDelay: 3.4,
-    firstShift: 5,
+    sendMinScale: 0.7,
+    periodScale: 1.55,
+    regenScale: 0.6,
+    reactDelay: 3.6,
+    firstShift: 0,
+    hqGrace: 36,
+    marchCap: 8,
   },
   normal: {
     id: 'normal',
@@ -25,6 +27,11 @@ export const DIFFICULTIES = {
     regenScale: 1,
     reactDelay: 2.2,
     firstShift: 0,
+    hqGrace: 20,
+    marchCap: 0,
+    // A reinforcing stack keeps more back, so a push that leaves with the
+    // opening wave is not met by the whole garrison.
+    reliefKeep: 0.62,
   },
   hard: {
     id: 'hard',
@@ -34,6 +41,8 @@ export const DIFFICULTIES = {
     regenScale: 1.35,
     reactDelay: 1.15,
     firstShift: -6,
+    hqGrace: 12,
+    marchCap: 0,
   },
 };
 

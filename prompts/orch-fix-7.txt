@@ -1,0 +1,6 @@
+You are the coder. cd /workspace/sidequest/top-force-like. M2 features exist, but the supervisor's live audit found gaps. Fix EVERY OPEN item in review/loop-r7/coder-audit.md (the three MAJORs are mandatory: upgrade discoverability, fair difficulty curve with HQ warning and opening grace, and an 易 AI that still attacks). Keep all M1/M2 behaviour working, keep >=50 fps at 390x844, buttons >=44px, bright toy style, zh-HK copy.
+Add node tests for: AI on every difficulty issues an attack within 40s sim time; opening grace respected; upgrade affordance logic. Rebuild static/app.js / the Pages build so the live site serves the new code (index.html loads ./static/app.js).
+Do not edit reviews/ or prompts/. Run the tests. Append '## Round 7 fixes (M2 polish)' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-7.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-7.done

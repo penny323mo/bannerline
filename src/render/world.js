@@ -156,45 +156,36 @@ function paintGroup(group, owner) {
 }
 
 /**
- * Ground band. PlaneGeometry starts in XY; rotateX(-π/2) sends local +Y to world −Z
- * (enemy / top of the portrait). +Y is coral, −Y is mint, so the player side stays green.
- * Normal blending keeps the two colours from blowing out to white on the sand.
+ * Ownership edge. Two solid halves, no blended gold middle.
+ * The quad starts in XY. rotateX(-π/2) maps (x, y, 0) → (x, 0, -y),
+ * so local −Y becomes world +Z (player, mint) and local +Y becomes world −Z
+ * (enemy, coral). The halves do not share vertices, so the GPU cannot mix them.
+ * Depth is 0.5 so the cream bridge stays visible beside the stripe.
  */
-function glowGeometry() {
-  const depth = 0.92;
-  const geo = new THREE.PlaneGeometry(1, depth, 1, 10);
-  const pos = geo.attributes.position;
-  const colors = new Float32Array(pos.count * 3);
+export function frontierBandGeometry() {
+  const half = 0.25;
+  const positions = new Float32Array([
+    -0.5, -half, 0, 0.5, -half, 0, 0.5, 0, 0, -0.5, 0, 0,
+    -0.5, 0, 0, 0.5, 0, 0, 0.5, half, 0, -0.5, half, 0,
+  ]);
   const mint = [0.05, 0.78, 0.28];
-  const hot = [1, 0.82, 0.2];
   const coral = [0.92, 0.1, 0.08];
-  for (let i = 0; i < pos.count; i++) {
-    const t = pos.getY(i) / (depth / 2);
-    const edge = t > 0 ? coral : mint;
-    const u = Math.min(1, Math.abs(t) / 0.55);
-    colors[i * 3] = hot[0] + (edge[0] - hot[0]) * u;
-    colors[i * 3 + 1] = hot[1] + (edge[1] - hot[1]) * u;
-    colors[i * 3 + 2] = hot[2] + (edge[2] - hot[2]) * u;
+  const colors = new Float32Array(8 * 3);
+  for (let i = 0; i < 4; i++) {
+    colors[i * 3] = mint[0];
+    colors[i * 3 + 1] = mint[1];
+    colors[i * 3 + 2] = mint[2];
   }
+  for (let i = 4; i < 8; i++) {
+    colors[i * 3] = coral[0];
+    colors[i * 3 + 1] = coral[1];
+    colors[i * 3 + 2] = coral[2];
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
   geo.rotateX(-Math.PI / 2);
-  return geo;
-}
-
-function wallGeometry() {
-  const height = 0.36;
-  const geo = new THREE.PlaneGeometry(1, height, 1, 4);
-  const pos = geo.attributes.position;
-  const colors = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const y = (pos.getY(i) + height / 2) / height;
-    const hotness = (1 - y) * 0.55;
-    colors[i * 3] = hotness;
-    colors[i * 3 + 1] = 0.55 * hotness;
-    colors[i * 3 + 2] = 0.12 * hotness;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geo.translate(0, height / 2, 0);
   return geo;
 }
 
@@ -409,26 +400,12 @@ function buildIsland(map, reduceMotion) {
     side: THREE.DoubleSide,
     toneMapped: false,
   });
-  const wallMat = new THREE.MeshBasicMaterial({
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.7,
-    depthWrite: false,
-    depthTest: false,
-    blending: THREE.AdditiveBlending,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-  });
-  const bandGeo = glowGeometry();
-  const wallGeo = wallGeometry();
+  const bandGeo = frontierBandGeometry();
   const glows = [];
-  const walls = [];
   for (let i = 0; i < 8; i++) {
     const band = makeGlow(bandGeo, glowMat);
-    const wall = makeGlow(wallGeo, wallMat);
-    group.add(band, wall);
+    group.add(band);
     glows.push(band);
-    walls.push(wall);
   }
 
   const boxed = boxMapZones(map.zones);
@@ -569,14 +546,11 @@ function buildIsland(map, reduceMotion) {
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
       const pulse = reduceMotion ? 0.9 : 0.72 + 0.28 * Math.sin(time * 3.1);
       glowMat.opacity = reduceMotion ? 0.9 : 0.82 + pulse * 0.18;
-      wallMat.opacity = reduceMotion ? 0.8 : 0.7 + pulse * 0.3;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
-        const wall = walls[i];
         if (!seg) {
           band.visible = false;
-          wall.visible = false;
           continue;
         }
         const alongX = seg.axis !== 'z';
@@ -585,13 +559,9 @@ function buildIsland(map, reduceMotion) {
         const cz = alongX ? seg.z : (seg.z0 + seg.z1) / 2;
         const flip = seg.plusOwner === 'player' ? 0 : Math.PI;
         band.visible = true;
-        wall.visible = true;
         band.position.set(cx, 0.36, cz);
-        wall.position.set(cx, 0.36, cz);
         band.scale.set(span, 1, 1);
-        wall.scale.set(span, 1 + pulse * 0.08, 1);
         band.rotation.y = alongX ? flip : Math.PI / 2 + flip;
-        wall.rotation.y = alongX ? 0 : Math.PI / 2;
       }
 
       placeMarker(ring, selectedId, state);

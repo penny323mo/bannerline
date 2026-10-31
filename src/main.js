@@ -8,6 +8,7 @@ import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
 import { DIFFICULTIES, MAP_LIST } from './sim/maps.js';
 import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, sideStrength, squadById, stepMatch } from './sim/match.js';
+import { COACH_KEY, coachSeenValue } from './sim/settings.js';
 import { applyUpgrade, quoteUpgrade } from './sim/upgrades.js';
 import { squadMarkX } from './render/pointer-math.js';
 
@@ -22,6 +23,9 @@ const upHaste = document.getElementById('up-haste');
 const upWall = document.getElementById('up-bulwark');
 const scoreMine = document.getElementById('score-mine');
 const scoreFoe = document.getElementById('score-foe');
+const coachEl = document.getElementById('coach');
+const toastEl = document.getElementById('toast');
+const sheetTimeEl = document.getElementById('sheet-time');
 
 const stage = createStage(canvas);
 const world = createWorld(stage.scene);
@@ -35,13 +39,61 @@ let state = null;
 let selected = null;
 let dragging = false;
 let nextSpawnSfx = 0;
+let hqToast = false;
 
 function paintMute() {
   const muted = audio.muted;
-  muteBtn.textContent = muted ? '靜音' : '有聲';
+  muteBtn.textContent = muted ? '🔇' : '🔊';
   muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
   muteBtn.setAttribute('aria-label', muted ? '打開聲音' : '靜音');
   muteBtn.classList.toggle('is-muted', muted);
+}
+
+function formatPlayed(t) {
+  const sec = Math.max(0, Math.floor(t || 0));
+  if (sec < 60) return `用咗 ${sec} 秒`;
+  const mins = Math.floor(sec / 60);
+  const rest = sec % 60;
+  return `用咗 ${mins} 分 ${rest} 秒`;
+}
+
+function dismissCoach() {
+  if (coachEl) coachEl.hidden = true;
+  try {
+    localStorage.setItem(COACH_KEY, '1');
+  } catch {
+    /* private mode */
+  }
+}
+
+function syncCoach() {
+  if (!coachEl) return;
+  let seen = false;
+  try {
+    seen = coachSeenValue(localStorage.getItem(COACH_KEY));
+  } catch {
+    seen = false;
+  }
+  const show = !seen && state && state.status === 'playing' && homeEl.hidden;
+  coachEl.hidden = !show;
+}
+
+function warnHq() {
+  if (!toastEl) return;
+  let hot = false;
+  if (state && state.status === 'playing' && homeEl.hidden) {
+    const squads = state.squads;
+    for (let i = 0; i < squads.length; i++) {
+      const s = squads[i];
+      if (s.owner === 'enemy' && s.count > 0 && s.targetId === 'player-hq') {
+        hot = true;
+        break;
+      }
+    }
+  }
+  if (hot === hqToast) return;
+  hqToast = hot;
+  toastEl.hidden = !hot;
 }
 
 function setHint(mode) {
@@ -54,8 +106,8 @@ function setHint(mode) {
     return;
   }
   if (mode === 'drag') hintEl.textContent = '鬆手就放出呢隊兵';
-  else if (mode === 'selected') hintEl.textContent = '拖去目標，或者點目標出兵';
-  else hintEl.textContent = '點我軍建築，再點目標出兵';
+  else if (mode === 'selected') hintEl.textContent = '可以升級，或者拖去目標出兵';
+  else hintEl.textContent = '點自己建築，可以升級或者出兵';
 }
 
 function showSheet(kind) {
@@ -65,6 +117,7 @@ function showSheet(kind) {
   document.getElementById('sheet-title').textContent = kind === 'win' ? '贏咗' : '輸咗';
   document.getElementById('sheet-kicker').textContent = kind === 'win' ? '綠旗企穩' : '紅旗打入嚟';
   document.getElementById('sheet-body').textContent = kind === 'win' ? '攻陷咗對方司令部' : '失守咗我哋司令部';
+  if (sheetTimeEl) sheetTimeEl.textContent = formatPlayed(state && state.t);
   setHint('idle');
 }
 
@@ -82,6 +135,7 @@ function syncHud() {
 function showHome(on) {
   homeEl.hidden = !on;
   if (on) upgradesEl.hidden = true;
+  syncCoach();
 }
 
 function mountMatch(status) {
@@ -93,7 +147,10 @@ function mountMatch(status) {
   selected = null;
   dragging = false;
   world.resetDrag();
+  hqToast = false;
+  if (toastEl) toastEl.hidden = true;
   syncHud();
+  syncCoach();
 }
 
 function paintChoice(root, attr, value) {
@@ -184,7 +241,7 @@ attachInput(canvas, stage.camera, () => {
   }
   for (let i = 0; i < state.squads.length; i++) {
     const s = state.squads[i];
-    if (s.owner !== 'player' || s.count <= 0) continue;
+    if (s.count <= 0) continue;
     list.push({
       id: s.id,
       owner: s.owner,
@@ -205,6 +262,8 @@ attachInput(canvas, stage.camera, () => {
       setHint('idle');
       return;
     }
+    const tappedSquad = squadById(state, id);
+    if (tappedSquad && tappedSquad.owner !== 'player') return;
     if (selected && selected !== id) {
       const fromSquad = squadById(state, selected);
       const fromBuilding = buildingById(state, selected);
@@ -217,6 +276,7 @@ attachInput(canvas, stage.camera, () => {
     }
     const building = buildingById(state, id);
     if (building && building.owner === 'player') {
+      dismissCoach();
       selected = selected === id ? null : id;
       setHint(selected ? 'selected' : 'idle');
       return;
@@ -230,6 +290,8 @@ attachInput(canvas, stage.camera, () => {
   onDragStart(id) {
     dragging = true;
     selected = id;
+    const building = buildingById(state, id);
+    if (building && building.owner === 'player') dismissCoach();
     setHint('drag');
   },
   onDragMove(worldPoint, hoverId) {
@@ -253,7 +315,6 @@ muteBtn.addEventListener('click', (ev) => {
   audio.toggle();
   paintMute();
 });
-
 function bindTap(el, fn) {
   el.addEventListener('pointerdown', (ev) => {
     ev.stopPropagation();
@@ -310,6 +371,7 @@ bindTap(document.getElementById('home-btn'), () => {
 });
 bindTap(upHaste, () => buyUpgrade('haste'));
 bindTap(upWall, () => buyUpgrade('bulwark'));
+if (coachEl) bindTap(coachEl, dismissCoach);
 
 document.getElementById('retry').addEventListener('click', () => {
   audio.unlock();
@@ -349,6 +411,7 @@ function frame(now) {
     badges.update(state, stage.camera, canvas);
     paintUpgrades();
     syncHud();
+    warnHq();
   }
   stage.renderer.render(stage.scene, stage.camera);
   requestAnimationFrame(frame);

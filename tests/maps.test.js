@@ -35,7 +35,7 @@ test('normal difficulty does not shift the classic first send', () => {
   assert.equal(DIFFICULTIES.normal.label, '中');
   assert.equal(scaleFirstSend(16, DIFFICULTIES.normal), 16);
   assert.equal(scaleFirstSend(22, DIFFICULTIES.normal), 22);
-  assert.equal(scaleFirstSend(16, DIFFICULTIES.easy), 21);
+  assert.equal(scaleFirstSend(16, DIFFICULTIES.easy), 16);
   assert.equal(scaleFirstSend(16, DIFFICULTIES.hard), 10);
   assert.ok(DIFFICULTIES.hard.reactDelay < DIFFICULTIES.normal.reactDelay);
   assert.ok(DIFFICULTIES.easy.reactDelay > DIFFICULTIES.normal.reactDelay);

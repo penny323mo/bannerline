@@ -30,3 +30,7 @@
 
 - A squad standing on a building keeps its count pill. That building's roof, flag, and foot stay on the building.
 - Rebuilt `static/app.js` so the shipped page uses that pick.
+
+## Round 4 fixes
+
+- The 390×844 review shipped with the round 3 pick already in `static/app.js`. Tests stayed at 37/37.

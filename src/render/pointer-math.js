@@ -27,7 +27,7 @@ export const PILL_SHIFT_PX = 32;
 export const PILL_GAP_PX = 92;
 
 /** World y of the HTML badge anchor. Shared with the badge layer. */
-export const BADGE_LIFT = { hq: 2.85, barracks: 1.55 };
+export const BADGE_LIFT = { hq: 1.05, barracks: 1.55 };
 
 /** World y of a marching squad's count pill. */
 export const SQUAD_LIFT = 1.05;

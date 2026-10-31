@@ -157,3 +157,11 @@
 - Daylight is brighter (exposure 1.16, warmer sun, higher hemisphere). The meadow cap varies, and the pines have a third cone. Sparks are larger, with tracers, siege fire and smoke, and a capture ring.
 - A measured player on 中 now wins at about 131s (margin 8), and the same line on 難 wins at about 184s. Opening piles stay 42 vs 72. Hard still uses barBonus 12 and hqBonus 18. Enemy regenScale is 1.08 on 中 and 1.16 on 難. Headquarters regen is 0.24 on 中 and 0.32 on 難.
 - 61 tests passed. Rebuilt `static/app.js` (556251 bytes).
+
+## Round 24 fixes
+
+- A barracks soldier at 390×844 now shows a helmet of at least 14 CSS px and a barrel at least 4 CSS px thick. Scale is 1.95, the helmet is a larger olive or deep-red sphere, and the barrel is a short thick box on local −z. Garrisons still face the enemy, so those barrels do not stripe the road.
+- Each map card is a miniature of that battlefield: meadow, stream, dirt road, pines, and a bunker or a hangar. 對岸 is one road, 長路 adds the forward posts, and 雙橋 has two bridges.
+- Spark size is 1 world unit, so siege fire and smoke stay on the building.
+- The headquarters badge lift is 1.05. The player disc sits on the bunker, and its top edge stays below the barracks crowd.
+- 63 tests passed. Rebuilt `static/app.js` (557339 bytes).

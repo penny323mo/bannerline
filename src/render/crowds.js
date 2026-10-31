@@ -5,8 +5,9 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-const SOLDIER_SCALE = 1.55;
-const RANK_SPACING = 0.5;
+/** Big enough that a barracks helmet is at least 14 CSS px at 390×844. */
+export const SOLDIER_SCALE = 1.95;
+export const RANK_SPACING = 0.56;
 /** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
 export const HELMET_PLAYER = 0x3e6b32;
 export const HELMET_ENEMY = 0x7c2a22;
@@ -42,29 +43,29 @@ export function soldierGeometry() {
   // Helmeted infantry. Local −z is the rifle, which yawForFacing aims along travel.
   // A 3- or 4-side cylinder is a prism. At the play camera those prisms read as stacked cubes,
   // so limbs stay at 6+ sides and the helmet is a sphere, not a box.
-  const legL = shade(limb(0.04, 0.048, 0.26, 6), 0.22);
-  legL.translate(-0.07, 0.13, 0.06);
-  const legR = shade(limb(0.04, 0.048, 0.26, 6), 0.16);
-  legR.translate(0.07, 0.13, 0.06);
-  const torso = shade(limb(0.12, 0.145, 0.28, 8), 0.4);
-  torso.translate(0, 0.34, 0);
-  const armL = shade(limb(0.028, 0.032, 0.18, 5), 0.28);
-  armL.translate(-0.15, 0.36, -0.04);
-  const armR = shade(limb(0.028, 0.03, 0.16, 5), 0.26);
-  armR.translate(0.14, 0.36, -0.08);
-  const head = shade(limb(0.048, 0.052, 0.08, 8), 0.55);
-  head.translate(0, 0.52, 0);
-  const helmet = shade(new THREE.SphereGeometry(0.064, 8, 6), 1);
-  helmet.translate(0, 0.58, -0.01);
-  const brim = shade(new THREE.BoxGeometry(0.18, 0.02, 0.12), 0.78);
-  brim.translate(0, 0.54, -0.04);
-  // Thin barrel on local −z. A tall rifle box lines up with the rank and paints a black bar.
-  const rifle = shade(new THREE.BoxGeometry(0.042, 0.026, 0.26), 0.08);
-  rifle.translate(0.13, 0.4, -0.18);
-  const stock = shade(new THREE.BoxGeometry(0.06, 0.07, 0.1), 0.12);
-  stock.translate(0.14, 0.3, -0.06);
-  const pack = shade(new THREE.BoxGeometry(0.08, 0.1, 0.05), 0.2);
-  pack.translate(0, 0.3, 0.08);
+  const legL = shade(limb(0.042, 0.05, 0.28, 6), 0.22);
+  legL.translate(-0.07, 0.14, 0.05);
+  const legR = shade(limb(0.042, 0.05, 0.28, 6), 0.16);
+  legR.translate(0.07, 0.14, 0.05);
+  const torso = shade(limb(0.1, 0.125, 0.3, 8), 0.4);
+  torso.translate(0, 0.36, 0);
+  const armL = shade(limb(0.03, 0.034, 0.2, 6), 0.28);
+  armL.translate(-0.15, 0.4, -0.06);
+  const armR = shade(limb(0.03, 0.032, 0.18, 6), 0.26);
+  armR.translate(0.15, 0.4, -0.08);
+  const head = shade(limb(0.05, 0.055, 0.09, 8), 0.55);
+  head.translate(0, 0.58, 0);
+  const helmet = shade(new THREE.SphereGeometry(0.092, 10, 8), 1);
+  helmet.translate(0, 0.66, -0.012);
+  const brim = shade(new THREE.BoxGeometry(0.24, 0.028, 0.16), 0.78);
+  brim.translate(0, 0.6, -0.05);
+  // Thick barrel on local −z. Length stays short so a rank cannot stripe the road.
+  const rifle = shade(new THREE.BoxGeometry(0.06, 0.052, 0.28), 0.08);
+  rifle.translate(0.16, 0.4, -0.2);
+  const stock = shade(new THREE.BoxGeometry(0.07, 0.08, 0.1), 0.12);
+  stock.translate(0.15, 0.32, -0.06);
+  const pack = shade(new THREE.BoxGeometry(0.09, 0.11, 0.06), 0.2);
+  pack.translate(0, 0.34, 0.09);
   const geo = mergeGeometries([legL, legR, torso, armL, armR, head, helmet, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;

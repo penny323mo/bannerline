@@ -7,7 +7,11 @@ import { DIFFICULTIES } from '../src/sim/maps.js';
 import { upgradeAffordance } from '../src/sim/upgrades.js';
 import { frontierBandGeometry } from '../src/render/world.js';
 import { PALETTE } from '../src/render/palette.js';
-import { HELMET_ENEMY, HELMET_PLAYER, soldierGeometry } from '../src/render/crowds.js';
+import { HELMET_ENEMY, HELMET_PLAYER, SOLDIER_SCALE, soldierGeometry } from '../src/render/crowds.js';
+import { frameDioramaCamera } from '../src/render/stage.js';
+import { projectToCss } from '../src/render/pointer-math.js';
+import { NODES } from '../src/sim/mapdata.js';
+import { yawForFacing, rotateXZ } from '../src/sim/facing.js';
 
 const MAPS = ['crossing', 'long-road', 'two-lanes'];
 const DIFFS = ['easy', 'normal', 'hard'];
@@ -275,7 +279,60 @@ test('palette and soldiers match the military art brief', () => {
   assert.ok(deep.r > deep.g * 1.6 && deep.r < 0.55, 'enemy helmet is deep red');
   const crowdSrc = readFileSync(new URL('../src/render/crowds.js', import.meta.url), 'utf8');
   assert.doesNotMatch(crowdSrc, /0x8fbf9a|0xd48980/);
+  assert.match(crowdSrc, /yawForFacing\(0, -1\)/);
+  assert.match(crowdSrc, /yawForFacing\(0, 1\)/);
   geo.dispose();
+});
+
+test('a player barracks soldier reads as a helmet and a rifle at 390px', () => {
+  const width = 390;
+  const height = 844;
+  const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 90);
+  frameDioramaCamera(camera, width / height);
+  const bar = NODES['player-bar'];
+  const yaw = yawForFacing(0, -1);
+  const slot = { x: 0, z: 0 };
+  rotateXZ(0, -1, yaw, slot);
+  const ax = bar.x + slot.x * 1.1;
+  const az = bar.z + slot.z * 1.1;
+  const geo = soldierGeometry();
+  const pos = geo.getAttribute('position');
+  const col = geo.getAttribute('color');
+  const out = { x: 0, y: 0 };
+  let hMinX = Infinity;
+  let hMaxX = -Infinity;
+  let hMinY = Infinity;
+  let hMaxY = -Infinity;
+  let rMinX = Infinity;
+  let rMaxX = -Infinity;
+  let rMinY = Infinity;
+  let rMaxY = -Infinity;
+  for (let i = 0; i < pos.count; i++) {
+    const shade = col.getX(i);
+    const x = ax + pos.getX(i) * SOLDIER_SCALE;
+    const y = 0.02 + pos.getY(i) * SOLDIER_SCALE;
+    const z = az + pos.getZ(i) * SOLDIER_SCALE;
+    if (!projectToCss(x, y, z, camera, width, height, out)) continue;
+    if (shade >= 0.95) {
+      hMinX = Math.min(hMinX, out.x);
+      hMaxX = Math.max(hMaxX, out.x);
+      hMinY = Math.min(hMinY, out.y);
+      hMaxY = Math.max(hMaxY, out.y);
+    } else if (shade <= 0.14) {
+      rMinX = Math.min(rMinX, out.x);
+      rMaxX = Math.max(rMaxX, out.x);
+      rMinY = Math.min(rMinY, out.y);
+      rMaxY = Math.max(rMaxY, out.y);
+    }
+  }
+  const helmetPx = Math.min(hMaxX - hMinX, hMaxY - hMinY);
+  const barrelPx = Math.min(rMaxX - rMinX, rMaxY - rMinY);
+  assert.ok(helmetPx >= 14, `helmet ${helmetPx.toFixed(1)}px`);
+  assert.ok(barrelPx >= 4, `barrel ${barrelPx.toFixed(1)}px thick`);
+  geo.dispose();
+  const fxSrc = readFileSync(new URL('../src/render/fx.js', import.meta.url), 'utf8');
+  const size = Number((fxSrc.match(/size:\s*([0-9.]+)/) || [])[1]);
+  assert.ok(size >= 0.8 && size <= 1.2, `spark size ${size}`);
 });
 
 test('the diorama grades with standard materials and a device shadow gate', () => {

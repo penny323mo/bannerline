@@ -352,8 +352,8 @@ function cssHex(n) {
 function mapThumb(map) {
   const thumb = document.createElement('canvas');
   thumb.className = 'map-thumb';
-  const W = 320;
-  const H = 180;
+  const W = 280;
+  const H = 188;
   thumb.width = W;
   thumb.height = H;
   const g = thumb.getContext('2d');
@@ -367,55 +367,85 @@ function mapThumb(map) {
     box.minZ = Math.min(box.minZ, t.z - 0.35);
     box.maxZ = Math.max(box.maxZ, t.z + 0.35);
   }
-  const pad = 14;
+  const pad = 16;
   const spanX = Math.max(0.001, box.maxX - box.minX);
   const spanZ = Math.max(0.001, box.maxZ - box.minZ);
-  const scaleX = (W - pad * 2) / spanX;
   const scaleY = (H - pad * 2) / spanZ;
+  const scaleX = Math.min((W - pad * 2) / spanX, scaleY * 1.65);
+  const midX = (box.minX + box.maxX) / 2;
   // +z is the near / player side, which sits at the bottom of the thumbnail.
   function pt(p) {
     return {
-      x: pad + (p.x - box.minX) * scaleX,
+      x: W / 2 + (p.x - midX) * scaleX,
       y: pad + (p.z - box.minZ) * scaleY,
     };
   }
 
-  g.fillStyle = cssHex(PALETTE.meadow);
+  g.fillStyle = cssHex(PALETTE.water);
   g.fillRect(0, 0, W, H);
+  g.fillStyle = cssHex(PALETTE.meadow);
+  g.beginPath();
+  g.ellipse(W / 2, H / 2, W * 0.46, H * 0.46, 0, 0, Math.PI * 2);
+  g.fill();
   g.fillStyle = cssHex(PALETTE.meadowDeep);
-  g.fillRect(0, 0, W, 8);
-  g.fillRect(0, H - 8, W, 8);
+  g.globalAlpha = 0.35;
+  g.beginPath();
+  g.ellipse(W * 0.32, H * 0.62, W * 0.16, H * 0.1, 0, 0, Math.PI * 2);
+  g.fill();
+  g.beginPath();
+  g.ellipse(W * 0.68, H * 0.38, W * 0.14, H * 0.08, 0, 0, Math.PI * 2);
+  g.fill();
+  g.globalAlpha = 1;
 
   const ownerById = {};
   const buildings = map.buildings || [];
   for (let i = 0; i < buildings.length; i++) ownerById[buildings[i].id] = buildings[i].owner;
   const zones = map.zones || [];
+  g.globalAlpha = 0.42;
   for (let i = 0; i < zones.length; i++) {
     const z = zones[i];
     const owner = ownerById[z.buildingId];
     const paint = owner ? ownerPaint(owner) : null;
     const at = pt(z);
     g.beginPath();
-    g.ellipse(at.x, at.y, Math.max(4, z.rx * scaleX), Math.max(3, z.rz * scaleY), 0, 0, Math.PI * 2);
+    g.ellipse(at.x, at.y, Math.max(10, z.rx * scaleX * 0.85), Math.max(8, z.rz * scaleY * 0.9), 0, 0, Math.PI * 2);
     g.fillStyle = cssHex(paint ? paint.slab : PALETTE.meadowDeep);
     g.fill();
-    g.lineWidth = 2;
-    g.strokeStyle = cssHex(paint ? paint.main : PALETTE.meadowDeep);
-    g.stroke();
   }
+  g.globalAlpha = 1;
 
   const band = streamBand(map);
-  const waterL = pt({ x: -band.halfWidth, z: 0 });
-  const waterR = pt({ x: band.halfWidth, z: 0 });
-  const thick = Math.max(10, band.depth * scaleY);
+  const waterAt = pt({ x: 0, z: 0 });
+  const thick = Math.max(16, band.depth * scaleY * 1.6);
   g.fillStyle = cssHex(PALETTE.stream);
-  g.fillRect(Math.min(waterL.x, waterR.x), waterL.y - thick / 2, Math.abs(waterR.x - waterL.x), thick);
+  g.fillRect(0, waterAt.y - thick / 2, W, thick);
+  g.fillStyle = cssHex(PALETTE.player.main);
+  g.globalAlpha = 0.55;
+  g.fillRect(0, waterAt.y + thick / 2 - 3, W, 3);
+  g.fillStyle = cssHex(PALETTE.enemy.main);
+  g.fillRect(0, waterAt.y - thick / 2, W, 3);
+  g.globalAlpha = 1;
 
   const nodes = map.nodes || {};
-  g.strokeStyle = cssHex(PALETTE.road);
-  g.lineWidth = Math.max(4, 0.55 * Math.min(scaleX, scaleY));
-  g.lineCap = 'round';
-  g.beginPath();
+  const roadW = Math.max(11, 0.72 * scaleX);
+  g.fillStyle = cssHex(PALETTE.road);
+  function fillRoad(a, b) {
+    const pa = pt(a);
+    const pb = pt(b);
+    const dx = pb.x - pa.x;
+    const dy = pb.y - pa.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / len) * roadW * 0.5;
+    const ny = (dx / len) * roadW * 0.5;
+    g.beginPath();
+    g.moveTo(pa.x + nx, pa.y + ny);
+    g.lineTo(pb.x + nx, pb.y + ny);
+    g.lineTo(pb.x - nx, pb.y - ny);
+    g.lineTo(pa.x - nx, pa.y - ny);
+    g.closePath();
+    g.fill();
+  }
+  const bank = Math.max(0.42, band.depth * 0.85);
   const seen = new Set();
   const graph = map.graph || {};
   const keys = Object.keys(graph);
@@ -429,42 +459,56 @@ function mapThumb(map) {
       seen.add(key);
       const b = nodes[bId];
       if (!a || !b) continue;
-      const pa = pt(a);
-      const pb = pt(b);
-      g.moveTo(pa.x, pa.y);
-      g.lineTo(pb.x, pb.y);
+      if (a.z * b.z < -0.0001) {
+        const t = (0 - a.z) / (b.z - a.z);
+        const x = a.x + (b.x - a.x) * t;
+        fillRoad(a, { x, z: a.z > 0 ? bank : -bank });
+        fillRoad(b, { x, z: b.z > 0 ? bank : -bank });
+      } else {
+        fillRoad(a, b);
+      }
     }
   }
-  g.stroke();
 
   const crossings = streamCrossings(map);
-  g.fillStyle = cssHex(PALETTE.bridge);
   for (let i = 0; i < crossings.length; i++) {
     const at = pt(crossings[i]);
-    const bw = Math.max(12, 0.92 * scaleX * 0.55);
-    const bh = Math.max(thick + 4, 1.2 * scaleY);
+    const bw = Math.max(18, roadW + 8);
+    const bh = thick + 6;
+    g.fillStyle = cssHex(PALETTE.bridge);
     g.fillRect(at.x - bw / 2, at.y - bh / 2, bw, bh);
+    g.fillStyle = cssHex(PALETTE.roadEdge);
+    g.fillRect(at.x - bw / 2, at.y - bh / 2, 3, bh);
+    g.fillRect(at.x + bw / 2 - 3, at.y - bh / 2, 3, bh);
   }
 
   for (let i = 0; i < rocks.length; i++) {
     const at = pt(rocks[i]);
-    const r = Math.max(3, rocks[i].s * scaleY * 0.45);
+    const r = Math.max(5, rocks[i].s * scaleY * 0.7);
     g.fillStyle = cssHex(PALETTE.rock);
     g.beginPath();
-    g.ellipse(at.x, at.y, r * 1.3, r, 0, 0, Math.PI * 2);
+    g.ellipse(at.x, at.y, r * 1.25, r * 0.8, 0, 0, Math.PI * 2);
     g.fill();
   }
 
   for (let i = 0; i < trees.length; i++) {
     const t = trees[i];
     const at = pt(t);
-    const h = Math.max(9, t.s * scaleY * 1.15);
-    const w = h * 0.42;
+    const h = Math.max(26, t.s * scaleY * 2.1);
+    const w = h * 0.46;
+    g.fillStyle = cssHex(PALETTE.trunk);
+    g.fillRect(at.x - 1.5, at.y - 2, 3, 6);
     g.fillStyle = cssHex(t.color);
     g.beginPath();
     g.moveTo(at.x, at.y - h);
-    g.lineTo(at.x + w, at.y + 1);
-    g.lineTo(at.x - w, at.y + 1);
+    g.lineTo(at.x + w, at.y + 2);
+    g.lineTo(at.x - w, at.y + 2);
+    g.fill();
+    g.fillStyle = cssHex(PALETTE.leaf);
+    g.beginPath();
+    g.moveTo(at.x, at.y - h * 0.72);
+    g.lineTo(at.x + w * 0.62, at.y - h * 0.22);
+    g.lineTo(at.x - w * 0.62, at.y - h * 0.22);
     g.fill();
   }
 
@@ -474,26 +518,32 @@ function mapThumb(map) {
     if (!p) continue;
     const at = pt(p);
     const paint = ownerPaint(b.owner);
-    const u = Math.max(7, Math.min(scaleX, scaleY) * 0.95);
+    const u = Math.max(15, Math.min(scaleX, scaleY) * 1.35);
     if (b.kind === 'hq') {
       g.fillStyle = cssHex(PALETTE.sand);
-      g.fillRect(at.x - u * 1.15, at.y - u * 0.35, u * 2.3, u * 0.9);
-      g.fillStyle = cssHex(paint.main);
-      g.fillRect(at.x - u * 0.7, at.y - u * 0.85, u * 1.4, u * 0.85);
+      g.fillRect(at.x - u * 1.25, at.y - u * 0.2, u * 2.5, u * 0.85);
       g.fillStyle = cssHex(paint.deep);
-      g.fillRect(at.x - u * 0.16, at.y - u * 1.45, u * 0.32, u * 0.6);
+      g.fillRect(at.x - u * 0.95, at.y - u * 0.55, u * 1.9, u * 0.55);
+      g.fillStyle = cssHex(paint.main);
+      g.fillRect(at.x - u * 0.7, at.y - u * 0.95, u * 1.4, u * 0.7);
+      g.fillStyle = cssHex(paint.deep);
+      g.fillRect(at.x - u * 0.08, at.y - u * 1.7, u * 0.16, u * 0.75);
       g.fillStyle = cssHex(PALETTE.metal);
       g.beginPath();
-      g.arc(at.x + u * 0.55, at.y - u * 1.15, Math.max(2, u * 0.22), 0, Math.PI * 2);
+      g.arc(at.x + u * 0.55, at.y - u * 1.25, Math.max(3.5, u * 0.28), 0, Math.PI * 2);
       g.fill();
+      g.fillStyle = cssHex(paint.flag);
+      g.fillRect(at.x - u * 0.08, at.y - u * 1.85, u * 0.42, u * 0.22);
     } else {
       g.fillStyle = cssHex(PALETTE.sand);
-      g.fillRect(at.x - u * 1.35, at.y - u * 0.15, u * 0.35, u * 0.4);
-      g.fillRect(at.x + u, at.y - u * 0.15, u * 0.35, u * 0.4);
+      g.fillRect(at.x - u * 1.45, at.y - u * 0.05, u * 0.28, u * 0.4);
+      g.fillRect(at.x + u * 1.17, at.y - u * 0.05, u * 0.28, u * 0.4);
+      g.fillStyle = cssHex(paint.deep);
+      g.fillRect(at.x - u * 1.15, at.y - u * 0.15, u * 2.3, u * 0.45);
       g.fillStyle = cssHex(paint.main);
-      g.fillRect(at.x - u, at.y - u * 0.35, u * 2, u * 0.7);
+      g.fillRect(at.x - u * 1.05, at.y - u * 0.55, u * 2.1, u * 0.5);
       g.fillStyle = cssHex(PALETTE.ink);
-      g.fillRect(at.x - u * 0.35, at.y - u * 0.05, u * 0.7, u * 0.22);
+      g.fillRect(at.x - u * 0.28, at.y - u * 0.22, u * 0.56, u * 0.28);
     }
   }
   return thumb;

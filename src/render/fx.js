@@ -17,7 +17,8 @@ export function createFx(scene) {
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
-    size: 7.5,
+    // World units. 7.5 covered the enemy headquarters at 390px; about 1 stays on the building.
+    size: 1,
     vertexColors: true,
     transparent: true,
     opacity: 0.82,

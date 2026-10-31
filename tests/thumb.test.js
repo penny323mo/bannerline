@@ -45,6 +45,9 @@ test('each map card is that battlefield’s pads, water, and trees', () => {
   assert.match(src, /streamCrossings\(map\)/);
   assert.match(src, /streamBand\(map\)/);
   assert.match(src, /map\.zones/);
+  assert.match(src, /PALETTE\.road/);
+  assert.match(src, /kind === 'hq'/);
+  assert.doesNotMatch(src, /g\.stroke\(\)/);
   assert.doesNotMatch(src, /for \(let i = 0; i < 8; i\+\+\)/);
   assert.match(src, /hintEl\.hidden = true/);
   const home = readFileSync(new URL('../index.source.html', import.meta.url), 'utf8');

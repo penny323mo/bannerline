@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as THREE from 'three';
 import { NODES } from '../src/sim/mapdata.js';
+import { yawForFacing, rotateXZ } from '../src/sim/facing.js';
+import { RANK_SPACING, visualCount } from '../src/render/crowds.js';
 import {
   BADGE_LIFT,
   FLAG_Y,
@@ -105,6 +107,48 @@ test('the enemy headquarters pill is outside the ground disc and still picks', (
   assert.ok(groundD > PICK_RADIUS, `pill ground distance ${groundD} should miss the old disc`);
   const picked = pickBuilding(list, camera, WIDTH, HEIGHT, badge.x, badge.y - PILL_SHIFT_PX, { x: hit.x, z: hit.z });
   assert.equal(picked.id, 'enemy-hq');
+});
+
+test('the player headquarters disc sits on the bunker below the barracks crowd', () => {
+  const camera = cameraAtPhone();
+  const hq = NODES['player-hq'];
+  const bar = NODES['player-bar'];
+  const anchor = project(camera, hq.x, BADGE_LIFT.hq, hq.z);
+  const top = anchor.y - 64 * 1.15;
+  const center = top + 32;
+  const roof = project(camera, hq.x, ROOF_Y.hq, hq.z);
+  const base = project(camera, hq.x, 0.25, hq.z);
+  assert.ok(center > roof.y && center < base.y, `disc center ${center} roof ${roof.y} base ${base.y}`);
+  const yaw = yawForFacing(0, -1);
+  const slot = { x: 0, z: 0 };
+  rotateXZ(0, -1, yaw, slot);
+  const ax = bar.x + slot.x * 1.1;
+  const az = bar.z + slot.z * 1.1;
+  const n = visualCount(30);
+  const cols = n > 16 ? 8 : 5;
+  let crowdBottom = 0;
+  for (let i = 0; i < n; i++) {
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const rows = Math.ceil(n / cols);
+    const rowCount = r === rows - 1 ? n - r * cols : cols;
+    const lx = (c - (rowCount - 1) / 2) * RANK_SPACING;
+    const lz = r * RANK_SPACING;
+    rotateXZ(lx, lz, yaw, slot);
+    const p = project(camera, ax + slot.x, 0.9, az + slot.z);
+    if (p.y > crowdBottom) crowdBottom = p.y;
+  }
+  assert.ok(top > crowdBottom, `badge top ${top} overlaps the crowd at ${crowdBottom}`);
+  const ehq = NODES['enemy-hq'];
+  const eAnchor = project(camera, ehq.x, BADGE_LIFT.hq, ehq.z);
+  const eTop = eAnchor.y - 64 * 1.15;
+  const eCenter = eTop + 32;
+  const eBot = eTop + 64;
+  const eRoof = project(camera, ehq.x, ROOF_Y.hq, ehq.z);
+  const eBase = project(camera, ehq.x, 0.25, ehq.z);
+  const eBar = project(camera, NODES['enemy-bar'].x, 0.2, NODES['enemy-bar'].z);
+  assert.ok(eBot > eRoof.y && eCenter < eBase.y, 'enemy disc meets the bunker');
+  assert.ok(eBot < eBar.y, 'enemy disc stays off the barracks');
 });
 
 test('the ground disc still picks a building the pointer is not hovering as a pill', () => {

@@ -98,14 +98,14 @@ function warnHq() {
 
 function setHint(mode) {
   if (homeEl && !homeEl.hidden) {
-    hintEl.textContent = '揀地圖，再撳開戰';
+    hintEl.textContent = '揀地圖，再出戰';
     return;
   }
   if (!state || state.status !== 'playing') {
-    hintEl.textContent = '撳再戰，再嚟過';
+    hintEl.textContent = '再戰，再嚟過';
     return;
   }
-  if (mode === 'drag') hintEl.textContent = '鬆手就放出呢隊兵';
+  if (mode === 'drag') hintEl.textContent = '鬆手就出兵';
   else if (mode === 'selected') hintEl.textContent = '可以升級，或者拖去目標出兵';
   else hintEl.textContent = '點自己建築，可以升級或者出兵';
 }
@@ -114,9 +114,9 @@ function showSheet(kind) {
   sheetEl.hidden = false;
   sheetEl.classList.toggle('win', kind === 'win');
   sheetEl.classList.toggle('lose', kind === 'lose');
-  document.getElementById('sheet-title').textContent = kind === 'win' ? '贏咗' : '輸咗';
-  document.getElementById('sheet-kicker').textContent = kind === 'win' ? '綠旗企穩' : '紅旗打入嚟';
-  document.getElementById('sheet-body').textContent = kind === 'win' ? '攻陷咗對方司令部' : '失守咗我哋司令部';
+  document.getElementById('sheet-title').textContent = kind === 'win' ? '勝利' : '戰敗';
+  document.getElementById('sheet-kicker').textContent = '戰果';
+  document.getElementById('sheet-body').textContent = kind === 'win' ? '攻陷敵方司令部' : '司令部被攻陷';
   if (sheetTimeEl) sheetTimeEl.textContent = formatPlayed(state && state.t);
   setHint('idle');
 }

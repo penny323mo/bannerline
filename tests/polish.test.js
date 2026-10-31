@@ -5,6 +5,8 @@ import { createMatch, playerHold, sendSquad, stepMatch, buildingById } from '../
 import { DIFFICULTIES } from '../src/sim/maps.js';
 import { upgradeAffordance } from '../src/sim/upgrades.js';
 import { frontierBandGeometry } from '../src/render/world.js';
+import { PALETTE } from '../src/render/palette.js';
+import { soldierGeometry } from '../src/render/crowds.js';
 
 const MAPS = ['crossing', 'long-road', 'two-lanes'];
 const DIFFS = ['easy', 'normal', 'hard'];
@@ -91,13 +93,15 @@ test('upgrade affordance is only a player building that can pay', () => {
   }), false);
 });
 
-test('the frontier band is mint on the player side and coral on the enemy side', () => {
+test('the frontier band is green on the player side and red on the enemy side', () => {
   const geo = frontierBandGeometry();
   const pos = geo.attributes.position;
   const col = geo.attributes.color;
   const vertex = new THREE.Vector3();
-  let mint = 0;
-  let coral = 0;
+  const green = new THREE.Color(PALETTE.player.glow);
+  const red = new THREE.Color(PALETTE.enemy.glow);
+  let playerSide = 0;
+  let enemySide = 0;
   for (let i = 0; i < pos.count; i++) {
     vertex.fromBufferAttribute(pos, i);
     const r = col.getX(i);
@@ -105,13 +109,33 @@ test('the frontier band is mint on the player side and coral on the enemy side',
     const b = col.getZ(i);
     assert.ok(!(r > 0.7 && g > 0.6), `gold vertex ${r},${g},${b}`);
     if (vertex.z > 0.01) {
-      assert.ok(g > 0.6 && r < 0.2, `player side ${r},${g},${b} at z=${vertex.z}`);
-      mint += 1;
+      assert.ok(Math.abs(r - green.r) < 0.02 && Math.abs(g - green.g) < 0.02, `player side ${r},${g},${b}`);
+      assert.ok(g > r, 'player side is green');
+      playerSide += 1;
     } else if (vertex.z < -0.01) {
-      assert.ok(r > 0.8 && g < 0.25, `enemy side ${r},${g},${b} at z=${vertex.z}`);
-      coral += 1;
+      assert.ok(Math.abs(r - red.r) < 0.02 && Math.abs(g - red.g) < 0.02, `enemy side ${r},${g},${b}`);
+      assert.ok(r > g && r > 0.7, 'enemy side is operational red');
+      enemySide += 1;
     }
   }
-  assert.ok(mint >= 2 && coral >= 2);
+  assert.ok(playerSide >= 2 && enemySide >= 2);
+  geo.dispose();
+});
+
+test('palette and soldiers match the military art brief', () => {
+  assert.equal(PALETTE.sky, 0x7fa8c4);
+  assert.equal(PALETTE.water, 0x3e6f8f);
+  assert.equal(PALETTE.meadow, 0x6b7a4e);
+  assert.equal(PALETTE.leaf, 0x3f5a3a);
+  assert.equal(PALETTE.leafDeep, 0x2f4530);
+  assert.equal(PALETTE.player.main, 0x2f9e5b);
+  assert.equal(PALETTE.enemy.main, 0xc43c32);
+  assert.ok(PALETTE.bridge < 0x999999, 'bridge stays a neutral grey');
+  const geo = soldierGeometry();
+  geo.computeBoundingBox();
+  const box = geo.boundingBox;
+  assert.ok(box.min.z < -0.3, `rifle extends on local −z (${box.min.z})`);
+  assert.ok(-box.min.z > box.max.z + 0.15, 'the rifle is longer than the pack');
+  assert.ok(box.max.y > 0.4, 'helmet rises above the torso');
   geo.dispose();
 });

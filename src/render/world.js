@@ -54,8 +54,8 @@ function pennant(color) {
 
 function makePip(radius) {
   const pip = new THREE.Mesh(
-    new THREE.TorusGeometry(radius, 0.045, 6, 24),
-    new THREE.MeshBasicMaterial({ color: 0xffe08a }),
+    new THREE.TorusGeometry(radius, 0.04, 6, 24),
+    new THREE.MeshBasicMaterial({ color: PALETTE.metal }),
   );
   pip.rotation.x = Math.PI / 2;
   pip.position.y = 0.1;
@@ -64,83 +64,109 @@ function makePip(radius) {
   return pip;
 }
 
-/** Tall keep: box shaft and a spire, so it does not read as another hut. */
+const _bakePos = new THREE.Vector3();
+const _bakeQuat = new THREE.Quaternion();
+const _bakeScale = new THREE.Vector3(1, 1, 1);
+const _bakeEuler = new THREE.Euler();
+const _bakeMatrix = new THREE.Matrix4();
+
+function baked(geo, x, y, z, rx = 0, ry = 0, rz = 0) {
+  _bakeEuler.set(rx, ry, rz);
+  _bakeQuat.setFromEuler(_bakeEuler);
+  _bakePos.set(x, y, z);
+  geo.applyMatrix4(_bakeMatrix.compose(_bakePos, _bakeQuat, _bakeScale));
+  return geo;
+}
+
+function mergedMesh(parts, material) {
+  const geo = mergeGeometries(parts);
+  for (let i = 0; i < parts.length; i++) parts[i].dispose();
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/**
+ * Fortified bunker. Local −z faces the road (the same yaw as the squad exit).
+ * The dish sits at local y 1.99 so the roof pick (world y 2.05, group at 0.06) lands on it.
+ * The flag sits at local y 2.49, world y 2.55.
+ * Static concrete, sand, and metal are one mesh each so the extra silhouette stays one draw.
+ */
 function makeHq(paint) {
   const g = new THREE.Group();
-  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.02, 0.16, 8), mat(PALETTE.sand, { roughness: 0.9 }));
-  plinth.position.y = 0.08;
-  plinth.castShadow = true;
-  plinth.receiveShadow = true;
-
-  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.42, 0.82), mat(paint.main));
-  shaft.position.y = 0.88;
-  shaft.userData.slot = 'body';
-  shaft.castShadow = true;
-
-  const band = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.14, 1.02), mat(PALETTE.foam));
-  band.position.y = 1.64;
-  band.castShadow = true;
-
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.66, 0.78, 8), mat(paint.deep));
-  roof.position.y = 2.05;
+  const concrete = mergedMesh([
+    baked(new THREE.BoxGeometry(2.7, 0.08, 2.05), 0, 0.04, 0),
+    baked(new THREE.BoxGeometry(2.05, 0.18, 0.36), 0, 0.18, -0.78),
+    // Positive rotation.x takes local +y toward +z, so −0.5 lowers the −z edge.
+    baked(new THREE.BoxGeometry(2.05, 0.08, 0.7), 0, 0.36, -0.72, -0.5, 0, 0),
+  ], mat(PALETTE.concrete));
+  const sand = mergedMesh([
+    baked(new THREE.BoxGeometry(2.4, 0.12, 1.75), 0, 0.1, 0),
+    baked(new THREE.BoxGeometry(0.34, 0.14, 0.2), -0.62, 0.28, -0.95),
+    baked(new THREE.BoxGeometry(0.34, 0.14, 0.2), 0, 0.28, -0.95),
+    baked(new THREE.BoxGeometry(0.34, 0.14, 0.2), 0.62, 0.28, -0.95),
+  ], mat(PALETTE.sand));
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.5, 1.28), mat(paint.main));
+  body.position.y = 0.42;
+  body.userData.slot = 'body';
+  body.castShadow = true;
+  body.receiveShadow = true;
+  const roof = mergedMesh([
+    baked(new THREE.BoxGeometry(2.16, 0.12, 1.4), 0, 0.72, 0),
+    baked(new THREE.BoxGeometry(2.16, 0.16, 0.12), 0, 0.86, 0.62),
+  ], mat(paint.deep));
   roof.userData.slot = 'roof';
-  roof.castShadow = true;
-
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.4, 0.08), mat(PALETTE.ink));
-  door.position.set(0, 0.36, -0.44);
-
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.7, 6), mat(PALETTE.foam));
-  pole.position.y = 2.28;
-  pole.castShadow = true;
-
-  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat(paint.flag));
-  ball.position.y = 2.66;
-  ball.userData.slot = 'flag';
-
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.06), mat(PALETTE.ink));
+  door.position.set(0, 0.3, -0.66);
+  const metal = mergedMesh([
+    baked(new THREE.CylinderGeometry(0.04, 0.05, 1.2, 5), -0.15, 1.38, 0.05),
+    baked(new THREE.CylinderGeometry(0.36, 0.4, 0.07, 8), 0.22, 1.99, 0.02, 0.25, 0, 0.7),
+    baked(new THREE.BoxGeometry(0.035, 0.7, 0.035), -0.42, 1.7, -0.08),
+    baked(new THREE.BoxGeometry(0.28, 0.03, 0.03), -0.42, 2.02, -0.08),
+    baked(new THREE.CylinderGeometry(0.02, 0.025, 0.72, 5), 0.72, 2.12, 0),
+  ], mat(PALETTE.metal));
   const flag = pennant(paint.flag);
-  flag.position.set(0.2, 2.48, 0);
-
-  const pip = makePip(1.15);
+  flag.position.set(0.72, 2.49, 0);
+  const pip = makePip(1.42);
   g.userData.pip = pip;
-  g.add(plinth, shaft, band, roof, door, pole, ball, flag, pip);
+  g.add(concrete, sand, body, roof, door, metal, flag, pip);
   return g;
 }
 
-/** Long low hall. The footprint is a bar, not a tower. */
+/** Lower hangar: roll door, vents, spawn pad. No dish. Roof center is world y 0.78. */
 function makeBarracks(paint) {
   const g = new THREE.Group();
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.92), mat(PALETTE.sand, { roughness: 0.9 }));
-  plinth.position.y = 0.06;
-  plinth.castShadow = true;
-  plinth.receiveShadow = true;
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.46, 0.78), mat(paint.main));
-  body.position.y = 0.34;
+  const sand = mergedMesh([
+    baked(new THREE.BoxGeometry(1.85, 0.1, 1.15), 0, 0.06, 0),
+    baked(new THREE.BoxGeometry(0.2, 0.16, 0.2), 0.62, 0.86, 0.18),
+  ], mat(PALETTE.sand));
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.44, 0.86), mat(paint.main));
+  body.position.y = 0.32;
   body.userData.slot = 'body';
   body.castShadow = true;
-
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.22, 0.96), mat(paint.deep));
-  roof.position.y = 0.66;
+  body.receiveShadow = true;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.1, 0.98), mat(paint.deep));
+  roof.position.y = 0.72;
   roof.userData.slot = 'roof';
   roof.castShadow = true;
-
-  const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.42, 0.18), mat(PALETTE.foam));
-  chimney.position.set(0.62, 0.92, 0.12);
-  chimney.castShadow = true;
-
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.32, 0.08), mat(PALETTE.ink));
-  door.position.set(-0.2, 0.26, -0.42);
-
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.46, 5), mat(PALETTE.foam));
-  pole.position.set(-0.7, 1.05, 0);
-
+  roof.receiveShadow = true;
+  const ink = mergedMesh([
+    baked(new THREE.BoxGeometry(0.62, 0.32, 0.05), 0, 0.28, -0.45),
+    baked(new THREE.BoxGeometry(0.26, 0.05, 0.04), -0.48, 0.46, -0.44),
+    baked(new THREE.BoxGeometry(0.26, 0.05, 0.04), 0.48, 0.46, -0.44),
+  ], mat(PALETTE.ink));
+  const spawn = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.36), mat(PALETTE.concrete));
+  spawn.position.set(0, 0.1, -0.82);
+  spawn.receiveShadow = true;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.42, 5), mat(PALETTE.metal));
+  pole.position.set(-0.7, 0.96, 0);
   const flag = pennant(paint.flag);
-  flag.scale.setScalar(0.7);
-  flag.position.set(-0.5, 1.16, 0);
-
-  const pip = makePip(1.2);
+  flag.scale.setScalar(0.65);
+  flag.position.set(-0.7, 1.14, 0);
+  const pip = makePip(1.12);
   g.userData.pip = pip;
-  g.add(plinth, body, roof, chimney, door, pole, flag, pip);
+  g.add(sand, body, roof, ink, spawn, pole, flag, pip);
   return g;
 }
 
@@ -155,12 +181,22 @@ function paintGroup(group, owner) {
   });
 }
 
+const _rgb = new THREE.Color();
+
+function writeRgb(hex, target, offset) {
+  // setHex converts the art hex into linear so the stripe displays as that hex.
+  _rgb.setHex(hex);
+  target[offset] = _rgb.r;
+  target[offset + 1] = _rgb.g;
+  target[offset + 2] = _rgb.b;
+}
+
 /**
  * Ownership edge. Two solid halves, no blended gold middle.
  * The quad starts in XY. rotateX(-π/2) maps (x, y, 0) → (x, 0, -y),
- * so local −Y becomes world +Z (player, mint) and local +Y becomes world −Z
- * (enemy, coral). The halves do not share vertices, so the GPU cannot mix them.
- * Depth is 0.5 so the cream bridge stays visible beside the stripe.
+ * so local −Y becomes world +Z (player green) and local +Y becomes world −Z
+ * (enemy red). The halves do not share vertices, so the GPU cannot mix them.
+ * Depth is 0.5 so the grey bridge stays visible beside the stripe.
  */
 export function frontierBandGeometry() {
   const half = 0.25;
@@ -168,19 +204,9 @@ export function frontierBandGeometry() {
     -0.5, -half, 0, 0.5, -half, 0, 0.5, 0, 0, -0.5, 0, 0,
     -0.5, 0, 0, 0.5, 0, 0, 0.5, half, 0, -0.5, half, 0,
   ]);
-  const mint = [0.05, 0.78, 0.28];
-  const coral = [0.92, 0.1, 0.08];
   const colors = new Float32Array(8 * 3);
-  for (let i = 0; i < 4; i++) {
-    colors[i * 3] = mint[0];
-    colors[i * 3 + 1] = mint[1];
-    colors[i * 3 + 2] = mint[2];
-  }
-  for (let i = 4; i < 8; i++) {
-    colors[i * 3] = coral[0];
-    colors[i * 3 + 1] = coral[1];
-    colors[i * 3 + 2] = coral[2];
-  }
+  for (let i = 0; i < 4; i++) writeRgb(PALETTE.player.glow, colors, i * 3);
+  for (let i = 4; i < 8; i++) writeRgb(PALETTE.enemy.glow, colors, i * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -219,16 +245,16 @@ function pushTree(trunks, crowns, x, z, scale, color) {
 
 const TREE_SPOTS = [
   [-3.05, 6.15, 1.08, PALETTE.leaf],
-  [-3.25, 4.15, 0.82, PALETTE.leafMint],
+  [-3.25, 4.15, 0.82, PALETTE.leafDeep],
   [3.15, 5.55, 1.12, PALETTE.leaf],
   [3.3, 3.35, 0.74, PALETTE.leaf],
-  [-3.15, 1.05, 0.9, PALETTE.leafMint],
+  [-3.15, 1.05, 0.9, PALETTE.leafDeep],
   [3.05, 0.7, 0.78, PALETTE.leaf],
   [-3.2, -1.45, 1.0, PALETTE.leaf],
-  [3.2, -1.7, 0.88, PALETTE.leafMint],
+  [3.2, -1.7, 0.88, PALETTE.leafDeep],
   [2.95, -4.55, 0.8, PALETTE.leaf],
   [-3.15, -5.15, 1.05, PALETTE.leaf],
-  [2.45, -6.85, 0.7, PALETTE.leafMint],
+  [2.45, -6.85, 0.7, PALETTE.leafDeep],
   [-2.15, 7.05, 0.76, PALETTE.leaf],
   [1.55, 7.15, 0.64, PALETTE.leaf],
   [-1.35, -7.15, 0.7, PALETTE.leaf],
@@ -288,10 +314,17 @@ function buildIsland(map, reduceMotion) {
   beach.castShadow = true;
   group.add(beach);
 
+  const ownerById = {};
+  for (let i = 0; i < map.buildings.length; i++) {
+    ownerById[map.buildings[i].id] = map.buildings[i].owner;
+  }
   const zoneMeshes = new Map();
   for (let i = 0; i < map.zones.length; i++) {
     const z = map.zones[i];
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.05, 0.32, 6), mat(PALETTE.meadow));
+    const owner = ownerById[z.buildingId];
+    const slab = owner ? ownerPaint(owner).slab : PALETTE.meadow;
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.05, 0.32, 6), mat(slab));
+    if (owner) mesh.userData.owner = owner;
     mesh.scale.set(z.rx, 1, z.rz);
     mesh.position.set(z.x, -0.1, z.z);
     mesh.rotation.y = i * 0.18;
@@ -332,22 +365,6 @@ function buildIsland(map, reduceMotion) {
       const [x, z, s, color] = TREE_SPOTS[i];
       pushTree(trunks, crowns, x, z, s, color);
     }
-    const flowerGeo = new THREE.SphereGeometry(0.08, 6, 5);
-    const flowerColors = [0xffb7c8, 0xffe08a, 0xfff6ea];
-    const flowerSpots = [[-0.8, 6.9], [0.7, 6.85], [2.3, 4.5], [-2.35, -4.4], [0.85, -6.9]];
-    const flowers = {};
-    for (let i = 0; i < flowerSpots.length; i++) {
-      const color = flowerColors[i % flowerColors.length];
-      const list = flowers[color] || (flowers[color] = []);
-      const geo = flowerGeo.clone();
-      geo.translate(flowerSpots[i][0], 0.14, flowerSpots[i][1]);
-      list.push(geo);
-    }
-    flowerGeo.dispose();
-    const flowerIds = Object.keys(flowers);
-    for (let i = 0; i < flowerIds.length; i++) {
-      addMerged(group, flowers[flowerIds[i]], mat(Number(flowerIds[i])));
-    }
     const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
     const rockParts = [];
     const rocks = [[2.55, 6.4, 0.7], [-2.7, -6.5, 0.55], [3.4, -0.2, 0.4], [-3.45, 2.4, 0.48]];
@@ -363,7 +380,7 @@ function buildIsland(map, reduceMotion) {
   } else {
     for (let i = 0; i < map.zones.length; i++) {
       const z = map.zones[i];
-      pushTree(trunks, crowns, z.x - z.rx + 0.45, z.z + z.rz * 0.35, 0.85, i % 2 ? PALETTE.leafMint : PALETTE.leaf);
+      pushTree(trunks, crowns, z.x - z.rx + 0.45, z.z + z.rz * 0.35, 0.85, i % 2 ? PALETTE.leafDeep : PALETTE.leaf);
       pushTree(trunks, crowns, z.x + z.rx - 0.4, z.z - z.rz * 0.2, 0.7, PALETTE.leaf);
     }
   }
@@ -375,6 +392,7 @@ function buildIsland(map, reduceMotion) {
 
   const buildings = new Map();
   const flags = [];
+  const blobs = [];
   const dir = { x: 0, z: 0 };
   for (let i = 0; i < map.buildings.length; i++) {
     const spec = map.buildings[i];
@@ -389,7 +407,17 @@ function buildIsland(map, reduceMotion) {
     });
     group.add(groupB);
     buildings.set(spec.id, groupB);
+    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.35 : 1.05, 8);
+    blob.rotateX(-Math.PI / 2);
+    blob.translate(p.x, 0.03, p.z);
+    blobs.push(blob);
   }
+  addMerged(group, blobs, new THREE.MeshBasicMaterial({
+    color: PALETTE.ink,
+    transparent: true,
+    opacity: 0.28,
+    depthWrite: false,
+  }));
 
   const glowMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
@@ -414,7 +442,7 @@ function buildIsland(map, reduceMotion) {
 
   const ringGeo = new THREE.TorusGeometry(1.05, 0.05, 8, 32);
   ringGeo.rotateX(Math.PI / 2);
-  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xfff3b0 }));
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xd5ddd4 }));
   ring.position.y = 0.2;
   ring.visible = false;
   group.add(ring);
@@ -428,7 +456,7 @@ function buildIsland(map, reduceMotion) {
 
   const ribbon = new THREE.Mesh(
     new THREE.CylinderGeometry(0.05, 0.05, 1, 6),
-    new THREE.MeshBasicMaterial({ color: 0x8dffc0, transparent: true, opacity: 0.9 }),
+    new THREE.MeshBasicMaterial({ color: PALETTE.player.main, transparent: true, opacity: 0.9 }),
   );
   ribbon.visible = false;
   ribbon.frustumCulled = false;
@@ -436,7 +464,7 @@ function buildIsland(map, reduceMotion) {
 
   const dot = new THREE.Mesh(
     new THREE.SphereGeometry(0.12, 8, 6),
-    new THREE.MeshBasicMaterial({ color: 0xfff6c2 }),
+    new THREE.MeshBasicMaterial({ color: 0xf4f7f4 }),
   );
   dot.visible = false;
   group.add(dot);

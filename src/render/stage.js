@@ -24,11 +24,9 @@ export function createStage(canvas) {
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
-  // Props do not move. Bake the shadow map when the island mounts.
-  renderer.shadowMap.autoUpdate = false;
-  renderer.shadowMap.needsUpdate = true;
+  // A live shadow map drops SwiftShader under 50 fps once the bunker and soldiers are on screen.
+  // Contact is a cheap blob in the island, not a shadow pass.
+  renderer.shadowMap.enabled = false;
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
@@ -38,21 +36,12 @@ export function createStage(canvas) {
   const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xfff6e8, 0x8ed0a0, 0.92));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.28));
+  scene.add(new THREE.HemisphereLight(0xc5d4e2, 0x5a6b42, 0.72));
+  scene.add(new THREE.AmbientLight(0xe7eeea, 0.32));
 
-  const sun = new THREE.DirectionalLight(0xfff3d2, 1.28);
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.05);
   sun.position.set(-6.2, 17.5, 8.2);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(512, 512);
-  sun.shadow.camera.near = 4;
-  sun.shadow.camera.far = 46;
-  sun.shadow.camera.left = -14;
-  sun.shadow.camera.right = 14;
-  sun.shadow.camera.top = 14;
-  sun.shadow.camera.bottom = -14;
-  sun.shadow.bias = -0.0003;
-  sun.shadow.normalBias = 0.04;
+  sun.castShadow = false;
   scene.add(sun);
 
   function resize() {

@@ -15,15 +15,29 @@ export function visualCount(count) {
   return Math.min(30, 16 + Math.round((n - 16) / 3));
 }
 
-function soldierGeometry() {
-  // Chunky pawn: box torso, round head, nose on local −z so the crowd faces travel.
-  const body = new THREE.BoxGeometry(0.28, 0.34, 0.18);
-  body.translate(0, 0.2, 0);
-  const head = new THREE.SphereGeometry(0.11, 7, 6);
-  head.translate(0, 0.44, 0);
-  const nose = new THREE.BoxGeometry(0.07, 0.05, 0.08);
-  nose.translate(0, 0.44, -0.12);
-  const geo = mergeGeometries([body, head, nose]);
+/**
+ * Helmet, torso, and a rifle. The rifle box is translated on local −z.
+ * yawForFacing aims that axis along travel; the instance quaternion's −z
+ * is the same axis the crowd's facing probe reads.
+ */
+function shade(geo, value) {
+  const n = geo.getAttribute('position').count;
+  const colors = new Float32Array(n * 3);
+  colors.fill(value);
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+export function soldierGeometry() {
+  const torso = shade(new THREE.BoxGeometry(0.15, 0.26, 0.1), 0.82);
+  torso.translate(0, 0.22, 0);
+  const helmet = shade(new THREE.BoxGeometry(0.16, 0.1, 0.15), 1);
+  helmet.translate(0, 0.41, -0.01);
+  const rifle = shade(new THREE.BoxGeometry(0.04, 0.045, 0.36), 0.28);
+  rifle.translate(0.08, 0.22, -0.2);
+  const stock = shade(new THREE.BoxGeometry(0.045, 0.07, 0.08), 0.34);
+  stock.translate(0.08, 0.2, -0.01);
+  const geo = mergeGeometries([torso, helmet, rifle, stock]);
   geo.computeVertexNormals();
   return geo;
 }
@@ -44,12 +58,12 @@ export function createCrowds(scene) {
   const geo = soldierGeometry();
   const green = new THREE.InstancedMesh(
     geo,
-    new THREE.MeshLambertMaterial({ color: PALETTE.player.main }),
+    new THREE.MeshLambertMaterial({ color: PALETTE.player.main, vertexColors: true }),
     MAX,
   );
   const red = new THREE.InstancedMesh(
     geo,
-    new THREE.MeshLambertMaterial({ color: PALETTE.enemy.main }),
+    new THREE.MeshLambertMaterial({ color: PALETTE.enemy.main, vertexColors: true }),
     MAX,
   );
   green.castShadow = false;
@@ -108,7 +122,7 @@ export function createCrowds(scene) {
       const lz = r * spacing;
       rotateXZ(lx, lz, yaw, _slot);
       const bob = 1 + ((i * 17) % 5) * 0.015;
-      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.05 * bob, track && i === 0);
+      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.2 * bob, track && i === 0);
     }
   }
 

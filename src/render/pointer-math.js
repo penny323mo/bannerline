@@ -21,7 +21,7 @@ export const SCREEN_HIT_PX = 44;
 export const PILL_SHIFT_PX = 32;
 
 /** World y of the HTML badge anchor. Shared with the badge layer. */
-export const BADGE_LIFT = { hq: 2.15, barracks: 1.7 };
+export const BADGE_LIFT = { hq: 2.85, barracks: 1.55 };
 
 /** World y of a marching squad's count pill. */
 export const SQUAD_LIFT = 1.05;
@@ -36,8 +36,8 @@ export function squadMarkX(x, owner, mode) {
  * World y of the roof and the flag. Buildings sit 0.06 above the ground,
  * so these are the mesh heights plus that rise.
  */
-export const ROOF_Y = { hq: 1.4, barracks: 0.76 };
-export const FLAG_Y = { hq: 1.98, barracks: 1.28 };
+export const ROOF_Y = { hq: 2.05, barracks: 0.78 };
+export const FLAG_Y = { hq: 2.55, barracks: 1.2 };
 
 const projected = new THREE.Vector3();
 const css = { x: 0, y: 0 };

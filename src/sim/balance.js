@@ -1,4 +1,5 @@
 /** Tunable match numbers. Pure data — no rendering. */
+import { mapById } from './maps.js';
 
 export const RULES = {
   clashEvery: 0.3,
@@ -24,42 +25,19 @@ export const FIRST_SEND = {
 };
 
 export function startingBuildings() {
-  return [
-    {
-      id: 'player-hq',
-      kind: 'hq',
-      owner: 'player',
-      node: 'player-hq',
-      count: 12,
-      cap: 28,
-      regen: 0,
-    },
-    {
-      id: 'player-bar',
-      kind: 'barracks',
-      owner: 'player',
-      node: 'player-bar',
-      count: 30,
-      cap: 54,
-      regen: 2.25,
-    },
-    {
-      id: 'enemy-bar',
-      kind: 'barracks',
-      owner: 'enemy',
-      node: 'enemy-bar',
-      count: 18,
-      cap: 48,
-      regen: 1.7,
-    },
-    {
-      id: 'enemy-hq',
-      kind: 'hq',
-      owner: 'enemy',
-      node: 'enemy-hq',
-      count: 44,
-      cap: 52,
-      regen: 0,
-    },
-  ];
+  const list = mapById('crossing').buildings;
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const b = list[i];
+    out.push({
+      id: b.id,
+      kind: b.kind,
+      owner: b.owner,
+      node: b.node,
+      count: b.count,
+      cap: b.cap,
+      regen: b.regen,
+    });
+  }
+  return out;
 }

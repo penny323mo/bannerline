@@ -18,14 +18,17 @@ export function frameDioramaCamera(camera, aspect) {
 export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: false,
     alpha: false,
     powerPreference: 'high-performance',
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  // Props do not move. Bake the shadow map when the island mounts.
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
@@ -41,7 +44,7 @@ export function createStage(canvas) {
   const sun = new THREE.DirectionalLight(0xfff3d2, 1.28);
   sun.position.set(-6.2, 17.5, 8.2);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.mapSize.set(512, 512);
   sun.shadow.camera.near = 4;
   sun.shadow.camera.far = 46;
   sun.shadow.camera.left = -14;

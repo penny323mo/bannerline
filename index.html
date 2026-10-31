@@ -16,18 +16,35 @@
     <header id="hud">
       <div class="hud-row">
         <div class="brand">據點號令</div>
-        <button id="mute" type="button" aria-pressed="false" aria-label="靜音">有聲</button>
+        <div class="hud-actions">
+          <button id="home-btn" type="button">地圖</button>
+          <button id="mute" type="button" aria-pressed="false" aria-label="靜音">有聲</button>
+        </div>
       </div>
       <div class="hud-row scores">
         <span class="pill mine">我軍 <b id="score-mine">0</b></span>
         <span class="pill foe">敵軍 <b id="score-foe">0</b></span>
       </div>
     </header>
-    <p id="hint">點我軍建築，再點目標出兵</p>
+    <div id="upgrades" hidden>
+      <button id="up-haste" type="button">加速 · 8</button>
+      <button id="up-bulwark" type="button">加固 · 8</button>
+    </div>
+    <p id="hint">揀地圖，再撳開戰</p>
+    <div id="home">
+      <div class="home-card">
+        <p class="kicker">玩具島對戰</p>
+        <h1>據點號令</h1>
+        <p class="lede">揀一張地圖，再揀難度</p>
+        <div id="maps"></div>
+        <div id="diffs"></div>
+        <button id="start" type="button">開戰</button>
+      </div>
+    </div>
     <div id="sheet" hidden>
       <div class="card">
         <p class="kicker" id="sheet-kicker">對戰結束</p>
-        <h2 id="sheet-title">勝利</h2>
+        <h2 id="sheet-title">贏咗</h2>
         <p id="sheet-body">攻陷咗對方司令部</p>
         <button id="retry" type="button">再戰</button>
       </div>

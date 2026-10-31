@@ -1,11 +1,14 @@
-import { FIRST_SEND, RULES, startingBuildings } from './balance.js';
+import { writeOrder } from './ai.js';
+import { FIRST_SEND, RULES } from './balance.js';
 import { canStartCapture, captureResult, matchOutcome, stepCapture } from './capture.js';
 import { clashTick, splitSurvivors } from './combat.js';
 import { applyRegen } from './economy.js';
-import { NODES } from './mapdata.js';
+import { GRAPH, NODES } from './mapdata.js';
+import { difficultyById, mapById, scaleFirstSend } from './maps.js';
 import { findPath } from './path.js';
 
-function blankBuilding(spec) {
+function blankBuilding(spec, regenScale) {
+  const scale = spec.owner === 'enemy' ? regenScale : 1;
   return {
     id: spec.id,
     kind: spec.kind,
@@ -13,29 +16,55 @@ function blankBuilding(spec) {
     node: spec.node,
     count: spec.count,
     cap: spec.cap,
-    regen: spec.regen,
+    regen: spec.regen * scale,
+    baseRegen: spec.regen,
     bank: 0,
     capture: 0,
+    upgrades: { haste: 0, bulwark: 0 },
   };
 }
 
-export function createMatch() {
-  const buildings = startingBuildings().map(blankBuilding);
+export function createMatch(opts = {}) {
+  const map = mapById(opts.mapId || 'crossing');
+  const diff = difficultyById(opts.difficulty || 'normal');
+  const buildings = map.buildings.map((spec) => blankBuilding(spec, diff.regenScale));
   const nextSendAt = {};
-  for (const b of buildings) {
-    if (b.owner === 'enemy') nextSendAt[b.id] = FIRST_SEND[b.id] ?? 12;
+  for (let i = 0; i < buildings.length; i++) {
+    const b = buildings[i];
+    if (b.owner !== 'enemy') continue;
+    const base = FIRST_SEND[b.id] ?? (b.kind === 'hq' ? 22 : 16);
+    nextSendAt[b.id] = scaleFirstSend(base, diff);
   }
   return {
     t: 0,
-    status: 'playing',
-    ai: true,
+    status: opts.status || 'playing',
+    ai: opts.ai !== false,
     clashAcc: 0,
     nextSquadId: 1,
     nextSendAt,
     buildings,
     squads: [],
     events: [],
+    map,
+    nodes: map.nodes,
+    graph: map.graph,
+    personality: map.personality || 'balanced',
+    difficulty: diff.id,
+    sendMin: RULES.enemySendMin * diff.sendMinScale,
+    sendPeriod: RULES.enemySendPeriod * diff.periodScale,
+    reactDelay: diff.reactDelay,
+    alarmAt: null,
+    answered: {},
+    opened: {},
   };
+}
+
+function nodesOf(state) {
+  return (state && state.nodes) || NODES;
+}
+
+function graphOf(state) {
+  return (state && state.graph) || GRAPH;
 }
 
 export function buildingById(state, id) {
@@ -70,10 +99,11 @@ export function retargetSquad(state, squadId, targetId) {
   const behind = atEnd ? path[path.length - 1] : path[squad.seg];
   const next = atEnd ? null : path[squad.seg + 1];
   let rebuilt;
+  const graph = graphOf(state);
   if (!next) {
-    rebuilt = findPath(behind, target.node);
+    rebuilt = findPath(behind, target.node, graph);
   } else {
-    const rest = findPath(next, target.node);
+    const rest = findPath(next, target.node, graph);
     if (!rest) return { ok: false, reason: 'no-path' };
     rebuilt = rest[0] === behind ? rest : [behind, ...rest];
   }
@@ -112,12 +142,6 @@ export function playerHold(building) {
   return Math.min(fraction, 6, count - 1);
 }
 
-/** Headquarters reserve. A stack of 14 can still send an 8-troop probe. */
-function enemyHqKeep(count) {
-  const half = Math.floor(count * 0.5);
-  return Math.max(0, Math.min(half, count - 8));
-}
-
 export function sendSquad(state, fromId, targetId, keep = 0) {
   if (!state || state.status !== 'playing') return { ok: false, reason: 'over' };
   const from = buildingById(state, fromId);
@@ -125,12 +149,12 @@ export function sendSquad(state, fromId, targetId, keep = 0) {
   if (!from || !target || from.id === target.id) return { ok: false, reason: 'bad-target' };
   const hold = Math.max(0, Math.floor(keep));
   if (from.count - hold < 1) return { ok: false, reason: 'empty' };
-  const path = findPath(from.node, target.node);
+  const path = findPath(from.node, target.node, graphOf(state));
   if (!path || path.length < 2) return { ok: false, reason: 'no-path' };
   const count = from.count - hold;
   from.count = hold;
   from.bank = 0;
-  const start = NODES[path[0]];
+  const start = nodesOf(state)[path[0]];
   const squad = {
     id: `sq${state.nextSquadId++}`,
     owner: from.owner,
@@ -147,10 +171,10 @@ export function sendSquad(state, fromId, targetId, keep = 0) {
   return { ok: true, count, id: squad.id };
 }
 
-function moveSquad(squad, dt) {
+function moveSquad(squad, dt, nodes) {
   let left = RULES.marchSpeed * dt;
   while (left > 0 && squad.seg < squad.path.length - 1) {
-    const b = NODES[squad.path[squad.seg + 1]];
+    const b = nodes[squad.path[squad.seg + 1]];
     const dx = b.x - squad.x;
     const dz = b.z - squad.z;
     const dist = Math.hypot(dx, dz);
@@ -174,49 +198,107 @@ function moveSquad(squad, dt) {
   }
 }
 
-function pathTravel(path) {
+function pathTravel(path, nodes) {
   let d = 0;
   for (let i = 0; i < path.length - 1; i++) {
-    const a = NODES[path[i]];
-    const b = NODES[path[i + 1]];
+    const a = nodes[path[i]];
+    const b = nodes[path[i + 1]];
     d += Math.hypot(a.x - b.x, a.z - b.z);
   }
   return d;
 }
 
-function nearestPlayerTarget(state, from) {
-  let best = null;
-  let bestD = Infinity;
-  for (let i = 0; i < state.buildings.length; i++) {
-    const t = state.buildings[i];
-    if (t.owner !== 'player') continue;
-    const path = findPath(from.node, t.node);
-    if (!path) continue;
-    const d = pathTravel(path);
-    if (d < bestD) {
-      bestD = d;
-      best = t;
+const threatSlot = { id: null };
+const orderSlot = { targetId: '', keep: 0 };
+const targetScratch = [];
+for (let ti = 0; ti < 12; ti++) {
+  targetScratch.push({ id: '', kind: '', count: 0, travel: 0 });
+}
+
+function scanThreat(state) {
+  threatSlot.id = null;
+  threatSlot.dist = Infinity;
+  let best = Infinity;
+  let under = false;
+  const nodes = nodesOf(state);
+  for (let i = 0; i < state.squads.length; i++) {
+    const s = state.squads[i];
+    if (s.owner !== 'player' || s.count <= 0 || !s.targetId) continue;
+    const b = buildingById(state, s.targetId);
+    if (!b || b.owner !== 'enemy') continue;
+    under = true;
+    const dest = nodes[b.node];
+    const d = Math.hypot(s.x - dest.x, s.z - dest.z);
+    if (d < best) {
+      best = d;
+      threatSlot.id = b.id;
+      threatSlot.dist = d;
     }
   }
-  return best;
+  return under;
+}
+
+function fillTargets(state, fromNode) {
+  const nodes = nodesOf(state);
+  const graph = graphOf(state);
+  let n = 0;
+  for (let i = 0; i < state.buildings.length && n < targetScratch.length; i++) {
+    const t = state.buildings[i];
+    if (t.owner !== 'player') continue;
+    const path = findPath(fromNode, t.node, graph);
+    if (!path) continue;
+    const slot = targetScratch[n];
+    slot.id = t.id;
+    slot.kind = t.kind;
+    slot.count = t.count;
+    slot.travel = path.length < 2 ? 0 : pathTravel(path, nodes);
+    n += 1;
+  }
+  return n;
 }
 
 function planEnemy(state) {
   if (!state.ai) return;
+  const under = scanThreat(state);
+  if (under) {
+    if (state.alarmAt == null) state.alarmAt = state.t;
+  } else if (state.alarmAt != null) {
+    state.alarmAt = null;
+    const answered = state.answered;
+    for (const key in answered) answered[key] = false;
+  }
+  const threatened = buildingById(state, threatSlot.id);
+  const pressing = under && threatSlot.dist <= RULES.arriveRadius;
+  const opened = state.opened || (state.opened = {});
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
     if (b.owner !== 'enemy') continue;
-    if (state.t < (state.nextSendAt[b.id] ?? 0)) continue;
-    const keep = b.kind === 'hq' ? enemyHqKeep(b.count) : 0;
-    if (b.kind === 'hq') {
-      if (b.count < 14 || b.count - keep < 8) continue;
-    } else if (b.count < RULES.enemySendMin) {
-      continue;
-    }
-    const target = nearestPlayerTarget(state, b);
-    if (!target) continue;
-    const res = sendSquad(state, b.id, target.id, keep);
-    if (res.ok) state.nextSendAt[b.id] = state.t + RULES.enemySendPeriod;
+    const targetCount = fillTargets(state, b.node);
+    const ready = writeOrder({
+      t: state.t,
+      nextSendAt: state.nextSendAt[b.id] ?? 0,
+      underAttack: under,
+      alarmAt: state.alarmAt,
+      reactDelay: state.reactDelay,
+      answered: !!state.answered[b.id],
+      count: b.count,
+      kind: b.kind,
+      buildingId: b.id,
+      personality: state.personality,
+      sendMin: state.sendMin,
+      threatenedId: threatSlot.id,
+      ownsThreatened: !!(threatened && threatened.owner === 'enemy'),
+      targets: targetScratch,
+      targetCount,
+      opened: !!opened[b.id],
+      pressing,
+    }, orderSlot);
+    if (!ready) continue;
+    const res = sendSquad(state, b.id, orderSlot.targetId, orderSlot.keep);
+    if (!res.ok) continue;
+    opened[b.id] = true;
+    state.nextSendAt[b.id] = state.t + state.sendPeriod;
+    if (under) state.answered[b.id] = true;
   }
 }
 
@@ -261,7 +343,7 @@ function assignModes(state, paired) {
       s.mode = 'march';
       continue;
     }
-    const dest = NODES[target.node];
+    const dest = nodesOf(state)[target.node];
     const dist = Math.hypot(s.x - dest.x, s.z - dest.z);
     const finished = s.seg >= s.path.length - 1;
     if (finished && dist <= RULES.arriveRadius) {
@@ -379,7 +461,7 @@ function stepOnce(state, dt) {
 
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
-    if (b.kind !== 'barracks' || !(b.regen > 0)) continue;
+    if (!(b.regen > 0) || (b.kind !== 'barracks' && b.kind !== 'hq')) continue;
     let sieged = false;
     for (let s = 0; s < state.squads.length; s++) {
       const sq = state.squads[s];
@@ -398,9 +480,10 @@ function stepOnce(state, dt) {
 
   planEnemy(state);
 
+  const nodes = nodesOf(state);
   for (let i = 0; i < state.squads.length; i++) {
     const s = state.squads[i];
-    if (s.mode === 'march' && s.count > 0) moveSquad(s, dt);
+    if (s.mode === 'march' && s.count > 0) moveSquad(s, dt, nodes);
   }
 
   const { pairs, paired } = collectPairs(state);

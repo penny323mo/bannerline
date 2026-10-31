@@ -6,7 +6,9 @@ import { attachInput } from './render/input.js';
 import { createStage } from './render/stage.js';
 import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
+import { DIFFICULTIES, MAP_LIST } from './sim/maps.js';
 import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, sideStrength, squadById, stepMatch } from './sim/match.js';
+import { applyUpgrade, quoteUpgrade } from './sim/upgrades.js';
 import { squadMarkX } from './render/pointer-math.js';
 
 const app = document.getElementById('app');
@@ -14,6 +16,10 @@ const canvas = document.getElementById('view');
 const hintEl = document.getElementById('hint');
 const sheetEl = document.getElementById('sheet');
 const muteBtn = document.getElementById('mute');
+const homeEl = document.getElementById('home');
+const upgradesEl = document.getElementById('upgrades');
+const upHaste = document.getElementById('up-haste');
+const upWall = document.getElementById('up-bulwark');
 const scoreMine = document.getElementById('score-mine');
 const scoreFoe = document.getElementById('score-foe');
 
@@ -23,7 +29,9 @@ const crowds = createCrowds(stage.scene);
 const badges = createBadges(document.getElementById('badges'));
 const audio = createAudio();
 
-let state = createMatch();
+let mapId = 'crossing';
+let difficulty = 'normal';
+let state = null;
 let selected = null;
 let dragging = false;
 let nextSpawnSfx = 0;
@@ -37,8 +45,12 @@ function paintMute() {
 }
 
 function setHint(mode) {
-  if (state.status !== 'playing') {
-    hintEl.textContent = '撳再戰，重開一局';
+  if (homeEl && !homeEl.hidden) {
+    hintEl.textContent = '揀地圖，再撳開戰';
+    return;
+  }
+  if (!state || state.status !== 'playing') {
+    hintEl.textContent = '撳再戰，再嚟過';
     return;
   }
   if (mode === 'drag') hintEl.textContent = '鬆手就放出呢隊兵';
@@ -50,9 +62,10 @@ function showSheet(kind) {
   sheetEl.hidden = false;
   sheetEl.classList.toggle('win', kind === 'win');
   sheetEl.classList.toggle('lose', kind === 'lose');
-  document.getElementById('sheet-title').textContent = kind === 'win' ? '勝利' : '失敗';
-  document.getElementById('sheet-kicker').textContent = kind === 'win' ? '綠旗站住' : '紅旗打入';
-  document.getElementById('sheet-body').textContent = kind === 'win' ? '攻陷咗對方司令部' : '我方司令部失守';
+  document.getElementById('sheet-title').textContent = kind === 'win' ? '贏咗' : '輸咗';
+  document.getElementById('sheet-kicker').textContent = kind === 'win' ? '綠旗企穩' : '紅旗打入嚟';
+  document.getElementById('sheet-body').textContent = kind === 'win' ? '攻陷咗對方司令部' : '失守咗我哋司令部';
+  setHint('idle');
 }
 
 function hideSheet() {
@@ -61,8 +74,59 @@ function hideSheet() {
 }
 
 function syncHud() {
+  if (!state) return;
   scoreMine.textContent = String(sideStrength(state, 'player'));
   scoreFoe.textContent = String(sideStrength(state, 'enemy'));
+}
+
+function showHome(on) {
+  homeEl.hidden = !on;
+  if (on) upgradesEl.hidden = true;
+}
+
+function mountMatch(status) {
+  state = createMatch({ mapId, difficulty, status });
+  world.mount(state.map);
+  stage.renderer.shadowMap.needsUpdate = true;
+  crowds.setMap(state.map);
+  badges.setMap(state.map);
+  selected = null;
+  dragging = false;
+  world.resetDrag();
+  syncHud();
+}
+
+function paintChoice(root, attr, value) {
+  const buttons = root.querySelectorAll('button');
+  for (let i = 0; i < buttons.length; i++) {
+    buttons[i].classList.toggle('is-on', buttons[i].getAttribute(attr) === value);
+  }
+}
+
+function paintUpgrades() {
+  const building = selected && state && state.status === 'playing'
+    ? buildingById(state, selected)
+    : null;
+  const show = !!(building && building.owner === 'player' && homeEl.hidden);
+  upgradesEl.hidden = !show;
+  if (!show) return;
+  paintUpgradeButton(upHaste, building, 'haste');
+  paintUpgradeButton(upWall, building, 'bulwark');
+}
+
+function paintUpgradeButton(btn, building, id) {
+  const quote = quoteUpgrade(building, id);
+  const text = quote.reason === 'max' ? `${quote.label} 滿級` : `${quote.label} · ${quote.cost}`;
+  if (btn.textContent !== text) btn.textContent = text;
+  btn.disabled = !quote.ok;
+}
+
+function buyUpgrade(id) {
+  const building = selected && buildingById(state, selected);
+  if (!building) return;
+  const res = applyUpgrade(building, id);
+  audio.sfx(res.ok ? 'spawn' : 'nope');
+  paintUpgrades();
 }
 
 function consumeEvents(now) {
@@ -114,7 +178,8 @@ attachInput(canvas, stage.camera, () => {
   const list = [];
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
-    const p = NODES[b.node];
+    const nodes = state.nodes || NODES;
+    const p = nodes[b.node];
     list.push({ id: b.id, owner: b.owner, kind: b.kind, x: p.x, z: p.z });
   }
   for (let i = 0; i < state.squads.length; i++) {
@@ -189,15 +254,69 @@ muteBtn.addEventListener('click', (ev) => {
   paintMute();
 });
 
+function bindTap(el, fn) {
+  el.addEventListener('pointerdown', (ev) => {
+    ev.stopPropagation();
+  });
+  el.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    audio.unlock();
+    fn();
+  });
+}
+
+const mapHost = document.getElementById('maps');
+const diffHost = document.getElementById('diffs');
+for (let i = 0; i < MAP_LIST.length; i++) {
+  const map = MAP_LIST[i];
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.setAttribute('data-map', map.id);
+  btn.innerHTML = `${map.name}<small>${map.blurb}</small>`;
+  bindTap(btn, () => {
+    mapId = map.id;
+    paintChoice(mapHost, 'data-map', mapId);
+    mountMatch('menu');
+    showHome(true);
+    setHint('idle');
+  });
+  mapHost.appendChild(btn);
+}
+const diffIds = ['easy', 'normal', 'hard'];
+for (let i = 0; i < diffIds.length; i++) {
+  const id = diffIds[i];
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.setAttribute('data-diff', id);
+  btn.textContent = DIFFICULTIES[id].label;
+  bindTap(btn, () => {
+    difficulty = id;
+    paintChoice(diffHost, 'data-diff', difficulty);
+  });
+  diffHost.appendChild(btn);
+}
+
+bindTap(document.getElementById('start'), () => {
+  mountMatch('playing');
+  hideSheet();
+  showHome(false);
+  setHint('idle');
+});
+bindTap(document.getElementById('home-btn'), () => {
+  hideSheet();
+  showHome(true);
+  mountMatch('menu');
+  setHint('idle');
+});
+bindTap(upHaste, () => buyUpgrade('haste'));
+bindTap(upWall, () => buyUpgrade('bulwark'));
+
 document.getElementById('retry').addEventListener('click', () => {
   audio.unlock();
-  state = createMatch();
-  selected = null;
-  dragging = false;
-  world.resetDrag();
+  mountMatch('playing');
   hideSheet();
+  showHome(false);
   setHint('idle');
-  syncHud();
 });
 
 function resize() {
@@ -208,6 +327,10 @@ const ro = new ResizeObserver(resize);
 ro.observe(app);
 resize();
 paintMute();
+paintChoice(diffHost, 'data-diff', difficulty);
+paintChoice(mapHost, 'data-map', mapId);
+mountMatch('menu');
+showHome(true);
 setHint('idle');
 syncHud();
 
@@ -215,15 +338,18 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (state.status === 'playing') {
+  if (state && state.status === 'playing') {
     stepMatch(state, dt);
     consumeEvents(now);
   }
   const t = now / 1000;
-  world.update(t, state, dragging ? null : selected);
-  crowds.update(state);
-  badges.update(state, stage.camera, canvas);
-  syncHud();
+  if (state) {
+    world.update(t, state, dragging ? null : selected);
+    crowds.update(state);
+    badges.update(state, stage.camera, canvas);
+    paintUpgrades();
+    syncHud();
+  }
   stage.renderer.render(stage.scene, stage.camera);
   requestAnimationFrame(frame);
 }
@@ -250,10 +376,18 @@ window.__BL = {
   facingDot() {
     return crowds.facingDot();
   },
-  reset() {
-    state = createMatch();
-    selected = null;
+  start(nextMap, nextDiff) {
+    if (nextMap) mapId = nextMap;
+    if (nextDiff) difficulty = nextDiff;
+    mountMatch('playing');
     hideSheet();
+    showHome(false);
+    setHint('idle');
+  },
+  reset() {
+    mountMatch('playing');
+    hideSheet();
+    showHome(false);
     setHint('idle');
   },
 };

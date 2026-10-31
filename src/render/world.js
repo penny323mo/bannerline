@@ -1,27 +1,28 @@
 import * as THREE from 'three';
-import { GRAPH, NODES, ROAD, ZONES } from '../sim/mapdata.js';
-import { frontierSegments } from '../sim/territory.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { yawForFacing } from '../sim/facing.js';
+import { boxMapZones, frontierFrom } from '../sim/territory.js';
 import { PALETTE, ownerPaint } from './palette.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const LOCAL_Z = new THREE.Vector3(0, 0, 1);
 const _dir = new THREE.Vector3();
-const _mid = new THREE.Vector3();
 
 function mat(color, extra = {}) {
-  return new THREE.MeshStandardMaterial({
-    color,
-    roughness: extra.roughness ?? 0.78,
-    metalness: 0.02,
-    ...extra,
-  });
+  const { roughness, metalness, ...rest } = extra;
+  return new THREE.MeshLambertMaterial({ color, ...rest });
 }
 
-function exitDir(nodeId, out) {
-  const next = GRAPH[nodeId][0];
-  const a = NODES[nodeId];
-  const b = NODES[next];
+function exitDir(map, nodeId, out) {
+  const nexts = map.graph[nodeId] || [];
+  const next = nexts[0];
+  const a = map.nodes[nodeId];
+  const b = next && map.nodes[next];
+  if (!a || !b) {
+    out.x = 0;
+    out.z = -1;
+    return out;
+  }
   out.x = b.x - a.x;
   out.z = b.z - a.z;
   return out;
@@ -51,83 +52,95 @@ function pennant(color) {
   return group;
 }
 
+function makePip(radius) {
+  const pip = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, 0.045, 6, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffe08a }),
+  );
+  pip.rotation.x = Math.PI / 2;
+  pip.position.y = 0.1;
+  pip.visible = false;
+  pip.name = 'pip';
+  return pip;
+}
+
+/** Tall keep: box shaft and a spire, so it does not read as another hut. */
 function makeHq(paint) {
   const g = new THREE.Group();
-  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.84, 0.92, 0.16, 8), mat(PALETTE.sand, { roughness: 0.9 }));
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.02, 0.16, 8), mat(PALETTE.sand, { roughness: 0.9 }));
   plinth.position.y = 0.08;
   plinth.castShadow = true;
   plinth.receiveShadow = true;
 
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.64, 0.86, 8), mat(paint.main));
-  body.position.y = 0.58;
-  body.userData.slot = 'body';
-  body.castShadow = true;
+  const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.42, 0.82), mat(paint.main));
+  shaft.position.y = 0.88;
+  shaft.userData.slot = 'body';
+  shaft.castShadow = true;
 
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.1, 8), mat(PALETTE.foam));
-  band.position.y = 1.06;
+  const band = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.14, 1.02), mat(PALETTE.foam));
+  band.position.y = 1.64;
   band.castShadow = true;
 
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.76, 0.5, 8), mat(paint.deep));
-  roof.position.y = 1.34;
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.66, 0.78, 8), mat(paint.deep));
+  roof.position.y = 2.05;
   roof.userData.slot = 'roof';
   roof.castShadow = true;
 
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.34, 0.1), mat(PALETTE.ink));
-  door.position.set(0, 0.34, -0.62);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.4, 0.08), mat(PALETTE.ink));
+  door.position.set(0, 0.36, -0.44);
 
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.58, 6), mat(PALETTE.foam));
-  pole.position.y = 1.78;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.7, 6), mat(PALETTE.foam));
+  pole.position.y = 2.28;
   pole.castShadow = true;
 
-  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), mat(paint.flag));
-  ball.position.y = 2.1;
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat(paint.flag));
+  ball.position.y = 2.66;
   ball.userData.slot = 'flag';
 
   const flag = pennant(paint.flag);
-  flag.position.set(0.18, 1.92, 0);
+  flag.position.set(0.2, 2.48, 0);
 
-  g.add(plinth, body, band, roof, door, pole, ball, flag);
+  const pip = makePip(1.15);
+  g.userData.pip = pip;
+  g.add(plinth, shaft, band, roof, door, pole, ball, flag, pip);
   return g;
 }
 
+/** Long low hall. The footprint is a bar, not a tower. */
 function makeBarracks(paint) {
   const g = new THREE.Group();
-  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.58, 0.14, 8), mat(PALETTE.sand, { roughness: 0.9 }));
-  plinth.scale.set(1.72, 1, 1.05);
-  plinth.position.y = 0.07;
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.92), mat(PALETTE.sand, { roughness: 0.9 }));
+  plinth.position.y = 0.06;
   plinth.castShadow = true;
   plinth.receiveShadow = true;
 
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, 0.56, 8), mat(paint.main));
-  body.scale.set(1.75, 1, 1.05);
-  body.position.y = 0.42;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.46, 0.78), mat(paint.main));
+  body.position.y = 0.34;
   body.userData.slot = 'body';
   body.castShadow = true;
 
-  const roof = new THREE.Mesh(
-    new THREE.SphereGeometry(0.46, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
-    mat(paint.deep),
-  );
-  roof.scale.set(1.62, 0.72, 1.08);
-  roof.position.y = 0.7;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.22, 0.96), mat(paint.deep));
+  roof.position.y = 0.66;
   roof.userData.slot = 'roof';
   roof.castShadow = true;
 
-  const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.28, 0.16), mat(PALETTE.foam));
-  chimney.position.set(0.42, 0.98, 0.05);
+  const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.42, 0.18), mat(PALETTE.foam));
+  chimney.position.set(0.62, 0.92, 0.12);
   chimney.castShadow = true;
 
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.3, 0.1), mat(PALETTE.ink));
-  door.position.set(0, 0.28, -0.46);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.32, 0.08), mat(PALETTE.ink));
+  door.position.set(-0.2, 0.26, -0.42);
 
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.42, 5), mat(PALETTE.foam));
-  pole.position.set(-0.35, 1.12, 0);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.46, 5), mat(PALETTE.foam));
+  pole.position.set(-0.7, 1.05, 0);
 
   const flag = pennant(paint.flag);
-  flag.scale.setScalar(0.72);
-  flag.position.set(-0.16, 1.22, 0);
+  flag.scale.setScalar(0.7);
+  flag.position.set(-0.5, 1.16, 0);
 
-  g.add(plinth, body, roof, chimney, door, pole, flag);
+  const pip = makePip(1.2);
+  g.userData.pip = pip;
+  g.add(plinth, body, roof, chimney, door, pole, flag, pip);
   return g;
 }
 
@@ -142,19 +155,23 @@ function paintGroup(group, owner) {
   });
 }
 
+/**
+ * Ground band. PlaneGeometry starts in XY; rotateX(-π/2) sends local +Y to world −Z
+ * (enemy / top of the portrait). +Y is coral, −Y is mint, so the player side stays green.
+ * Normal blending keeps the two colours from blowing out to white on the sand.
+ */
 function glowGeometry() {
-  // Plane starts in XY. +Y becomes world −Z after rotateX(-π/2), which is the enemy side.
-  const height = 0.7;
-  const geo = new THREE.PlaneGeometry(1, height, 1, 14);
+  const depth = 0.92;
+  const geo = new THREE.PlaneGeometry(1, depth, 1, 10);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const mint = [0.48, 1, 0.7];
-  const hot = [1, 0.97, 0.55];
-  const coral = [1, 0.38, 0.3];
+  const mint = [0.05, 0.78, 0.28];
+  const hot = [1, 0.82, 0.2];
+  const coral = [0.92, 0.1, 0.08];
   for (let i = 0; i < pos.count; i++) {
-    const t = pos.getY(i) / (height / 2);
+    const t = pos.getY(i) / (depth / 2);
     const edge = t > 0 ? coral : mint;
-    const u = Math.min(1, Math.abs(t));
+    const u = Math.min(1, Math.abs(t) / 0.55);
     colors[i * 3] = hot[0] + (edge[0] - hot[0]) * u;
     colors[i * 3 + 1] = hot[1] + (edge[1] - hot[1]) * u;
     colors[i * 3 + 2] = hot[2] + (edge[2] - hot[2]) * u;
@@ -164,24 +181,49 @@ function glowGeometry() {
   return geo;
 }
 
+function wallGeometry() {
+  const height = 0.36;
+  const geo = new THREE.PlaneGeometry(1, height, 1, 4);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const y = (pos.getY(i) + height / 2) / height;
+    const hotness = (1 - y) * 0.55;
+    colors[i * 3] = hotness;
+    colors[i * 3 + 1] = 0.55 * hotness;
+    colors[i * 3 + 2] = 0.12 * hotness;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.translate(0, height / 2, 0);
+  return geo;
+}
+
 function makeGlow(geo, material) {
   const mesh = new THREE.Mesh(geo, material);
   mesh.visible = false;
-  mesh.renderOrder = 3;
+  mesh.renderOrder = 6;
+  mesh.frustumCulled = false;
   return mesh;
 }
 
-function tree(x, z, scale, color) {
-  const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.055 * scale, 0.08 * scale, 0.26 * scale, 5), mat(PALETTE.trunk));
-  trunk.position.y = 0.13 * scale;
-  trunk.castShadow = true;
-  const crown = new THREE.Mesh(new THREE.ConeGeometry(0.36 * scale, 0.78 * scale, 6), mat(color));
-  crown.position.y = 0.26 * scale + 0.32 * scale;
-  crown.castShadow = true;
-  g.add(trunk, crown);
-  g.position.set(x, 0.06, z);
-  return g;
+function addMerged(group, parts, material) {
+  if (!parts.length) return;
+  const geo = mergeGeometries(parts);
+  for (let i = 0; i < parts.length; i++) parts[i].dispose();
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+}
+
+function pushTree(trunks, crowns, x, z, scale, color) {
+  const trunk = new THREE.CylinderGeometry(0.055 * scale, 0.08 * scale, 0.26 * scale, 5);
+  trunk.translate(x, 0.06 + 0.13 * scale, z);
+  trunks.push(trunk);
+  const list = crowns[color] || (crowns[color] = []);
+  const crown = new THREE.ConeGeometry(0.36 * scale, 0.78 * scale, 6);
+  crown.translate(x, 0.06 + 0.58 * scale, z);
+  list.push(crown);
 }
 
 const TREE_SPOTS = [
@@ -201,171 +243,211 @@ const TREE_SPOTS = [
   [-1.35, -7.15, 0.7, PALETTE.leaf],
 ];
 
-export function createWorld(scene) {
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function boundsOf(map) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  const zones = map.zones;
+  for (let i = 0; i < zones.length; i++) {
+    const z = zones[i];
+    minX = Math.min(minX, z.x - z.rx);
+    maxX = Math.max(maxX, z.x + z.rx);
+    minZ = Math.min(minZ, z.z - z.rz);
+    maxZ = Math.max(maxZ, z.z + z.rz);
+  }
+  return { minX, maxX, minZ, maxZ };
+}
 
-  const water = new THREE.Mesh(
-    new THREE.CircleGeometry(16, 28),
-    mat(PALETTE.water, { roughness: 0.35, metalness: 0.04 }),
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = -0.62;
-  scene.add(water);
+function addEdges(group, map, roadGeo, roadMat) {
+  const seen = new Set();
+  const parts = [];
+  const keys = Object.keys(map.graph);
+  for (let i = 0; i < keys.length; i++) {
+    const aId = keys[i];
+    const nexts = map.graph[aId];
+    for (let j = 0; j < nexts.length; j++) {
+      const bId = nexts[j];
+      const key = aId < bId ? `${aId}|${bId}` : `${bId}|${aId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const a = map.nodes[aId];
+      const b = map.nodes[bId];
+      const piece = new THREE.Mesh(roadGeo);
+      alignLength(piece, a.x, a.z, b.x, b.z, 0.12);
+      piece.updateMatrix();
+      const baked = roadGeo.clone();
+      baked.applyMatrix4(piece.matrix);
+      parts.push(baked);
+    }
+  }
+  addMerged(group, parts, roadMat);
+  roadGeo.dispose();
+}
 
+function buildIsland(map, reduceMotion) {
+  const group = new THREE.Group();
+  const box = boundsOf(map);
   const beach = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.08, 0.5, 10), mat(PALETTE.sand, { roughness: 0.92 }));
-  beach.scale.set(5.45, 1, 8.85);
+  const spanX = Math.max(5.2, (box.maxX - box.minX) * 0.72);
+  const spanZ = Math.max(8.2, (box.maxZ - box.minZ) * 0.62);
+  beach.scale.set(spanX, 1, spanZ);
   beach.position.y = -0.28;
   beach.receiveShadow = true;
   beach.castShadow = true;
-  scene.add(beach);
+  group.add(beach);
 
   const zoneMeshes = new Map();
-  for (let i = 0; i < ZONES.length; i++) {
-    const z = ZONES[i];
+  for (let i = 0; i < map.zones.length; i++) {
+    const z = map.zones[i];
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.05, 0.32, 6), mat(PALETTE.meadow));
     mesh.scale.set(z.rx, 1, z.rz);
     mesh.position.set(z.x, -0.1, z.z);
     mesh.rotation.y = i * 0.18;
     mesh.receiveShadow = true;
     mesh.castShadow = true;
-    scene.add(mesh);
+    group.add(mesh);
     zoneMeshes.set(z.buildingId, mesh);
   }
 
-  const meadow = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.04, 0.3, 7), mat(PALETTE.meadow));
-  meadow.scale.set(3.15, 1, 1.05);
-  meadow.position.set(0, -0.08, 0);
-  meadow.receiveShadow = true;
-  scene.add(meadow);
-
-  const stream = new THREE.Mesh(new THREE.BoxGeometry(7.1, 0.08, 1.15), mat(PALETTE.stream, { roughness: 0.28 }));
+  const stream = new THREE.Mesh(
+    new THREE.BoxGeometry(Math.max(6.4, box.maxX - box.minX + 0.8), 0.08, 1.15),
+    mat(PALETTE.stream, { roughness: 0.28 }),
+  );
   stream.position.set(0, 0.08, 0);
   stream.receiveShadow = true;
-  scene.add(stream);
+  group.add(stream);
 
-  const plankGeo = new THREE.BoxGeometry(0.92, 0.08, 1.35);
-  const railGeo = new THREE.BoxGeometry(0.08, 0.22, 1.35);
   const bridgeMat = mat(PALETTE.bridge);
-  const plank = new THREE.Mesh(plankGeo, bridgeMat);
-  plank.position.set(0, 0.16, 0);
-  plank.castShadow = true;
-  plank.receiveShadow = true;
-  scene.add(plank);
+  const bridgeParts = [];
+  const plank = new THREE.BoxGeometry(0.92, 0.08, 1.35);
+  plank.translate(0, 0.16, 0);
+  bridgeParts.push(plank);
   for (const side of [-0.42, 0.42]) {
-    const rail = new THREE.Mesh(railGeo, bridgeMat);
-    rail.position.set(side, 0.28, 0);
-    rail.castShadow = true;
-    scene.add(rail);
+    const rail = new THREE.BoxGeometry(0.08, 0.22, 1.35);
+    rail.translate(side, 0.28, 0);
+    bridgeParts.push(rail);
   }
+  addMerged(group, bridgeParts, bridgeMat);
 
   const roadGeo = new THREE.BoxGeometry(0.72, 0.07, 1);
   const roadMat = mat(PALETTE.road, { roughness: 0.88 });
-  for (let i = 0; i < ROAD.length - 1; i++) {
-    const a = ROAD[i];
-    const b = ROAD[i + 1];
-    if (Math.abs(a.z) < 0.2 && Math.abs(b.z) < 0.2) continue;
-    const mesh = new THREE.Mesh(roadGeo, roadMat);
-    alignLength(mesh, a.x, a.z, b.x, b.z, 0.12);
-    mesh.receiveShadow = true;
-    mesh.castShadow = true;
-    scene.add(mesh);
-  }
+  addEdges(group, map, roadGeo, roadMat);
 
-  const driveMat = mat(PALETTE.roadEdge, { roughness: 0.9 });
-  for (const id of ['player-bar', 'enemy-bar']) {
-    const a = NODES[id];
-    const b = NODES[id === 'player-bar' ? 'player-road' : 'enemy-road'];
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.06, 1), driveMat);
-    alignLength(mesh, a.x, a.z, b.x, b.z, 0.12);
-    mesh.receiveShadow = true;
-    scene.add(mesh);
+  const trunks = [];
+  const crowns = {};
+  if (map.id === 'crossing') {
+    for (let i = 0; i < TREE_SPOTS.length; i++) {
+      const [x, z, s, color] = TREE_SPOTS[i];
+      pushTree(trunks, crowns, x, z, s, color);
+    }
+    const flowerGeo = new THREE.SphereGeometry(0.08, 6, 5);
+    const flowerColors = [0xffb7c8, 0xffe08a, 0xfff6ea];
+    const flowerSpots = [[-0.8, 6.9], [0.7, 6.85], [2.3, 4.5], [-2.35, -4.4], [0.85, -6.9]];
+    const flowers = {};
+    for (let i = 0; i < flowerSpots.length; i++) {
+      const color = flowerColors[i % flowerColors.length];
+      const list = flowers[color] || (flowers[color] = []);
+      const geo = flowerGeo.clone();
+      geo.translate(flowerSpots[i][0], 0.14, flowerSpots[i][1]);
+      list.push(geo);
+    }
+    flowerGeo.dispose();
+    const flowerIds = Object.keys(flowers);
+    for (let i = 0; i < flowerIds.length; i++) {
+      addMerged(group, flowers[flowerIds[i]], mat(Number(flowerIds[i])));
+    }
+    const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
+    const rockParts = [];
+    const rocks = [[2.55, 6.4, 0.7], [-2.7, -6.5, 0.55], [3.4, -0.2, 0.4], [-3.45, 2.4, 0.48]];
+    for (let i = 0; i < rocks.length; i++) {
+      const [x, z, s] = rocks[i];
+      const geo = rockGeo.clone();
+      geo.scale(s, s * 0.65, s);
+      geo.translate(x, 0.1, z);
+      rockParts.push(geo);
+    }
+    rockGeo.dispose();
+    addMerged(group, rockParts, mat(PALETTE.rock));
+  } else {
+    for (let i = 0; i < map.zones.length; i++) {
+      const z = map.zones[i];
+      pushTree(trunks, crowns, z.x - z.rx + 0.45, z.z + z.rz * 0.35, 0.85, i % 2 ? PALETTE.leafMint : PALETTE.leaf);
+      pushTree(trunks, crowns, z.x + z.rx - 0.4, z.z - z.rz * 0.2, 0.7, PALETTE.leaf);
+    }
   }
-
-  for (let i = 0; i < TREE_SPOTS.length; i++) {
-    const [x, z, s, color] = TREE_SPOTS[i];
-    scene.add(tree(x, z, s, color));
-  }
-
-  const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
-  const rockMat = mat(PALETTE.rock, { roughness: 0.7 });
-  const rocks = [
-    [2.55, 6.4, 0.7],
-    [-2.7, -6.5, 0.55],
-    [3.4, -0.2, 0.4],
-    [-3.45, 2.4, 0.48],
-  ];
-  for (let i = 0; i < rocks.length; i++) {
-    const [x, z, s] = rocks[i];
-    const mesh = new THREE.Mesh(rockGeo, rockMat);
-    mesh.position.set(x, 0.1, z);
-    mesh.scale.set(s, s * 0.65, s);
-    mesh.castShadow = true;
-    scene.add(mesh);
-  }
-
-  const flowerGeo = new THREE.SphereGeometry(0.08, 6, 5);
-  const flowerColors = [0xffb7c8, 0xffe08a, 0xfff6ea];
-  const flowerSpots = [
-    [-0.8, 6.9],
-    [0.7, 6.85],
-    [2.3, 4.5],
-    [-2.35, -4.4],
-    [0.85, -6.9],
-  ];
-  for (let i = 0; i < flowerSpots.length; i++) {
-    const mesh = new THREE.Mesh(flowerGeo, mat(flowerColors[i % flowerColors.length], { roughness: 0.45 }));
-    mesh.position.set(flowerSpots[i][0], 0.14, flowerSpots[i][1]);
-    scene.add(mesh);
+  addMerged(group, trunks, mat(PALETTE.trunk));
+  const crownColors = Object.keys(crowns);
+  for (let i = 0; i < crownColors.length; i++) {
+    addMerged(group, crowns[crownColors[i]], mat(Number(crownColors[i])));
   }
 
   const buildings = new Map();
   const flags = [];
   const dir = { x: 0, z: 0 };
-  const specs = [
-    ['player-hq', 'hq'],
-    ['player-bar', 'barracks'],
-    ['enemy-bar', 'barracks'],
-    ['enemy-hq', 'hq'],
-  ];
-  for (let i = 0; i < specs.length; i++) {
-    const [id, kind] = specs[i];
-    const owner = id.startsWith('player') ? 'player' : 'enemy';
-    const group = kind === 'hq' ? makeHq(ownerPaint(owner)) : makeBarracks(ownerPaint(owner));
-    const p = NODES[id];
-    exitDir(id, dir);
-    group.position.set(p.x, 0.06, p.z);
-    group.rotation.y = yawForFacing(dir.x, dir.z);
-    group.traverse((obj) => {
+  for (let i = 0; i < map.buildings.length; i++) {
+    const spec = map.buildings[i];
+    const groupB = spec.kind === 'hq' ? makeHq(ownerPaint(spec.owner)) : makeBarracks(ownerPaint(spec.owner));
+    const p = map.nodes[spec.node];
+    exitDir(map, spec.node, dir);
+    groupB.position.set(p.x, 0.06, p.z);
+    groupB.rotation.y = yawForFacing(dir.x, dir.z);
+    groupB.userData.owner = spec.owner;
+    groupB.traverse((obj) => {
       if (obj.userData && obj.userData.flutter) flags.push(obj);
     });
-    scene.add(group);
-    buildings.set(id, group);
+    group.add(groupB);
+    buildings.set(spec.id, groupB);
   }
 
   const glowMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.88,
+    opacity: 0.94,
     depthWrite: false,
+    depthTest: true,
     side: THREE.DoubleSide,
+    toneMapped: false,
   });
-  const glows = [makeGlow(glowGeometry(), glowMat), makeGlow(glowGeometry(), glowMat), makeGlow(glowGeometry(), glowMat)];
-  for (let i = 0; i < glows.length; i++) scene.add(glows[i]);
+  const wallMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const bandGeo = glowGeometry();
+  const wallGeo = wallGeometry();
+  const glows = [];
+  const walls = [];
+  for (let i = 0; i < 8; i++) {
+    const band = makeGlow(bandGeo, glowMat);
+    const wall = makeGlow(wallGeo, wallMat);
+    group.add(band, wall);
+    glows.push(band);
+    walls.push(wall);
+  }
+
+  const boxed = boxMapZones(map.zones);
   const frontierBuf = [];
+  const ownerScratch = {};
 
   const ringGeo = new THREE.TorusGeometry(1.05, 0.05, 8, 32);
   ringGeo.rotateX(Math.PI / 2);
   const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xfff3b0 }));
   ring.position.y = 0.2;
   ring.visible = false;
-  scene.add(ring);
+  group.add(ring);
 
   const hoverGeo = new THREE.TorusGeometry(0.95, 0.035, 6, 28);
   hoverGeo.rotateX(Math.PI / 2);
   const hover = new THREE.Mesh(hoverGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }));
   hover.position.y = 0.18;
   hover.visible = false;
-  scene.add(hover);
+  group.add(hover);
 
   const ribbon = new THREE.Mesh(
     new THREE.CylinderGeometry(0.05, 0.05, 1, 6),
@@ -373,21 +455,20 @@ export function createWorld(scene) {
   );
   ribbon.visible = false;
   ribbon.frustumCulled = false;
-  scene.add(ribbon);
+  group.add(ribbon);
 
   const dot = new THREE.Mesh(
     new THREE.SphereGeometry(0.12, 8, 6),
     new THREE.MeshBasicMaterial({ color: 0xfff6c2 }),
   );
   dot.visible = false;
-  scene.add(dot);
-
-  const ownerScratch = {};
+  group.add(dot);
 
   function placeMarker(mesh, id, state) {
     let x;
     let z;
-    const node = id && NODES[id];
+    const nodes = (state && state.nodes) || map.nodes;
+    const node = id && nodes[id];
     if (node) {
       x = node.x;
       z = node.z;
@@ -410,14 +491,25 @@ export function createWorld(scene) {
     mesh.position.z = z;
   }
 
+  function sieged(state, id, owner) {
+    const squads = state.squads;
+    for (let i = 0; i < squads.length; i++) {
+      const s = squads[i];
+      if (s.mode === 'siege' && s.targetId === id && s.owner !== owner && s.count > 0) return true;
+    }
+    return false;
+  }
+
   return {
+    group,
     resetDrag() {
       ribbon.visible = false;
       dot.visible = false;
       hover.visible = false;
     },
     setDrag(fromId, world, hoverId, fromPos) {
-      const p = fromPos || (fromId && NODES[fromId]);
+      const nodes = map.nodes;
+      const p = fromPos || (fromId && nodes[fromId]);
       if (!fromId || !world || !p) {
         ribbon.visible = false;
         dot.visible = false;
@@ -437,9 +529,9 @@ export function createWorld(scene) {
       }
       dot.visible = true;
       dot.position.set(world.x, 0.28, world.z);
-      if (hoverId && hoverId !== fromId && NODES[hoverId]) {
+      if (hoverId && hoverId !== fromId && nodes[hoverId]) {
         hover.visible = true;
-        const h = NODES[hoverId];
+        const h = nodes[hoverId];
         hover.position.x = h.x;
         hover.position.z = h.z;
       } else {
@@ -450,33 +542,56 @@ export function createWorld(scene) {
       for (let i = 0; i < state.buildings.length; i++) {
         const b = state.buildings[i];
         ownerScratch[b.id] = b.owner;
-        const group = buildings.get(b.id);
-        if (group && group.userData.owner !== b.owner) {
-          group.userData.owner = b.owner;
-          paintGroup(group, b.owner);
+        const mesh = buildings.get(b.id);
+        if (!mesh) continue;
+        if (mesh.userData.owner !== b.owner) {
+          mesh.userData.owner = b.owner;
+          paintGroup(mesh, b.owner);
         }
         const zone = zoneMeshes.get(b.id);
         if (zone && zone.userData.owner !== b.owner) {
           zone.userData.owner = b.owner;
           zone.material.color.setHex(ownerPaint(b.owner).slab);
         }
+        const ranks = b.upgrades;
+        if (mesh.userData.pip) {
+          mesh.userData.pip.visible = !!(ranks && (ranks.haste > 0 || ranks.bulwark > 0));
+        }
+        const danger = b.kind === 'hq' && (b.count <= 0 || sieged(state, b.id, b.owner));
+        if (danger && !reduceMotion) {
+          const s = 1 + 0.07 * Math.sin(time * 9);
+          mesh.scale.set(s, s, s);
+        } else {
+          mesh.scale.set(1, 1, 1);
+        }
       }
 
-      const segs = frontierSegments(ownerScratch, frontierBuf);
+      const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
       const pulse = reduceMotion ? 0.9 : 0.72 + 0.28 * Math.sin(time * 3.1);
+      glowMat.opacity = reduceMotion ? 0.9 : 0.82 + pulse * 0.18;
+      wallMat.opacity = reduceMotion ? 0.8 : 0.7 + pulse * 0.3;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
-        const glow = glows[i];
+        const band = glows[i];
+        const wall = walls[i];
         if (!seg) {
-          glow.visible = false;
+          band.visible = false;
+          wall.visible = false;
           continue;
         }
-        glow.visible = true;
-        const width = Math.max(0.6, seg.x1 - seg.x0);
-        glow.position.set((seg.x0 + seg.x1) / 2, 0.2, seg.z);
-        glow.scale.set(width, 1, 1);
-        glow.rotation.y = seg.plusOwner === 'player' ? 0 : Math.PI;
-        glowMat.opacity = reduceMotion ? 0.85 : 0.72 + pulse * 0.2;
+        const alongX = seg.axis !== 'z';
+        const span = alongX ? Math.max(0.8, seg.x1 - seg.x0) : Math.max(0.8, seg.z1 - seg.z0);
+        const cx = alongX ? (seg.x0 + seg.x1) / 2 : seg.x;
+        const cz = alongX ? seg.z : (seg.z0 + seg.z1) / 2;
+        const flip = seg.plusOwner === 'player' ? 0 : Math.PI;
+        band.visible = true;
+        wall.visible = true;
+        band.position.set(cx, 0.36, cz);
+        wall.position.set(cx, 0.36, cz);
+        band.scale.set(span, 1, 1);
+        wall.scale.set(span, 1 + pulse * 0.08, 1);
+        band.rotation.y = alongX ? flip : Math.PI / 2 + flip;
+        wall.rotation.y = alongX ? 0 : Math.PI / 2;
       }
 
       placeMarker(ring, selectedId, state);
@@ -486,6 +601,54 @@ export function createWorld(scene) {
         const flag = flags[i];
         flag.rotation.y = reduceMotion ? 0 : Math.sin(time * 2.2 + i) * 0.4;
       }
+    },
+    dispose() {
+      const geos = new Set();
+      const mats = new Set();
+      group.traverse((child) => {
+        if (child.geometry) geos.add(child.geometry);
+        if (child.material) mats.add(child.material);
+      });
+      for (const geo of geos) geo.dispose();
+      for (const material of mats) material.dispose();
+    },
+  };
+}
+
+export function createWorld(scene) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const water = new THREE.Mesh(
+    new THREE.CircleGeometry(18, 28),
+    mat(PALETTE.water, { roughness: 0.35, metalness: 0.04 }),
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = -0.62;
+  scene.add(water);
+
+  const holder = new THREE.Group();
+  scene.add(holder);
+  let island = null;
+
+  function mount(map) {
+    if (island) {
+      holder.remove(island.group);
+      island.dispose();
+      island = null;
+    }
+    island = buildIsland(map, reduceMotion);
+    holder.add(island.group);
+  }
+
+  return {
+    mount,
+    resetDrag() {
+      if (island) island.resetDrag();
+    },
+    setDrag(fromId, world, hoverId, fromPos) {
+      if (island) island.setDrag(fromId, world, hoverId, fromPos);
+    },
+    update(time, state, selectedId) {
+      if (island) island.update(time, state, selectedId);
     },
   };
 }

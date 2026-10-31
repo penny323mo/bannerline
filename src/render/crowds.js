@@ -28,10 +28,15 @@ function soldierGeometry() {
   return geo;
 }
 
+let activeNodes = NODES;
+let activeGraph = GRAPH;
+
 function exitYaw(nodeId) {
-  const next = GRAPH[nodeId][0];
-  const a = NODES[nodeId];
-  const b = NODES[next];
+  const nexts = activeGraph[nodeId] || [];
+  const next = nexts[0];
+  const a = activeNodes[nodeId];
+  const b = next && activeNodes[next];
+  if (!a || !b) return 0;
   return yawForFacing(b.x - a.x, b.z - a.z);
 }
 
@@ -111,17 +116,25 @@ export function createCrowds(scene) {
     facingDot() {
       return lastDot;
     },
+    setMap(map) {
+      activeNodes = map.nodes || NODES;
+      activeGraph = map.graph || GRAPH;
+      yawCache.clear();
+      prevPos.clear();
+    },
     update(state) {
       gi = 0;
       ri = 0;
       noseMesh = null;
       noseIndex = -1;
       let tracked = false;
+      const nodes = (state && state.nodes) || activeNodes;
 
       for (let i = 0; i < state.buildings.length; i++) {
         const b = state.buildings[i];
         if (b.count <= 0) continue;
-        const p = NODES[b.node];
+        const p = nodes[b.node];
+        if (!p) continue;
         const yaw = exitYaw(b.node);
         // Crowd stands in front of the door. Local −z is that facing; ranks extend +z, behind it.
         rotateXZ(0, -1, yaw, _slot);
@@ -136,13 +149,17 @@ export function createCrowds(scene) {
         let dx = 0;
         let dz = 0;
         if (s.mode === 'march' && s.seg < s.path.length - 1) {
-          const next = NODES[s.path[s.seg + 1]];
-          dx = next.x - s.x;
-          dz = next.z - s.z;
+          const next = nodes[s.path[s.seg + 1]];
+          if (next) {
+            dx = next.x - s.x;
+            dz = next.z - s.z;
+          }
         } else if (s.path.length > 1) {
-          const prev = NODES[s.path[Math.max(0, s.seg - 1)]];
-          dx = s.x - prev.x;
-          dz = s.z - prev.z;
+          const prev = nodes[s.path[Math.max(0, s.seg - 1)]];
+          if (prev) {
+            dx = s.x - prev.x;
+            dz = s.z - prev.z;
+          }
         }
         const yaw = rememberYaw(s.id, dx, dz);
         const wantTrack = !tracked && s.mode === 'march';
@@ -159,7 +176,14 @@ export function createCrowds(scene) {
               lastDot = _nose.dot(_vel);
             }
           }
-          prevPos.set(s.id, { x: s.x, z: s.z });
+          let slot = prevPos.get(s.id);
+          if (!slot) {
+            slot = { x: s.x, z: s.z };
+            prevPos.set(s.id, slot);
+          } else {
+            slot.x = s.x;
+            slot.z = s.z;
+          }
         }
       }
 

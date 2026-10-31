@@ -34,3 +34,11 @@
 ## Round 4 fixes
 
 - The 390×844 review shipped with the round 3 pick already in `static/app.js`. Tests stayed at 37/37.
+
+## Round 5 fixes (M2)
+
+- The ownership edge is a green-to-red glow and it moves when a slab is captured. A headquarters under siege pulses and reads 危, and it refills with a slow trickle. The headquarters is a tower and the barracks is a long hall. Win and lose sheets share one Cantonese register.
+- Home screen offers 對岸, 長路, and 雙橋, plus 易/中/難. Each map has a personality. The enemy defends an incoming march, and a thin garrison still sallies so a siege cannot leave it idle.
+- 加速 and 加固 can be bought mid-match from a friendly building. The cost is troops, and the mark shows on that building.
+- Shadows bake when the island mounts, and static props share meshes, so a full match stays at or above 50 fps at 390×844.
+- Node tests cover AI orders, upgrade math, and the map JSON. Rebuilt `static/app.js`.

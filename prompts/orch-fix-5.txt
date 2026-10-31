@@ -1,0 +1,14 @@
+You are the coder. cd /workspace/sidequest/top-force-like. M1 has passed the supervisor's live audit. Now build M2 from PLAN.md §7, keeping everything in M1 working.
+
+FIRST fix every OPEN item in review/loop-r5/coder-audit.md (glowing ownership border is mandatory).
+
+THEN M2 (PLAN.md §2 Upgrades/Enemy AI, §5 maps, §7 M2):
+- Home screen (bright toy style, Cantonese, >=44px buttons) with 3+ hand-authored skirmish maps (JSON) selectable, plus difficulty select (易/中/難) that scales AI aggression/reaction and spawn rates.
+- Enemy AI with personalities per map: picks targets by value/weakness, defends when attacked, never idles forever while under attack (add a pure-logic test for no soft-lock).
+- At least two upgrade paths usable mid-match from a building (e.g. faster spawn, bigger cap / defence), tap-friendly at 390px, cost paid in troops, visible on the building.
+- Keep >=50 fps at 390x844 with a full AI match (InstancedMesh for troops, no per-frame allocations).
+- Add node tests for AI decision helpers, upgrade math and map JSON validity. Rebuild static/app.js / the Pages build so the live site serves the new code (index.html loads ./static/app.js).
+Do not edit reviews/ or prompts/. Run the tests. Append '## Round 5 fixes (M2)' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-5.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-5.done

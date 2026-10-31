@@ -11,7 +11,7 @@
 
 A bright, readable real-time strategy for one finger on an iPhone. Two coloured territories face each other on a compact low-poly operations map. Your barracks spawn soldier squads; you drag or tap to send a squad to a road, a building, or the enemy HQ. When squads meet, **counts subtract** until one side is gone. Capture buildings to expand spawn and income. Win by taking the enemy headquarters.
 
-Tone: mature mobile military strategy (command map, fortified bases) — **not** a pastel toy / primary-school look, and **not** a grim gore sim. Safe for a broad audience — no gore, no real-world nation labels, no copied faction names. Full visual rules: `ART-STYLE.md`.
+Tone: commercial midcore military RTS matching **mockup-v2** — **not** palette-only mature, **not** pastel/toy/「垃圾級」 flat prototype, **not** grim gore. Safe for a broad audience — no gore, no real-world nation labels, no copied faction names. Full visual rules: `ART-STYLE.md`.
 
 ### Elevator pitch (Cantonese UI)
 
@@ -49,7 +49,7 @@ Tone: mature mobile military strategy (command map, fortified bases) — **not**
 | Layer | Choice |
 |-------|--------|
 | Bundler | Vite |
-| 3D | Three.js (WebGL) — clear daylight, muted terrain, low-poly military meshes, instanced soldiers |
+| 3D | Three.js (WebGL) — mockup-v2 bar: GLTF/detailed meshes, MeshStandardMaterial, shadows, InstancedMesh armies, ownership glow, march/clash VFX (see THREEJS-PATH.md) |
 | UI | HTML/CSS overlay (or lightweight React) for HUD, mute, menus — 390px portrait |
 | Input | Pointer events (touch + mouse); drag from building to target with rubber-band preview |
 | Audio | Web Audio / Howler; BGM + SFX; **mute toggle persisted** |
@@ -63,23 +63,31 @@ Tone: mature mobile military strategy (command map, fortified bases) — **not**
 
 ---
 
-## 4. Art direction
+## 4. Art direction (canonical = mockup-v2)
 
-**Canonical brief:** `ART-STYLE.md` (v2, 2026-10-31). Supersedes the old pastel toy-diorama brief after Penny’s 「又小學生lv」 feedback.
+**Canonical brief (2026-11-01 Asia/Macau):**
+- `ART-STYLE.md` (v3)
+- `review/art-mockup-v2/01-combat-390x844.png`
+- `review/art-mockup-v2/02-home-390x844.png`
+- `review/art-mockup-v2/03-siege-390x844.png`
+- `review/art-mockup-v2/THREEJS-PATH.md`
+- `review/art-mockup-v2/COMPARE.md`
+
+Penny approved those three mockups as the direction after rejecting the live look as 「垃圾級」. A build that does **not** come visually close (density, lighting/shadows, clash VFX, gunmetal HUD) is **NOT SHIP** — palette-only “mature” restyles are insufficient.
 
 Genre feel only from the inspiration ad (never copy assets/branding/nations/title):
 
-- Clear daylight on a **muted olive / drab** terrain; units and buildings pop  
-- Player = strong command green; Enemy = strong operational red (not mint candy / coral pink; not nation-labelled)  
-- **司令部 (HQ):** fortified bunker + antenna/dish silhouette, distinct from barracks  
-- **兵營 (Barracks):** lower hangar / block building with spawn pad  
-- Trees: real green low-poly cones — not white/cream candy props  
-- Ownership border: **two-tone** green|red hard edge only — **no** rainbow / yellow middle; bridges neutral stone/metal  
-- Squads: dense soldier blocks + rifle badge; **count always crisp**  
-- UI: sharp military HUD panels (≤4px radius), ≥44px taps, formal zh-HK labels (司令部 / 兵營 / 出兵 / 攻陷 / 靜音)  
-- Still bright + readable on iPhone; no gore; no photoreal texture packs; no dark muddy “brown FPS” grade  
+- Commercial midcore military RTS polish on 390×844  
+- Clear daylight on **muted olive / drab** layered terrain; sky dome/gradient  
+- **MeshStandardMaterial** + device-gated shadow maps; FPS gate degrades effects before dropping under ~40 fps  
+- Original **GLTF** or equally detailed procedural models: HQ bunker+dish ≠ barracks hangar; pines/rocks; APC/light tank  
+- Dense **InstancedMesh** armies with adult-proportion soldiers + rifle badges  
+- Ownership border: emissive **two-tone** green|red ribbon — no rainbow middle  
+- March dust + clash smoke/muzzle juice  
+- Gunmetal HUD / home sheet (map thumbs, 易／中／難, embossed 出戰)  
+- No gore; no photoreal AAA texture packs required; no pastel/chibi/toy regression  
 
-Reference file (local only, never ship branding): `assets/ref/inspiration-ad.png`.
+Reference (local only): `assets/ref/inspiration-ad.png`.
 
 ---
 
@@ -131,6 +139,20 @@ Every milestone must pass a **real 390×844 browser** walk (headless Chrome scre
 - [ ] At least two upgrade paths usable mid-match  
 - [ ] Difficulty select  
 - [ ] Still ≥50 fps at 390 with full AI match  
+- [ ] Difficulty: fix-13 bar — 中 reinforces/counters in ~30–40s (human chain rush not a sub-90s win); 難 harder than 中 but sensible play survives ~45s and can win in ~2–4 min; 易 still rushable; HQ grace + 「敵軍打緊司令部」 toast stay  
+
+### M-art — Mockup-v2 art rebuild (NOW — blocking)
+
+Penny-approved visual target. Orchestrator rounds from fix-15 onward until side-by-side audit passes.
+
+- [ ] Original GLTF or procedural detailed HQ/barracks/trees/vehicles  
+- [ ] InstancedMesh dense armies (adult proportions)  
+- [ ] MeshStandardMaterial + device shadows + FPS-gate fallback  
+- [ ] Ownership emissive glow line  
+- [ ] March + clash VFX  
+- [ ] Gunmetal HUD + home sheet (match 02-home intent)  
+- [ ] `npm test` green; gameplay/sim preserved; `static/app.js` rebuilt  
+- [ ] Reviewer compares 390×844 shots to mockups; supervisor audits before Penny link  
 
 ### M3 — Polish / juice / campaign
 
@@ -138,7 +160,7 @@ Every milestone must pass a **real 390×844 browser** walk (headless Chrome scre
 - [ ] Tutorial coach marks  
 - [ ] Campaign of ≥6 missions with progressive difficulty (never easier than prior)  
 - [ ] PWA installable (optional but preferred)  
-- [ ] Art pass: every building/tree/badge/HUD matches `ART-STYLE.md` (mature military, not toy)  
+- [ ] Art pass: 390×844 screenshots side-by-side with `review/art-mockup-v2/` 01/02/03 come close (NOT palette-only); follows `THREEJS-PATH.md`  
 
 ### M4 — Meta
 
@@ -180,4 +202,4 @@ Every milestone must pass a **real 390×844 browser** walk (headless Chrome scre
 
 ## 10. Success bar
 
-Penny can open the live link on iPhone, mute on, play one full skirmish with one thumb, win by taking the red HQ, and say it feels like a proper military strategy map (Top-Force-ad genre) — mature, readable, not primary-school / pastel toy, and not a tech demo.
+Penny can open the live link on iPhone, mute on, play one full skirmish with one thumb, win by taking the red HQ, and say it looks like the approved mockup-v2 direction (commercial midcore military RTS) — not 「垃圾級」, not primary-school / pastel toy, and not a flat prototype tech demo.

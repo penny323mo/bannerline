@@ -2,6 +2,7 @@ import './style.css';
 import { createAudio } from './audio.js';
 import { createBadges } from './render/badges.js';
 import { createCrowds } from './render/crowds.js';
+import { createFx } from './render/fx.js';
 import { attachInput } from './render/input.js';
 import { createStage } from './render/stage.js';
 import { createWorld } from './render/world.js';
@@ -31,6 +32,8 @@ const sheetTimeEl = document.getElementById('sheet-time');
 const stage = createStage(canvas);
 const world = createWorld(stage.scene);
 const crowds = createCrowds(stage.scene);
+const fx = createFx(stage.scene);
+let fxOn = true;
 const badges = createBadges(document.getElementById('badges'));
 const audio = createAudio();
 
@@ -135,7 +138,10 @@ function syncHud() {
 
 function showHome(on) {
   homeEl.hidden = !on;
-  if (scoresEl) scoresEl.hidden = !!on;
+  if (scoresEl) {
+    scoresEl.hidden = false;
+    scoresEl.classList.toggle('is-preview', !!on);
+  }
   if (on) upgradesEl.hidden = true;
   syncCoach();
 }
@@ -328,6 +334,79 @@ function bindTap(el, fn) {
   });
 }
 
+function mapThumb(map) {
+  const thumb = document.createElement('canvas');
+  thumb.className = 'map-thumb';
+  thumb.width = 168;
+  thumb.height = 112;
+  const g = thumb.getContext('2d');
+  g.fillStyle = '#4e5c3c';
+  g.fillRect(0, 0, 168, 112);
+  g.fillStyle = '#6b7a4e';
+  g.fillRect(6, 6, 156, 100);
+  const nodes = map.nodes || {};
+  const ids = Object.keys(nodes);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (let i = 0; i < ids.length; i++) {
+    const p = nodes[ids[i]];
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.z < minZ) minZ = p.z;
+    if (p.z > maxZ) maxZ = p.z;
+  }
+  const sx = (maxX - minX) || 1;
+  const sz = (maxZ - minZ) || 1;
+  // +z is the near / player side, which sits at the bottom of the thumbnail.
+  function pt(p) {
+    return {
+      x: 16 + ((p.x - minX) / sx) * 136,
+      y: 16 + ((p.z - minZ) / sz) * 80,
+    };
+  }
+  const mid = pt({ x: 0, z: (minZ + maxZ) / 2 });
+  g.fillStyle = '#3e6f8f';
+  g.fillRect(8, mid.y - 7, 152, 14);
+  g.strokeStyle = '#5c5348';
+  g.lineWidth = 4;
+  g.lineCap = 'round';
+  g.beginPath();
+  const seen = new Set();
+  const graph = map.graph || {};
+  const keys = Object.keys(graph);
+  for (let i = 0; i < keys.length; i++) {
+    const nexts = graph[keys[i]] || [];
+    const a = nodes[keys[i]];
+    for (let j = 0; j < nexts.length; j++) {
+      const bId = nexts[j];
+      const key = keys[i] < bId ? `${keys[i]}|${bId}` : `${bId}|${keys[i]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const b = nodes[bId];
+      if (!a || !b) continue;
+      const pa = pt(a);
+      const pb = pt(b);
+      g.moveTo(pa.x, pa.y);
+      g.lineTo(pb.x, pb.y);
+    }
+  }
+  g.stroke();
+  const buildings = map.buildings || [];
+  for (let i = 0; i < buildings.length; i++) {
+    const b = buildings[i];
+    const p = nodes[b.node];
+    if (!p) continue;
+    const at = pt(p);
+    g.fillStyle = b.owner === 'player' ? '#2f9e5b' : '#c43c32';
+    const w = b.kind === 'hq' ? 16 : 12;
+    const h = b.kind === 'hq' ? 11 : 8;
+    g.fillRect(at.x - w / 2, at.y - h / 2, w, h);
+  }
+  return thumb;
+}
+
 const mapHost = document.getElementById('maps');
 const diffHost = document.getElementById('diffs');
 for (let i = 0; i < MAP_LIST.length; i++) {
@@ -335,7 +414,13 @@ for (let i = 0; i < MAP_LIST.length; i++) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.setAttribute('data-map', map.id);
-  btn.innerHTML = `${map.name}<small>${map.blurb}</small>`;
+  btn.appendChild(mapThumb(map));
+  const name = document.createElement('span');
+  name.className = 'map-name';
+  name.textContent = map.name;
+  const blurb = document.createElement('small');
+  blurb.textContent = map.blurb;
+  btn.append(name, blurb);
   bindTap(btn, () => {
     mapId = map.id;
     paintChoice(mapHost, 'data-map', mapId);
@@ -401,6 +486,32 @@ setHint('idle');
 syncHud();
 
 let last = performance.now();
+let fpsFrames = 0;
+let fpsWindow = performance.now();
+let fpsSeen = 0;
+function noteFps(now) {
+  fpsSeen += 1;
+  // The first moments include shader compile. Do not spend the VFX budget on that.
+  if (fpsSeen < 90) {
+    fpsFrames = 0;
+    fpsWindow = now;
+    return;
+  }
+  fpsFrames += 1;
+  const span = now - fpsWindow;
+  if (span < 1600) return;
+  const fps = (fpsFrames * 1000) / span;
+  fpsFrames = 0;
+  fpsWindow = now;
+  // Bloom stays off. Under 40 fps, drop particles, then the shadow map.
+  if (fps >= 40) return;
+  if (fxOn) {
+    fxOn = false;
+    fx.setEnabled(false);
+    return;
+  }
+  if (stage.shadowsOn) stage.setShadows(false);
+}
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
@@ -415,12 +526,14 @@ function frame(now) {
   if (state) {
     world.update(t, state, dragging ? null : selected);
     crowds.update(state);
+    fx.update(dt, state);
     if (!menuOpen) badges.update(state, stage.camera, canvas);
     paintUpgrades();
     syncHud();
     warnHq();
   }
   stage.renderer.render(stage.scene, stage.camera);
+  noteFps(now);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -445,6 +558,9 @@ window.__BL = {
   },
   facingDot() {
     return crowds.facingDot();
+  },
+  quality() {
+    return { shadows: stage.shadowsOn, fx: fxOn, software: stage.software };
   },
   start(nextMap, nextDiff) {
     if (nextMap) mapId = nextMap;

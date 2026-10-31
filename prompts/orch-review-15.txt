@@ -1,0 +1,27 @@
+You are a strict senior code reviewer. cd /workspace/sidequest/top-force-like. Do NOT modify project files. Run node tests if present; do not launch browsers.
+
+Round 15 = mockup-v2 art rebuild. Read:
+- ART-STYLE.md (v3)
+- PLAN.md §4 and M-art
+- review/art-mockup-v2/THREEJS-PATH.md
+- review/art-mockup-v2/COMPARE.md
+- The three mockups: review/art-mockup-v2/01-combat-390x844.png, 02-home-390x844.png, 03-siege-390x844.png
+- CHANGELOG.md Round 15
+- Prior balance: prompts/orch-fix-13.txt carry-over (中/難)
+
+Review at viewport 390×844. **SHIP is FORBIDDEN** unless the build comes visually close to the mockups (density, lighting/shadows, ownership glow, clash VFX, gunmetal HUD). Palette-only or “slightly better boxes” = NOT READY / CRITICAL art gap.
+
+## Required review method
+1. Inspect built sources (src/render/*, style.css, static/app.js, any GLTF under public/assets).
+2. If screenshots exist under screenshots/ or review/, compare them **side by side** to the three mockups and say what still looks cheap.
+3. If no fresh 390 shots exist, say so and judge from code + any existing audit-r12/orch shots vs mockups — still block SHIP on art distance.
+4. Re-verify fix-13 balance claims in tests (中 chain rush not sub-90s win; 難 timing; HQ grace/toast wiring).
+
+Write a numbered review ordered CRITICAL/MAJOR/MINOR with file:line and concrete fix. First line must be 'VERDICT: SHIP' or 'VERDICT: NOT READY'. Output path: /workspace/sidequest/top-force-like/reviews/orch-r15-grok.md
+
+Also list a short **Mockup delta** section: Combat / Home / Siege — each with Pass / Partial / Fail vs the matching PNG.
+
+Keep to ~20 minutes.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/review-15.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/review-15.done

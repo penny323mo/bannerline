@@ -231,9 +231,9 @@ test('the frontier band is green on the player side and red on the enemy side', 
 });
 
 test('palette and soldiers match the military art brief', () => {
-  assert.equal(PALETTE.sky, 0x8a918c);
-  assert.equal(PALETTE.water, 0x5c676e);
-  assert.equal(PALETTE.stream, 0x5c676e);
+  assert.equal(PALETTE.sky, 0x7fa8c4);
+  assert.equal(PALETTE.water, 0x3e6f8f);
+  assert.equal(PALETTE.stream, 0x3e6f8f);
   assert.equal(PALETTE.meadow, 0x6b7a4e);
   assert.equal(PALETTE.leaf, 0x3f5a3a);
   assert.equal(PALETTE.leafDeep, 0x2f4530);
@@ -247,4 +247,21 @@ test('palette and soldiers match the military art brief', () => {
   assert.ok(-box.min.z > box.max.z + 0.15, 'the rifle is longer than the pack');
   assert.ok(box.max.y > 0.4, 'helmet rises above the torso');
   geo.dispose();
+});
+
+test('the diorama grades with standard materials and a device shadow gate', () => {
+  const stageSrc = readFileSync(new URL('../src/render/stage.js', import.meta.url), 'utf8');
+  const worldSrc = readFileSync(new URL('../src/render/world.js', import.meta.url), 'utf8');
+  const crowdSrc = readFileSync(new URL('../src/render/crowds.js', import.meta.url), 'utf8');
+  const mainSrc = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.match(stageSrc, /ACESFilmicToneMapping/);
+  assert.match(stageSrc, /PCFSoftShadowMap/);
+  assert.match(stageSrc, /swiftshader/i);
+  assert.match(worldSrc, /MeshStandardMaterial/);
+  assert.match(worldSrc, /function makeTank/);
+  assert.match(worldSrc, /function skyDome/);
+  assert.match(crowdSrc, /MeshStandardMaterial/);
+  assert.match(mainSrc, /createFx/);
+  assert.match(mainSrc, /difficulty = id/);
+  assert.match(mainSrc, /createMatch\(\{ mapId, difficulty/);
 });

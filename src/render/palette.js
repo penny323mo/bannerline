@@ -1,10 +1,9 @@
-/** Muted terrain, strong faction paints. See ART-STYLE.md §2.
- * Sky and water are pulled toward overcast grey and steel so the bay
- * does not read brighter than the olive ground.
+/** Muted olive terrain, strong faction paints. See ART-STYLE.md §2 (v3).
+ * Sky is a cool day grade for the dome; water is a deep bay, not a pastel wash.
  */
 export const PALETTE = {
-  sky: 0x8a918c,
-  water: 0x5c676e,
+  sky: 0x7fa8c4,
+  water: 0x3e6f8f,
   sand: 0x8a7a5c,
   meadow: 0x6b7a4e,
   meadowDeep: 0x5a6b42,
@@ -14,7 +13,7 @@ export const PALETTE = {
   leaf: 0x3f5a3a,
   leafDeep: 0x2f4530,
   rock: 0x6e6a63,
-  stream: 0x5c676e,
+  stream: 0x3e6f8f,
   bridge: 0x6e726e,
   ink: 0x1a2220,
   concrete: 0x7a756c,

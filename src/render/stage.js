@@ -15,6 +15,38 @@ export function frameDioramaCamera(camera, aspect) {
   camera.updateMatrixWorld();
 }
 
+/** Software rasterizers cannot afford a live shadow map. Unknown strings stay on blobs. */
+export function rendererIsSoftware(renderer) {
+  try {
+    const gl = renderer.getContext();
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    if (!ext) return true;
+    const name = `${gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || ''} ${gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) || ''}`;
+    if (/swiftshader|llvmpipe|softpipe|software/i.test(name)) return true;
+    if (/nvidia|amd|radeon|intel|apple|adreno|mali|powervr/i.test(name)) return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export function applyShadowMode(renderer, sun, enabled) {
+  renderer.shadowMap.enabled = !!enabled;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  sun.castShadow = !!enabled;
+  if (!enabled) return;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.near = 4;
+  sun.shadow.camera.far = 42;
+  sun.shadow.camera.left = -14;
+  sun.shadow.camera.right = 14;
+  sun.shadow.camera.top = 14;
+  sun.shadow.camera.bottom = -14;
+  sun.shadow.bias = -0.0008;
+  sun.shadow.normalBias = 0.04;
+  sun.shadow.camera.updateProjectionMatrix();
+}
+
 export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -23,26 +55,29 @@ export function createStage(canvas) {
     powerPreference: 'high-performance',
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
-  // A live shadow map drops SwiftShader under 50 fps once the bunker and soldiers are on screen.
-  // Contact is a cheap blob in the island, not a shadow pass.
-  renderer.shadowMap.enabled = false;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(PALETTE.sky, 26, 54);
+  scene.fog = new THREE.Fog(PALETTE.sky, 18, 38);
   scene.background = new THREE.Color(PALETTE.sky);
 
   const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xc5d4e2, 0x5a6b42, 0.72));
-  scene.add(new THREE.AmbientLight(0xe7eeea, 0.32));
+  scene.add(new THREE.HemisphereLight(0xc5d4e2, 0x5a6b42, 0.62));
+  scene.add(new THREE.AmbientLight(0xe7eeea, 0.38));
 
-  const sun = new THREE.DirectionalLight(0xfff4e2, 1.05);
-  sun.position.set(-6.2, 17.5, 8.2);
-  sun.castShadow = false;
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.22);
+  sun.position.set(-7.5, 18, 9.2);
+  sun.target.position.set(0, 0, 0);
   scene.add(sun);
+  scene.add(sun.target);
+
+  const software = rendererIsSoftware(renderer);
+  let shadowsOn = !software;
+  applyShadowMode(renderer, sun, shadowsOn);
 
   function resize() {
     const w = canvas.clientWidth || 390;
@@ -54,5 +89,20 @@ export function createStage(canvas) {
     renderer.setSize(w, h, false);
   }
 
-  return { renderer, scene, camera, resize };
+  return {
+    renderer,
+    scene,
+    camera,
+    sun,
+    software,
+    get shadowsOn() {
+      return shadowsOn;
+    },
+    setShadows(on) {
+      shadowsOn = !!on;
+      applyShadowMode(renderer, sun, shadowsOn);
+      renderer.shadowMap.needsUpdate = true;
+    },
+    resize,
+  };
 }

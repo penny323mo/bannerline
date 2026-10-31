@@ -11,8 +11,9 @@ const _vel = new THREE.Vector3();
 
 export function visualCount(count) {
   const n = Math.max(0, Math.floor(count));
-  if (n <= 16) return n;
-  return Math.min(30, 16 + Math.round((n - 16) / 3));
+  if (n <= 12) return n;
+  // Dense ranks. A full board plus marching squads can pass 200 bodies under the 480 cap.
+  return Math.min(56, 12 + Math.round((n - 12) * 0.8));
 }
 
 /**
@@ -29,15 +30,29 @@ function shade(geo, value) {
 }
 
 export function soldierGeometry() {
-  const torso = shade(new THREE.BoxGeometry(0.16, 0.28, 0.11), 0.52);
-  torso.translate(0, 0.22, 0);
-  const helmet = shade(new THREE.BoxGeometry(0.2, 0.12, 0.18), 1);
-  helmet.translate(0, 0.44, -0.01);
-  const rifle = shade(new THREE.BoxGeometry(0.055, 0.05, 0.5), 0.12);
-  rifle.translate(0.1, 0.22, -0.26);
-  const stock = shade(new THREE.BoxGeometry(0.06, 0.08, 0.1), 0.18);
-  stock.translate(0.1, 0.2, 0);
-  const geo = mergeGeometries([torso, helmet, rifle, stock]);
+  // Adult block-out: legs, torso, arms, helmet with brim, pack on +z, rifle on local −z.
+  // The rifle's −z extent is the facing cue yawForFacing aims along travel.
+  const legL = shade(new THREE.BoxGeometry(0.055, 0.16, 0.07), 0.26);
+  legL.translate(-0.045, 0.08, 0.01);
+  const legR = shade(new THREE.BoxGeometry(0.055, 0.16, 0.07), 0.2);
+  legR.translate(0.045, 0.08, 0.01);
+  const torso = shade(new THREE.BoxGeometry(0.15, 0.22, 0.1), 0.42);
+  torso.translate(0, 0.25, 0);
+  const armL = shade(new THREE.BoxGeometry(0.045, 0.15, 0.05), 0.3);
+  armL.translate(-0.105, 0.25, -0.02);
+  const armR = shade(new THREE.BoxGeometry(0.045, 0.13, 0.05), 0.28);
+  armR.translate(0.1, 0.26, -0.05);
+  const helmet = shade(new THREE.BoxGeometry(0.17, 0.1, 0.16), 1);
+  helmet.translate(0, 0.43, -0.01);
+  const brim = shade(new THREE.BoxGeometry(0.2, 0.028, 0.18), 0.72);
+  brim.translate(0, 0.375, -0.02);
+  const rifle = shade(new THREE.BoxGeometry(0.035, 0.03, 0.52), 0.08);
+  rifle.translate(0.1, 0.23, -0.28);
+  const stock = shade(new THREE.BoxGeometry(0.04, 0.055, 0.08), 0.14);
+  stock.translate(0.1, 0.21, -0.02);
+  const pack = shade(new THREE.BoxGeometry(0.09, 0.11, 0.055), 0.22);
+  pack.translate(0, 0.26, 0.08);
+  const geo = mergeGeometries([legL, legR, torso, armL, armR, helmet, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;
 }
@@ -58,16 +73,29 @@ export function createCrowds(scene) {
   const geo = soldierGeometry();
   const green = new THREE.InstancedMesh(
     geo,
-    new THREE.MeshLambertMaterial({ color: PALETTE.player.main, vertexColors: true }),
+    new THREE.MeshStandardMaterial({
+      color: PALETTE.player.main,
+      vertexColors: true,
+      roughness: 0.62,
+      metalness: 0.08,
+    }),
     MAX,
   );
   const red = new THREE.InstancedMesh(
     geo,
-    new THREE.MeshLambertMaterial({ color: PALETTE.enemy.main, vertexColors: true }),
+    new THREE.MeshStandardMaterial({
+      color: PALETTE.enemy.main,
+      vertexColors: true,
+      roughness: 0.62,
+      metalness: 0.08,
+    }),
     MAX,
   );
+  // Soldiers do not cast. A few hundred casters blow the 1024 shadow map.
   green.castShadow = false;
   red.castShadow = false;
+  green.receiveShadow = false;
+  red.receiveShadow = false;
   green.frustumCulled = false;
   red.frustumCulled = false;
   green.count = 0;
@@ -111,8 +139,8 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const cols = n > 18 ? 6 : 5;
-    const spacing = 0.36;
+    const cols = n > 24 ? 8 : 6;
+    const spacing = 0.3;
     for (let i = 0; i < n; i++) {
       const c = i % cols;
       const r = Math.floor(i / cols);
@@ -122,7 +150,7 @@ export function createCrowds(scene) {
       const lz = r * spacing;
       rotateXZ(lx, lz, yaw, _slot);
       const bob = 1 + ((i * 17) % 5) * 0.015;
-      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.8 * bob, track && i === 0);
+      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yaw, 1.75 * bob, track && i === 0);
     }
   }
 

@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { yawForFacing } from '../sim/facing.js';
 import { boxMapZones, frontierFrom } from '../sim/territory.js';
 import { PALETTE, ownerPaint } from './palette.js';
+import { rocksFor, treesFor } from './scenery.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const LOCAL_Z = new THREE.Vector3(0, 0, 1);
@@ -336,23 +337,6 @@ function pushTree(trunks, crowns, x, z, scale, color) {
   list.push(lower, upper);
 }
 
-const TREE_SPOTS = [
-  [-3.05, 6.15, 1.08, PALETTE.leaf],
-  [-3.25, 4.15, 0.82, PALETTE.leafDeep],
-  [3.15, 5.55, 1.12, PALETTE.leaf],
-  [3.3, 3.35, 0.74, PALETTE.leaf],
-  [-3.15, 1.05, 0.9, PALETTE.leafDeep],
-  [3.05, 0.7, 0.78, PALETTE.leaf],
-  [-3.2, -1.45, 1.0, PALETTE.leaf],
-  [3.2, -1.7, 0.88, PALETTE.leafDeep],
-  [2.95, -4.55, 0.8, PALETTE.leaf],
-  [-3.15, -5.15, 1.05, PALETTE.leaf],
-  [2.45, -6.85, 0.7, PALETTE.leafDeep],
-  [-2.15, 7.05, 0.76, PALETTE.leaf],
-  [1.55, 7.15, 0.64, PALETTE.leaf],
-  [-1.35, -7.15, 0.7, PALETTE.leaf],
-];
-
 function boundsOf(map) {
   let minX = Infinity;
   let maxX = -Infinity;
@@ -456,40 +440,28 @@ function buildIsland(map, reduceMotion) {
 
   const trunks = [];
   const crowns = {};
-  if (map.id === 'crossing') {
-    for (let i = 0; i < TREE_SPOTS.length; i++) {
-      const [x, z, s, color] = TREE_SPOTS[i];
-      pushTree(trunks, crowns, x, z, s, color);
-    }
+  const trees = treesFor(map);
+  for (let i = 0; i < trees.length; i++) {
+    const t = trees[i];
+    pushTree(trunks, crowns, t.x, t.z, t.s, t.color);
+  }
+  const rocks = rocksFor(map);
+  if (rocks.length) {
     const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
     const rockParts = [];
-    const rocks = [
-      [2.55, 6.4, 0.85],
-      [-2.7, -6.5, 0.7],
-      [3.4, -0.2, 0.55],
-      [-3.45, 2.4, 0.62],
-      [3.15, -6.2, 0.48],
-      [-3.05, -2.4, 0.4],
-    ];
     for (let i = 0; i < rocks.length; i++) {
-      const [x, z, s] = rocks[i];
+      const rock = rocks[i];
       const geo = rockGeo.clone();
-      geo.scale(s, s * 0.62, s * 0.85);
-      geo.translate(x, 0.08, z);
+      geo.scale(rock.s, rock.s * 0.62, rock.s * 0.85);
+      geo.translate(rock.x, 0.08, rock.z);
       rockParts.push(geo);
       const chip = rockGeo.clone();
-      chip.scale(s * 0.45, s * 0.35, s * 0.4);
-      chip.translate(x + 0.28 * s, 0.06, z + 0.22 * s);
+      chip.scale(rock.s * 0.45, rock.s * 0.35, rock.s * 0.4);
+      chip.translate(rock.x + 0.28 * rock.s, 0.06, rock.z + 0.22 * rock.s);
       rockParts.push(chip);
     }
     rockGeo.dispose();
     addMerged(group, rockParts, mat(PALETTE.rock, { roughness: 0.9, metalness: 0.02 }));
-  } else {
-    for (let i = 0; i < map.zones.length; i++) {
-      const z = map.zones[i];
-      pushTree(trunks, crowns, z.x - z.rx + 0.45, z.z + z.rz * 0.35, 0.85, i % 2 ? PALETTE.leafDeep : PALETTE.leaf);
-      pushTree(trunks, crowns, z.x + z.rx - 0.4, z.z - z.rz * 0.2, 0.7, PALETTE.leaf);
-    }
   }
   addMerged(group, trunks, mat(PALETTE.trunk));
   const crownColors = Object.keys(crowns);

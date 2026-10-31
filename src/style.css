@@ -343,6 +343,8 @@ body {
 
 #toast[hidden] { display: none; }
 
+#hint[hidden] { display: none; }
+
 #hint {
   position: absolute;
   left: 0;

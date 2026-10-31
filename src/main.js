@@ -12,6 +12,8 @@ import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, sideSt
 import { COACH_KEY, coachSeenValue } from './sim/settings.js';
 import { applyUpgrade, quoteUpgrade } from './sim/upgrades.js';
 import { squadMarkX } from './render/pointer-math.js';
+import { PALETTE, ownerPaint } from './render/palette.js';
+import { islandBounds, rocksFor, streamBand, streamCrossings, treesFor } from './render/scenery.js';
 
 const app = document.getElementById('app');
 const canvas = document.getElementById('view');
@@ -102,9 +104,10 @@ function warnHq() {
 
 function setHint(mode) {
   if (homeEl && !homeEl.hidden) {
-    hintEl.textContent = '揀地圖，再出戰';
+    hintEl.hidden = true;
     return;
   }
+  hintEl.hidden = false;
   if (!state || state.status !== 'playing') {
     hintEl.textContent = '再戰，或者揀地圖';
     return;
@@ -341,6 +344,10 @@ function bindTap(el, fn) {
   });
 }
 
+function cssHex(n) {
+  return `#${n.toString(16).padStart(6, '0')}`;
+}
+
 function mapThumb(map) {
   const thumb = document.createElement('canvas');
   thumb.className = 'map-thumb';
@@ -349,62 +356,63 @@ function mapThumb(map) {
   thumb.width = W;
   thumb.height = H;
   const g = thumb.getContext('2d');
-  const sky = g.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#9eb8c8');
-  sky.addColorStop(0.22, '#7fa8c4');
-  sky.addColorStop(0.45, '#6b7a4e');
-  sky.addColorStop(1, '#4e5c38');
-  g.fillStyle = sky;
-  g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 70; i++) {
-    g.fillStyle = i % 3 ? 'rgba(90,104,64,0.55)' : 'rgba(125,139,88,0.7)';
-    const x = (i * 47) % (W - 8);
-    const y = 50 + ((i * 29) % (H - 58));
-    g.fillRect(x, y, 4, 6);
+  const box = islandBounds(map);
+  const trees = treesFor(map);
+  const rocks = rocksFor(map);
+  for (let i = 0; i < trees.length; i++) {
+    const t = trees[i];
+    box.minX = Math.min(box.minX, t.x - 0.35);
+    box.maxX = Math.max(box.maxX, t.x + 0.35);
+    box.minZ = Math.min(box.minZ, t.z - 0.35);
+    box.maxZ = Math.max(box.maxZ, t.z + 0.35);
   }
-  const nodes = map.nodes || {};
-  const ids = Object.keys(nodes);
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
-  for (let i = 0; i < ids.length; i++) {
-    const p = nodes[ids[i]];
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.z < minZ) minZ = p.z;
-    if (p.z > maxZ) maxZ = p.z;
-  }
-  const sx = (maxX - minX) || 1;
-  const sz = (maxZ - minZ) || 1;
+  const pad = 14;
+  const spanX = Math.max(0.001, box.maxX - box.minX);
+  const spanZ = Math.max(0.001, box.maxZ - box.minZ);
+  const scaleX = (W - pad * 2) / spanX;
+  const scaleY = (H - pad * 2) / spanZ;
   // +z is the near / player side, which sits at the bottom of the thumbnail.
   function pt(p) {
     return {
-      x: 28 + ((p.x - minX) / sx) * (W - 56),
-      y: 36 + ((p.z - minZ) / sz) * (H - 64),
+      x: pad + (p.x - box.minX) * scaleX,
+      y: pad + (p.z - box.minZ) * scaleY,
     };
   }
-  const mid = pt({ x: 0, z: (minZ + maxZ) / 2 });
-  g.fillStyle = '#2f5a72';
-  g.fillRect(0, mid.y - 9, W, 18);
-  g.fillStyle = '#4e86a8';
-  g.fillRect(0, mid.y - 3, W, 5);
-  for (let i = 0; i < 8; i++) {
-    const tx = 8 + i * 40;
-    g.fillStyle = '#2f4530';
+
+  g.fillStyle = cssHex(PALETTE.meadow);
+  g.fillRect(0, 0, W, H);
+  g.fillStyle = cssHex(PALETTE.meadowDeep);
+  g.fillRect(0, 0, W, 8);
+  g.fillRect(0, H - 8, W, 8);
+
+  const ownerById = {};
+  const buildings = map.buildings || [];
+  for (let i = 0; i < buildings.length; i++) ownerById[buildings[i].id] = buildings[i].owner;
+  const zones = map.zones || [];
+  for (let i = 0; i < zones.length; i++) {
+    const z = zones[i];
+    const owner = ownerById[z.buildingId];
+    const paint = owner ? ownerPaint(owner) : null;
+    const at = pt(z);
     g.beginPath();
-    g.moveTo(tx, mid.y - 28);
-    g.lineTo(tx + 7, mid.y - 10);
-    g.lineTo(tx - 7, mid.y - 10);
+    g.ellipse(at.x, at.y, Math.max(4, z.rx * scaleX), Math.max(3, z.rz * scaleY), 0, 0, Math.PI * 2);
+    g.fillStyle = cssHex(paint ? paint.slab : PALETTE.meadowDeep);
     g.fill();
-    g.beginPath();
-    g.moveTo(tx, mid.y + 12);
-    g.lineTo(tx + 6, mid.y + 26);
-    g.lineTo(tx - 6, mid.y + 26);
-    g.fill();
+    g.lineWidth = 2;
+    g.strokeStyle = cssHex(paint ? paint.main : PALETTE.meadowDeep);
+    g.stroke();
   }
-  g.strokeStyle = '#5c5348';
-  g.lineWidth = 7;
+
+  const band = streamBand(map);
+  const waterL = pt({ x: -band.halfWidth, z: 0 });
+  const waterR = pt({ x: band.halfWidth, z: 0 });
+  const thick = Math.max(10, band.depth * scaleY);
+  g.fillStyle = cssHex(PALETTE.stream);
+  g.fillRect(Math.min(waterL.x, waterR.x), waterL.y - thick / 2, Math.abs(waterR.x - waterL.x), thick);
+
+  const nodes = map.nodes || {};
+  g.strokeStyle = cssHex(PALETTE.road);
+  g.lineWidth = Math.max(4, 0.55 * Math.min(scaleX, scaleY));
   g.lineCap = 'round';
   g.beginPath();
   const seen = new Set();
@@ -427,36 +435,65 @@ function mapThumb(map) {
     }
   }
   g.stroke();
-  const buildings = map.buildings || [];
+
+  const crossings = streamCrossings(map);
+  g.fillStyle = cssHex(PALETTE.bridge);
+  for (let i = 0; i < crossings.length; i++) {
+    const at = pt(crossings[i]);
+    const bw = Math.max(12, 0.92 * scaleX * 0.55);
+    const bh = Math.max(thick + 4, 1.2 * scaleY);
+    g.fillRect(at.x - bw / 2, at.y - bh / 2, bw, bh);
+  }
+
+  for (let i = 0; i < rocks.length; i++) {
+    const at = pt(rocks[i]);
+    const r = Math.max(3, rocks[i].s * scaleY * 0.45);
+    g.fillStyle = cssHex(PALETTE.rock);
+    g.beginPath();
+    g.ellipse(at.x, at.y, r * 1.3, r, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  for (let i = 0; i < trees.length; i++) {
+    const t = trees[i];
+    const at = pt(t);
+    const h = Math.max(9, t.s * scaleY * 1.15);
+    const w = h * 0.42;
+    g.fillStyle = cssHex(t.color);
+    g.beginPath();
+    g.moveTo(at.x, at.y - h);
+    g.lineTo(at.x + w, at.y + 1);
+    g.lineTo(at.x - w, at.y + 1);
+    g.fill();
+  }
+
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
     const p = nodes[b.node];
     if (!p) continue;
     const at = pt(p);
-    const paint = b.owner === 'player' ? '#2f9e5b' : '#c43c32';
-    const deep = b.owner === 'player' ? '#1b6b3d' : '#8e241c';
+    const paint = ownerPaint(b.owner);
+    const u = Math.max(7, Math.min(scaleX, scaleY) * 0.95);
     if (b.kind === 'hq') {
-      g.fillStyle = '#8a7a5c';
-      g.fillRect(at.x - 16, at.y - 8, 32, 18);
-      g.fillStyle = paint;
-      g.fillRect(at.x - 10, at.y - 14, 20, 16);
-      g.fillStyle = deep;
-      g.fillRect(at.x - 5, at.y - 22, 10, 8);
-      g.fillStyle = '#8e9694';
+      g.fillStyle = cssHex(PALETTE.sand);
+      g.fillRect(at.x - u * 1.15, at.y - u * 0.35, u * 2.3, u * 0.9);
+      g.fillStyle = cssHex(paint.main);
+      g.fillRect(at.x - u * 0.7, at.y - u * 0.85, u * 1.4, u * 0.85);
+      g.fillStyle = cssHex(paint.deep);
+      g.fillRect(at.x - u * 0.16, at.y - u * 1.45, u * 0.32, u * 0.6);
+      g.fillStyle = cssHex(PALETTE.metal);
       g.beginPath();
-      g.arc(at.x + 8, at.y - 20, 4, 0, Math.PI * 2);
+      g.arc(at.x + u * 0.55, at.y - u * 1.15, Math.max(2, u * 0.22), 0, Math.PI * 2);
       g.fill();
     } else {
-      g.fillStyle = '#c8b48a';
-      g.fillRect(at.x - 18, at.y - 8, 6, 5);
-      g.fillRect(at.x + 12, at.y - 8, 6, 5);
-      g.fillStyle = paint;
-      g.fillRect(at.x - 14, at.y - 6, 28, 12);
-      g.fillStyle = '#1a2220';
-      g.fillRect(at.x - 6, at.y - 2, 12, 3);
+      g.fillStyle = cssHex(PALETTE.sand);
+      g.fillRect(at.x - u * 1.35, at.y - u * 0.15, u * 0.35, u * 0.4);
+      g.fillRect(at.x + u, at.y - u * 0.15, u * 0.35, u * 0.4);
+      g.fillStyle = cssHex(paint.main);
+      g.fillRect(at.x - u, at.y - u * 0.35, u * 2, u * 0.7);
+      g.fillStyle = cssHex(PALETTE.ink);
+      g.fillRect(at.x - u * 0.35, at.y - u * 0.05, u * 0.7, u * 0.22);
     }
-    g.fillStyle = deep;
-    for (let k = 0; k < 6; k++) g.fillRect(at.x - 14 + k * 5, at.y + 10, 3, 4);
   }
   return thumb;
 }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { MAP_LIST } from '../src/sim/maps.js';
 import { streamCrossings, treesFor } from '../src/render/scenery.js';
-import { bridgeDeckGeometries } from '../src/render/world.js';
+import { bridgeDeckGeometries, planRoadSegments } from '../src/render/world.js';
 
 function byId(id) {
   for (let i = 0; i < MAP_LIST.length; i++) {
@@ -74,4 +74,23 @@ test('bridge decks sit on the road crossings and nowhere else', () => {
   assert.ok(xs.some((x) => x > 1.4));
   const world = readFileSync(new URL('../src/render/world.js', import.meta.url), 'utf8');
   assert.match(world, /bridgeDeckGeometries\(streamCrossings\(map\)\)/);
+});
+
+test('the centre road stops at the stream banks and does not stack collinear caps', () => {
+  const segs = planRoadSegments(byId('crossing'));
+  let spine = 0;
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    assert.ok(s.z0 * s.z1 >= -0.01, `segment crosses the stream ${s.z0},${s.z1}`);
+    if (Math.abs(s.x0) < 0.2 && Math.abs(s.x1) < 0.2) {
+      spine += 1;
+      const mid = (s.z0 + s.z1) / 2;
+      assert.ok(Math.abs(mid) > 0.6, 'spine stays off the water');
+    }
+  }
+  assert.equal(spine, 2);
+  const lanes = planRoadSegments(byId('two-lanes'));
+  for (let i = 0; i < lanes.length; i++) {
+    assert.ok(lanes[i].z0 * lanes[i].z1 >= -0.01);
+  }
 });

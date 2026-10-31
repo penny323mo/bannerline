@@ -233,8 +233,17 @@ function makeBarracks(paint) {
   flag.scale.setScalar(0.65);
   flag.position.set(-0.72, 1.22, 0);
   const pip = makePip(1.12);
+  const captureRing = new THREE.Mesh(
+    new THREE.TorusGeometry(1.05, 0.04, 6, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.9, toneMapped: false }),
+  );
+  captureRing.rotation.x = Math.PI / 2;
+  captureRing.position.y = 0.12;
+  captureRing.visible = false;
   g.userData.pip = pip;
-  g.add(sand, body, roof, ink, spawn, pole, flag, pip);
+  g.userData.pulse = body.material;
+  g.userData.dangerRing = captureRing;
+  g.add(sand, body, roof, ink, spawn, pole, flag, pip, captureRing);
   return g;
 }
 
@@ -315,13 +324,13 @@ function makeGlow(geo, material) {
   return mesh;
 }
 
-function addMerged(group, parts, material) {
+function addMerged(group, parts, material, shadow) {
   if (!parts.length) return;
   const geo = mergeGeometries(parts);
   for (let i = 0; i < parts.length; i++) parts[i].dispose();
   const mesh = new THREE.Mesh(geo, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  mesh.castShadow = !shadow || shadow.cast !== false;
+  mesh.receiveShadow = !shadow || shadow.receive !== false;
   group.add(mesh);
 }
 
@@ -348,11 +357,36 @@ function pushTree(trunks, crowns, x, z, scale, color) {
   trunk.translate(x, 0.06 + 0.16 * scale, z);
   trunks.push(trunk);
   const list = crowns[color] || (crowns[color] = []);
-  const lower = new THREE.ConeGeometry(0.42 * scale, 0.62 * scale, 7);
-  lower.translate(x, 0.06 + 0.52 * scale, z);
-  const upper = new THREE.ConeGeometry(0.28 * scale, 0.48 * scale, 6);
+  const lower = new THREE.ConeGeometry(0.46 * scale, 0.7 * scale, 8);
+  lower.translate(x, 0.06 + 0.5 * scale, z);
+  const upper = new THREE.ConeGeometry(0.3 * scale, 0.52 * scale, 8);
   upper.translate(x, 0.06 + 0.92 * scale, z);
-  list.push(lower, upper);
+  const tip = new THREE.ConeGeometry(0.16 * scale, 0.28 * scale, 6);
+  tip.translate(x, 0.06 + 1.22 * scale, z);
+  list.push(lower, upper, tip);
+}
+
+function paintMeadowCap(geo) {
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const hi = new THREE.Color(0x8ea36a);
+  const mid = new THREE.Color(PALETTE.meadow);
+  const lo = new THREE.Color(PALETTE.meadowDeep);
+  const tone = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const n = Math.sin(x * 11 + z * 4) * Math.cos(z * 9 - x * 3);
+    if (y < 0.12) tone.copy(lo).multiplyScalar(0.82);
+    else if (n > 0.35) tone.copy(hi);
+    else if (n < -0.25) tone.copy(lo);
+    else tone.copy(mid);
+    colors[i * 3] = tone.r;
+    colors[i * 3 + 1] = tone.g;
+    colors[i * 3 + 2] = tone.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 }
 
 function boundsOf(map) {
@@ -371,38 +405,186 @@ function boundsOf(map) {
   return { minX, maxX, minZ, maxZ };
 }
 
-function addEdges(group, map, roadGeo, roadMat) {
+const ROAD_W = 0.72;
+const ROAD_H = 0.05;
+const ROAD_Y = 0.155;
+/** Plank half-depth is 0.675. The dirt stops inside that lip so the deck is the only surface on the water. */
+const STREAM_BANK = 0.64;
+
+function undirectedEdges(map) {
   const seen = new Set();
-  const parts = [];
-  const keys = Object.keys(map.graph);
+  const edges = [];
+  const graph = map.graph || {};
+  const nodes = map.nodes || {};
+  const keys = Object.keys(graph);
   for (let i = 0; i < keys.length; i++) {
     const aId = keys[i];
-    const nexts = map.graph[aId];
+    const nexts = graph[aId] || [];
+    const a = nodes[aId];
     for (let j = 0; j < nexts.length; j++) {
       const bId = nexts[j];
       const key = aId < bId ? `${aId}|${bId}` : `${bId}|${aId}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      const a = map.nodes[aId];
-      const b = map.nodes[bId];
-      const piece = new THREE.Mesh(roadGeo);
-      alignLength(piece, a.x, a.z, b.x, b.z, 0.12);
-      piece.updateMatrix();
-      const baked = roadGeo.clone();
-      baked.applyMatrix4(piece.matrix);
-      parts.push(baked);
+      const b = nodes[bId];
+      if (!a || !b) continue;
+      edges.push([{ x: a.x, z: a.z }, { x: b.x, z: b.z }]);
     }
   }
-  addMerged(group, parts, roadMat);
-  roadGeo.dispose();
+  return edges;
+}
+
+function collinearJoin(a, b) {
+  for (let ia = 0; ia < 2; ia++) {
+    for (let ib = 0; ib < 2; ib++) {
+      const joint = a[ia];
+      const other = b[ib];
+      if (Math.hypot(joint.x - other.x, joint.z - other.z) > 0.04) continue;
+      const aFar = a[1 - ia];
+      const bFar = b[1 - ib];
+      const dax = joint.x - aFar.x;
+      const daz = joint.z - aFar.z;
+      const dbx = bFar.x - other.x;
+      const dbz = bFar.z - other.z;
+      const la = Math.hypot(dax, daz) || 1;
+      const lb = Math.hypot(dbx, dbz) || 1;
+      const cross = (dax / la) * (dbz / lb) - (daz / la) * (dbx / lb);
+      const dot = (dax / la) * (dbx / lb) + (daz / la) * (dbz / lb);
+      if (Math.abs(cross) < 0.08 && dot > 0.92) return [aFar, bFar];
+    }
+  }
+  return null;
+}
+
+function mergeRuns(edges) {
+  const runs = edges.map((edge) => [edge[0], edge[1]]);
+  let guard = 0;
+  while (guard < 32) {
+    guard += 1;
+    let merged = false;
+    for (let i = 0; i < runs.length && !merged; i++) {
+      for (let j = i + 1; j < runs.length; j++) {
+        const joined = collinearJoin(runs[i], runs[j]);
+        if (!joined) continue;
+        runs[i] = joined;
+        runs.splice(j, 1);
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) break;
+  }
+  return runs.map((run) => ({ x0: run[0].x, z0: run[0].z, x1: run[1].x, z1: run[1].z, y: ROAD_Y }));
+}
+
+function clipBank(seg, bank) {
+  const { x0, z0, x1, z1 } = seg;
+  const dz = z1 - z0;
+  if (Math.abs(dz) < 1e-4) return [seg];
+  const cuts = [0, 1];
+  const marks = [bank, -bank];
+  for (let k = 0; k < marks.length; k++) {
+    const t = (marks[k] - z0) / dz;
+    if (t > 0.002 && t < 0.998) cuts.push(t);
+  }
+  cuts.sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const t0 = cuts[i];
+    const t1 = cuts[i + 1];
+    if (t1 - t0 < 0.002) continue;
+    const zm = z0 + dz * ((t0 + t1) / 2);
+    if (Math.abs(zm) < bank - 1e-3) continue;
+    out.push({
+      x0: x0 + (x1 - x0) * t0,
+      z0: z0 + dz * t0,
+      x1: x0 + (x1 - x0) * t1,
+      z1: z0 + dz * t1,
+      y: seg.y,
+    });
+  }
+  return out;
+}
+
+function onInterior(x, z, seg) {
+  const dx = seg.x1 - seg.x0;
+  const dz = seg.z1 - seg.z0;
+  const len2 = dx * dx + dz * dz;
+  if (len2 < 1e-6) return false;
+  const t = ((x - seg.x0) * dx + (z - seg.z0) * dz) / len2;
+  if (t <= 0.03 || t >= 0.97) return false;
+  const px = seg.x0 + dx * t;
+  const pz = seg.z0 + dz * t;
+  return Math.hypot(px - x, pz - z) < 0.06;
+}
+
+function tuckJunctions(segs) {
+  const back = ROAD_W / 2 - 0.06;
+  for (let i = 0; i < segs.length; i++) {
+    for (let j = 0; j < segs.length; j++) {
+      if (i === j) continue;
+      const branch = segs[i];
+      const spine = segs[j];
+      for (let end = 0; end < 2; end++) {
+        const x = end === 0 ? branch.x0 : branch.x1;
+        const z = end === 0 ? branch.z0 : branch.z1;
+        if (!onInterior(x, z, spine)) continue;
+        const dx = branch.x1 - branch.x0;
+        const dz = branch.z1 - branch.z0;
+        const len = Math.hypot(dx, dz) || 1;
+        const ux = dx / len;
+        const uz = dz / len;
+        if (end === 0) {
+          branch.x0 = x + ux * back;
+          branch.z0 = z + uz * back;
+        } else {
+          branch.x1 = x - ux * back;
+          branch.z1 = z - uz * back;
+        }
+        branch.y = ROAD_Y - 0.02;
+      }
+    }
+  }
+}
+
+/** Straight dirt runs. Collinear graph edges are one box, and the stream gap is left for the bridge. */
+export function planRoadSegments(map) {
+  const runs = mergeRuns(undirectedEdges(map));
+  const clipped = [];
+  for (let i = 0; i < runs.length; i++) {
+    const parts = clipBank(runs[i], STREAM_BANK);
+    for (let j = 0; j < parts.length; j++) clipped.push(parts[j]);
+  }
+  tuckJunctions(clipped);
+  return clipped;
+}
+
+function addEdges(group, map, roadMat) {
+  const segs = planRoadSegments(map);
+  const unit = new THREE.BoxGeometry(ROAD_W, ROAD_H, 1);
+  const parts = [];
+  const piece = new THREE.Mesh(unit);
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i];
+    const len = alignLength(piece, seg.x0, seg.z0, seg.x1, seg.z1, seg.y);
+    if (len < 0.15) continue;
+    piece.updateMatrix();
+    const baked = unit.clone();
+    baked.applyMatrix4(piece.matrix);
+    parts.push(baked);
+  }
+  unit.dispose();
+  addMerged(group, parts, roadMat, { cast: false, receive: false });
 }
 
 function buildIsland(map, reduceMotion) {
   const group = new THREE.Group();
   const box = boundsOf(map);
-  const beach = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.08, 0.5, 10), mat(PALETTE.meadow, { roughness: 0.94 }));
-  const spanX = Math.max(7.6, (box.maxX - box.minX) * 1.05);
-  const spanZ = Math.max(12.2, (box.maxZ - box.minZ) * 0.92);
+  const beachGeo = new THREE.CylinderGeometry(1, 1.08, 0.5, 24);
+  paintMeadowCap(beachGeo);
+  const beach = new THREE.Mesh(beachGeo, mat(0xffffff, { vertexColors: true, roughness: 0.92 }));
+  const spanX = Math.max(9.6, (box.maxX - box.minX) * 1.32);
+  const spanZ = Math.max(17.6, (box.maxZ - box.minZ) * 1.2);
   beach.scale.set(spanX, 1, spanZ);
   beach.position.y = -0.28;
   beach.receiveShadow = true;
@@ -440,9 +622,13 @@ function buildIsland(map, reduceMotion) {
   stream.receiveShadow = true;
   group.add(stream);
 
-  const roadGeo = new THREE.BoxGeometry(0.72, 0.07, 1);
-  const roadMat = mat(PALETTE.road, { roughness: 0.88 });
-  addEdges(group, map, roadGeo, roadMat);
+  const roadMat = mat(PALETTE.road, {
+    roughness: 0.9,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+  });
+  addEdges(group, map, roadMat);
 
   // Decks sit on the crossings, after the road, so the plank is the surface you see.
   const bridgeMat = mat(PALETTE.bridge, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
@@ -490,7 +676,7 @@ function buildIsland(map, reduceMotion) {
     exitDir(map, spec.node, dir);
     groupB.position.set(p.x, 0.06, p.z);
     groupB.rotation.y = yawForFacing(dir.x, dir.z);
-    const fit = spec.kind === 'hq' ? 0.72 : 0.78;
+    const fit = spec.kind === 'hq' ? 0.84 : 0.82;
     groupB.userData.baseScale = fit;
     groupB.scale.setScalar(fit);
     groupB.userData.owner = spec.owner;
@@ -529,7 +715,7 @@ function buildIsland(map, reduceMotion) {
   const tintMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.32,
     depthWrite: false,
     depthTest: true,
     side: THREE.DoubleSide,
@@ -566,14 +752,14 @@ function buildIsland(map, reduceMotion) {
   group.add(hover);
 
   const ribbon = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.07, 1, 6),
+    new THREE.CylinderGeometry(0.12, 0.12, 1, 8),
     new THREE.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: 0.95 }),
   );
   ribbon.visible = false;
   ribbon.frustumCulled = false;
   group.add(ribbon);
   const arrow = new THREE.Mesh(
-    new THREE.ConeGeometry(0.2, 0.46, 8),
+    new THREE.ConeGeometry(0.28, 0.58, 8),
     new THREE.MeshBasicMaterial({ color: 0xfff4c8 }),
   );
   arrow.visible = false;
@@ -686,7 +872,8 @@ function buildIsland(map, reduceMotion) {
         if (mesh.userData.pip) {
           mesh.userData.pip.visible = !!(ranks && (ranks.haste > 0 || ranks.bulwark > 0));
         }
-        const danger = b.kind === 'hq' && (b.count <= 0 || sieged(state, b.id, b.owner));
+        const capturing = b.capture > 0.04;
+        const danger = (b.kind === 'hq' && (b.count <= 0 || sieged(state, b.id, b.owner))) || capturing;
         const fit = mesh.userData.baseScale || 1;
         if (danger && !reduceMotion) {
           const s = fit * (1 + 0.045 * Math.sin(time * 9));
@@ -696,7 +883,13 @@ function buildIsland(map, reduceMotion) {
         }
         const pulse = mesh.userData.pulse;
         if (pulse) {
-          pulse.emissiveIntensity = danger ? 0.45 + (reduceMotion ? 0 : 0.4 * Math.sin(time * 9)) : 0;
+          if (danger) {
+            pulse.emissive = pulse.emissive || new THREE.Color();
+            pulse.emissive.setHex(capturing ? 0xff7a32 : ownerPaint(b.owner).glow);
+            pulse.emissiveIntensity = 0.35 + (reduceMotion ? 0 : 0.4 * Math.sin(time * 9));
+          } else {
+            pulse.emissiveIntensity = 0;
+          }
         }
         const dangerRing = mesh.userData.dangerRing;
         if (dangerRing) {
@@ -704,7 +897,7 @@ function buildIsland(map, reduceMotion) {
           if (danger) {
             const spread = 1 + (reduceMotion ? 0 : 0.18 * (0.5 + 0.5 * Math.sin(time * 6)));
             dangerRing.scale.set(spread, spread, spread);
-            dangerRing.material.color.setHex(ownerPaint(b.owner).glow);
+            dangerRing.material.color.setHex(capturing ? 0xffe08a : ownerPaint(b.owner).glow);
           }
         }
       }

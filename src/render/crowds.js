@@ -5,8 +5,11 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-const SOLDIER_SCALE = 1.9;
-const RANK_SPACING = 0.42;
+const SOLDIER_SCALE = 1.55;
+const RANK_SPACING = 0.5;
+/** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
+export const HELMET_PLAYER = 0x3e6b32;
+export const HELMET_ENEMY = 0x7c2a22;
 const _slot = { x: 0, z: 0 };
 const _nose = new THREE.Vector3();
 const _vel = new THREE.Vector3();
@@ -37,24 +40,27 @@ function limb(radiusTop, radiusBottom, height, sides) {
 
 export function soldierGeometry() {
   // Helmeted infantry. Local −z is the rifle, which yawForFacing aims along travel.
-  const legL = shade(limb(0.035, 0.042, 0.2, 3), 0.22);
-  legL.translate(-0.05, 0.1, 0);
-  const legR = shade(limb(0.035, 0.042, 0.2, 3), 0.16);
-  legR.translate(0.05, 0.1, 0);
-  const torso = shade(limb(0.09, 0.1, 0.22, 4), 0.4);
-  torso.translate(0, 0.28, 0);
-  const armL = shade(limb(0.028, 0.03, 0.16, 3), 0.28);
-  armL.translate(-0.12, 0.3, -0.02);
-  const armR = shade(limb(0.028, 0.03, 0.14, 3), 0.26);
-  armR.translate(0.11, 0.3, -0.06);
-  const head = shade(limb(0.055, 0.06, 0.09, 4), 0.55);
-  head.translate(0, 0.42, 0);
-  const helmet = shade(limb(0.092, 0.1, 0.16, 4), 1);
+  // A 3- or 4-side cylinder is a prism. At the play camera those prisms read as stacked cubes,
+  // so limbs stay at 6+ sides and the helmet is a sphere, not a box.
+  const legL = shade(limb(0.04, 0.048, 0.26, 6), 0.22);
+  legL.translate(-0.07, 0.13, 0.06);
+  const legR = shade(limb(0.04, 0.048, 0.26, 6), 0.16);
+  legR.translate(0.07, 0.13, 0.06);
+  const torso = shade(limb(0.12, 0.145, 0.28, 8), 0.4);
+  torso.translate(0, 0.34, 0);
+  const armL = shade(limb(0.028, 0.032, 0.18, 5), 0.28);
+  armL.translate(-0.15, 0.36, -0.04);
+  const armR = shade(limb(0.028, 0.03, 0.16, 5), 0.26);
+  armR.translate(0.14, 0.36, -0.08);
+  const head = shade(limb(0.048, 0.052, 0.08, 8), 0.55);
+  head.translate(0, 0.52, 0);
+  const helmet = shade(new THREE.SphereGeometry(0.064, 8, 6), 1);
   helmet.translate(0, 0.58, -0.01);
-  const brim = shade(new THREE.BoxGeometry(0.24, 0.03, 0.2), 0.78);
-  brim.translate(0, 0.5, -0.06);
-  const rifle = shade(new THREE.BoxGeometry(0.055, 0.05, 0.64), 0.07);
-  rifle.translate(0.14, 0.32, -0.38);
+  const brim = shade(new THREE.BoxGeometry(0.18, 0.02, 0.12), 0.78);
+  brim.translate(0, 0.54, -0.04);
+  // Thin barrel on local −z. A tall rifle box lines up with the rank and paints a black bar.
+  const rifle = shade(new THREE.BoxGeometry(0.042, 0.026, 0.26), 0.08);
+  rifle.translate(0.13, 0.4, -0.18);
   const stock = shade(new THREE.BoxGeometry(0.06, 0.07, 0.1), 0.12);
   stock.translate(0.14, 0.3, -0.06);
   const pack = shade(new THREE.BoxGeometry(0.08, 0.1, 0.05), 0.2);
@@ -74,7 +80,7 @@ function troopGeometry(uniformHex, helmetHex) {
   const helmet = new THREE.Color(helmetHex);
   const brim = helmet.clone().multiplyScalar(0.62);
   const skin = new THREE.Color(0xc4a882);
-  const rifle = new THREE.Color(0x161816);
+  const rifle = new THREE.Color(0x2c332e);
   const cloth = new THREE.Color();
   for (let i = 0; i < src.count; i++) {
     const v = src.getX(i);
@@ -124,12 +130,12 @@ export function createCrowds(scene) {
     metalness: 0.04,
   });
   const green = new THREE.InstancedMesh(
-    troopGeometry(PALETTE.player.main, 0x8fbf9a),
+    troopGeometry(PALETTE.player.main, HELMET_PLAYER),
     troopMat(),
     MAX,
   );
   const red = new THREE.InstancedMesh(
-    troopGeometry(PALETTE.enemy.main, 0xd48980),
+    troopGeometry(PALETTE.enemy.main, HELMET_ENEMY),
     troopMat(),
     MAX,
   );
@@ -181,7 +187,7 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const cols = n > 20 ? 9 : n > 8 ? 6 : Math.max(1, n);
+    const cols = n > 16 ? 8 : n > 8 ? 5 : Math.max(1, n);
     const spacing = RANK_SPACING;
     for (let i = 0; i < n; i++) {
       const c = i % cols;
@@ -219,7 +225,8 @@ export function createCrowds(scene) {
         if (b.count <= 0) continue;
         const p = nodes[b.node];
         if (!p) continue;
-        const yaw = exitYaw(b.node);
+        // Face the enemy. A barracks exit runs sideways, and those rifles drew black bars across the road.
+        const yaw = b.owner === 'player' ? yawForFacing(0, -1) : yawForFacing(0, 1);
         // Stay on this pad. A longer reach parks the headquarters rank inside the barracks rank.
         const reach = Math.min(1.1, exitReach(b.node) * 0.82);
         rotateXZ(0, -1, yaw, _slot);

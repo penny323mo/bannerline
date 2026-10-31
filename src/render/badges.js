@@ -1,5 +1,5 @@
 import { NODES } from '../sim/mapdata.js';
-import { upgradeAffordance } from '../sim/upgrades.js';
+import { quoteUpgrade, upgradeAffordance } from '../sim/upgrades.js';
 import { BADGE_LIFT, PILL_SHIFT_PX, SQUAD_LIFT, layoutPills, projectToCss, squadMarkX } from './pointer-math.js';
 
 export function createBadges(host) {
@@ -77,7 +77,16 @@ export function createBadges(host) {
         node.classList.toggle('player', b.owner === 'player');
         node.classList.toggle('enemy', b.owner === 'enemy');
         node.classList.toggle('squad', false);
-        node.classList.toggle('can-up', upgradeAffordance(b));
+        const canUp = upgradeAffordance(b);
+        node.classList.toggle('can-up', canUp);
+        if (canUp) {
+          const haste = quoteUpgrade(b, 'haste');
+          const wall = quoteUpgrade(b, 'bulwark');
+          const quote = haste.ok ? haste : wall;
+          node.dataset.cost = quote && quote.cost ? ` ${quote.cost}` : '';
+        } else if (node.dataset.cost) {
+          node.dataset.cost = '';
+        }
         const label = b.kind === 'hq' ? '司令部' : '兵營';
         setText(node, '.tag', label);
         setText(node, '.num', String(Math.max(0, Math.floor(b.count))));

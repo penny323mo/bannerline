@@ -191,7 +191,8 @@ function paintUpgrades() {
 
 function paintUpgradeButton(btn, building, id) {
   const quote = quoteUpgrade(building, id);
-  const text = quote.reason === 'max' ? `${quote.label} 滿級` : `${quote.label} · ${quote.cost}`;
+  const level = quote.rank + 1;
+  const text = quote.reason === 'max' ? `${quote.label} 滿級` : `${quote.label} ${level}級 · ${quote.cost}`;
   if (btn.textContent !== text) btn.textContent = text;
   btn.disabled = !quote.ok;
 }

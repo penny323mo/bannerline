@@ -67,7 +67,14 @@ export function treesFor(map) {
 }
 
 export function rocksFor(map) {
-  return map.id === 'crossing' ? CROSSING_ROCKS : [];
+  if (map.id === 'crossing') return CROSSING_ROCKS;
+  const zones = map.zones || [];
+  const out = [];
+  for (let i = 0; i < zones.length; i += 2) {
+    const z = zones[i];
+    out.push({ x: z.x + z.rx * 0.62, z: z.z - z.rz * 0.72, s: 0.5 });
+  }
+  return out;
 }
 
 /** Stream ribbon centred on z = 0, wide enough to cross this island. */

@@ -148,3 +148,12 @@
 
 - The round 22 review found no CRITICAL, MAJOR, or MINOR issues. The lane decks on 雙橋, the centre deck on 對岸 and 長路, the per-map cards, and the hidden home hint stay. Loop-r17 paints, the bunker and the hangar, the helmeted ranks, the mute glyphs, the formal copy, and the 中 open of 42 vs 72 stay closed.
 - 60 tests passed. No source or bundle change.
+
+## Round 23 fixes
+
+- The live crowds were stacked cubes because each limb was a 3- or 4-sided cylinder, and the helmet vertex colours were mint and salmon. Helmets are olive and deep-red spheres on 6- to 8-sided limbs, with a short barrel on local −z. Garrisons face the enemy, so those barrels no longer stripe the centre road. A round-helmet test guards the silhouette.
+- The centre road is one dirt run on each bank of the stream. The bridge is the only surface on the water. The road does not receive the shadow map, the shadow bias is wider, and the dirt is 0x8d7b64. At 390×844 the lane is a clean tan strip into the grey deck.
+- The play camera sits lower (fov 48 at (0.18, 9.6, 16.4) looking at (0.02, 0.55, −1.15)) so both bunkers show a face, a dish, and a mast, and both barracks stay on screen. The island is wider, so the headquarters sit on the meadow. The opening coach and the headquarters toast sit above the hint, off the enemy headquarters. 我軍 and 敵軍 no longer shrink under 揀地圖. The ⬆ chip shows the cost, and the upgrade buttons show the next rank and the cost.
+- Daylight is brighter (exposure 1.16, warmer sun, higher hemisphere). The meadow cap varies, and the pines have a third cone. Sparks are larger, with tracers, siege fire and smoke, and a capture ring.
+- A measured player on 中 now wins at about 131s (margin 8), and the same line on 難 wins at about 184s. Opening piles stay 42 vs 72. Hard still uses barBonus 12 and hqBonus 18. Enemy regenScale is 1.08 on 中 and 1.16 on 難. Headquarters regen is 0.24 on 中 and 0.32 on 難.
+- 61 tests passed. Rebuilt `static/app.js` (556251 bytes).

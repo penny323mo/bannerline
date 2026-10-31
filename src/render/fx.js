@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 
-const POOL = 360;
+const POOL = 640;
 
 /**
  * Pooled point sprites. March dust, clash smoke, and a short muzzle flash.
@@ -17,7 +17,7 @@ export function createFx(scene) {
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
-    size: 1.7,
+    size: 7.5,
     vertexColors: true,
     transparent: true,
     opacity: 0.82,
@@ -67,24 +67,40 @@ export function createFx(scene) {
     update(dt, state) {
       if (!enabled || !state) return;
       const squads = state.squads || [];
-      let budget = 18;
+      let budget = 36;
       const tick = Math.floor((state.t || 0) * 8);
       for (let s = 0; s < squads.length && budget > 0; s++) {
         const q = squads[s];
         if (!q || q.count <= 0) continue;
         const jitter = ((s * 17) % 5) * 0.05;
         if (q.mode === 'march') {
-          spawn(q.x + jitter, 0.12, q.z - jitter, dust, 0.7, 0, 0.35, 0);
+          spawn(q.x + jitter, 0.16, q.z - jitter, dust, 0.8, 0, 0.45, 0);
           budget -= 1;
+          if (budget > 0 && s % 2 === 0) {
+            spawn(q.x - jitter, 0.22, q.z + 0.1, dust, 0.55, 0.2, 0.3, 0);
+            budget -= 1;
+          }
         } else if (q.mode === 'fight' || q.mode === 'siege') {
-          spawn(q.x, 0.4, q.z, smoke, 1.1, s % 2 ? 0.4 : -0.4, 0.9, 0);
+          spawn(q.x, 0.45, q.z, smoke, 1.2, s % 2 ? 0.6 : -0.6, 1.1, 0);
           budget -= 1;
           if (budget > 0) {
-            spawn(q.x + 0.12, 0.55, q.z, q.mode === 'siege' ? fire : flash, 0.35, 0, 0.2, 0);
+            spawn(q.x + 0.12, 0.62, q.z, q.mode === 'siege' ? fire : flash, 0.4, 0, 0.4, 0);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(q.x, 0.7, q.z - 0.35, flash, 0.22, 0, 0.15, -3.2);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(q.x + 0.08, 0.58, q.z - 0.7, flash, 0.18, 0, 0.1, -2.4);
             budget -= 1;
           }
           if (q.mode === 'siege' && budget > 0) {
-            spawn(q.x - 0.2, 0.7, q.z + 0.1, fire, 0.45, 0.3, 0.6, -0.2);
+            spawn(q.x - 0.2, 0.85, q.z + 0.1, fire, 0.55, 0.35, 1.1, -0.2);
+            budget -= 1;
+          }
+          if (q.mode === 'siege' && budget > 0) {
+            spawn(q.x + 0.15, 1.15, q.z, smoke, 0.9, -0.2, 0.8, 0.15);
             budget -= 1;
           }
         }
@@ -100,11 +116,20 @@ export function createFx(scene) {
             const q = squads[s];
             if (q.mode === 'siege' && q.targetId === b.id && q.owner !== b.owner && q.count > 0) hot = true;
           }
-          if (!hot) continue;
           const p = nodes[b.node];
           if (!p) continue;
-          spawn(p.x, 1.1, p.z, fire, 0.4, (i % 2 ? 0.3 : -0.3), 0.8, 0.1);
-          budget -= 1;
+          if (hot && budget > 0) {
+            spawn(p.x, 1.35, p.z, fire, 0.5, (i % 2 ? 0.4 : -0.4), 1.1, 0.1);
+            budget -= 1;
+          }
+          if (hot && budget > 0) {
+            spawn(p.x + 0.2, 1.7, p.z - 0.1, smoke, 0.8, 0.15, 0.7, 0);
+            budget -= 1;
+          }
+          if (b.capture > 0.05 && budget > 0) {
+            spawn(p.x, 0.9, p.z, flash, 0.35, 0, 1.4, 0);
+            budget -= 1;
+          }
         }
       }
       const step = Math.min(0.05, dt || 0.016);

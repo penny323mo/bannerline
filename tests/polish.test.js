@@ -7,7 +7,7 @@ import { DIFFICULTIES } from '../src/sim/maps.js';
 import { upgradeAffordance } from '../src/sim/upgrades.js';
 import { frontierBandGeometry } from '../src/render/world.js';
 import { PALETTE } from '../src/render/palette.js';
-import { soldierGeometry } from '../src/render/crowds.js';
+import { HELMET_ENEMY, HELMET_PLAYER, soldierGeometry } from '../src/render/crowds.js';
 
 const MAPS = ['crossing', 'long-road', 'two-lanes'];
 const DIFFS = ['easy', 'normal', 'hard'];
@@ -252,9 +252,29 @@ test('palette and soldiers match the military art brief', () => {
   const geo = soldierGeometry();
   geo.computeBoundingBox();
   const box = geo.boundingBox;
-  assert.ok(box.min.z < -0.3, `rifle extends on local −z (${box.min.z})`);
-  assert.ok(-box.min.z > box.max.z + 0.15, 'the rifle is longer than the pack');
+  assert.ok(box.min.z < -0.2, `rifle extends on local −z (${box.min.z})`);
+  assert.ok(-box.min.z > box.max.z + 0.05, 'the rifle reaches past the pack');
   assert.ok(box.max.y > 0.4, 'helmet rises above the torso');
+  const pos = geo.getAttribute('position');
+  const col = geo.getAttribute('color');
+  const buckets = new Set();
+  let helmetVerts = 0;
+  for (let i = 0; i < pos.count; i++) {
+    if (col.getX(i) < 0.95) continue;
+    helmetVerts += 1;
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    if (Math.hypot(x, z) < 0.03) continue;
+    buckets.add(Math.round(Math.atan2(z, x) / (Math.PI / 8)));
+  }
+  assert.ok(helmetVerts > 20, 'helmet has a dome, not a four-side box');
+  assert.ok(buckets.size >= 8, `helmet rim is round (${buckets.size} buckets)`);
+  const olive = new THREE.Color(HELMET_PLAYER);
+  const deep = new THREE.Color(HELMET_ENEMY);
+  assert.ok(olive.g > olive.r && olive.g > olive.b, 'player helmet is olive');
+  assert.ok(deep.r > deep.g * 1.6 && deep.r < 0.55, 'enemy helmet is deep red');
+  const crowdSrc = readFileSync(new URL('../src/render/crowds.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(crowdSrc, /0x8fbf9a|0xd48980/);
   geo.dispose();
 });
 

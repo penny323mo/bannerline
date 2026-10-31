@@ -1,0 +1,16 @@
+You are the coder. cd /workspace/sidequest/top-force-like. Supervisor live 390px audit r22 says NOT SHIP (models 3, lighting 3, effects 2, HUD 4, type 5, terrain 3, density 3, controls 6, balance 4). Review-22 said SHIP from code alone; the LIVE render contradicts it. Read:
+- review/loop-r22/coder-audit.md (full gap list + supervisor confirmation) and LOOK at screenshots/audit-r22/supervisor-live-combat-390.webp (what players actually see now)
+- review/art-mockup-v2/01-combat-390x844.png, 02-home-390x844.png, 03-siege-390x844.png (the owner-approved acceptance bar; open and look at them), plus COMPARE.md and THREEJS-PATH.md
+The owner called an earlier look 「垃圾級」. Your earlier rounds claimed helmeted soldiers, but the live crowds still render as stacked cubes. Find out WHY (wrong mesh path at runtime, LOD fallback, scale, or instancing using a box geometry) before you change anything else, and prove the fix with a screenshot. Priority order:
+1. Soldiers: crowds must read as tiny helmeted infantry at 390px (distinct head/helmet, body, legs, rifle silhouette, team colours: olive-green vs deep red, NOT salmon/pink). Dense packed formations that look like armies, not cube stacks.
+2. Remove the black horizontal bar artefacts on the centre road (shadow acne / z-fighting / road-dash geometry). Fix the shadow bias or geometry.
+3. Buildings: enemy HQ must be a visible detailed bunker with radar dish and mast, not just a badge over water; keep the camera so both HQs and both barracks are fully on screen; badges must never sit on top of another building or crowd.
+4. Lighting/terrain: bright sunlit ground like the mockups (warm key light, soft shadows, sky), lighter meadow with dirt roads, rocks, grass variation, nicer pines; red/green ground tint per territory and a glowing frontier ribbon.
+5. Effects: muzzle flashes, tracers, dust and smoke at clashes, explosion/smoke and fire on a building under siege, capture pulse.
+6. Home/HUD: riveted metal bevel panels, embossed title plaque, chunky 出戰, segmented difficulty selector, painted terrain map thumbnails; 我軍/敵軍 totals never clipped by 揀地圖; the opening toast must not cover the enemy HQ; styled result screen.
+7. Controls: visible feedback on ⬆ upgrade (level and cost shown) and 加固.
+8. Balance: 中 is beaten in 84s by a simple rush and 難 is lost in about 35s (opening 43 vs 73 on 中 and 43 vs 93 on 難). Make 中 take 2 to 4 minutes for a decent player and 難 hard but winnable; smooth the 中 to 難 step.
+Keep mobile performance reasonable. Keep PLAN.md rules and tests passing; add cheap tests. Do not edit reviews/, prompts/ or review/. Run `npm test` and `npm run build`, then render your own 390x844 screenshots of home, combat and siege into screenshots/fix-23/, open them, and compare side by side with the mockups. Do not finish while any crowd still looks like cubes or the black road bars remain. Append '## Round 23 fixes' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-23.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-23.done

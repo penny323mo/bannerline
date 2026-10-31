@@ -8,11 +8,11 @@ import { PALETTE } from './palette.js';
 export function frameDioramaCamera(camera, aspect) {
   // Whole island in the 390×844 play frame. Screen-right is world +x:
   // camera sits on +z, up is +y, look is toward −z.
-  camera.fov = 44;
+  camera.fov = 48;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.16, 11.2, 17.2);
+  camera.position.set(0.18, 9.6, 16.4);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0.08, 0.45, 0.2);
+  camera.lookAt(0.02, 0.55, -1.15);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
@@ -55,8 +55,8 @@ export function applyShadowMode(renderer, sun, enabled) {
   sun.shadow.camera.right = 14;
   sun.shadow.camera.top = 14;
   sun.shadow.camera.bottom = -14;
-  sun.shadow.bias = -0.0008;
-  sun.shadow.normalBias = 0.04;
+  sun.shadow.bias = -0.0016;
+  sun.shadow.normalBias = 0.08;
   sun.shadow.camera.updateProjectionMatrix();
 }
 
@@ -69,20 +69,20 @@ export function createStage(canvas) {
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  renderer.toneMappingExposure = 1.16;
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(PALETTE.sky, 28, 62);
+  scene.fog = new THREE.Fog(PALETTE.sky, 40, 82);
   scene.background = new THREE.Color(PALETTE.sky);
 
   const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xd4e2ee, 0x3d4c34, 0.5));
-  scene.add(new THREE.AmbientLight(0xe7eeea, 0.26));
+  scene.add(new THREE.HemisphereLight(0xe8f3fb, 0x7d8a58, 0.7));
+  scene.add(new THREE.AmbientLight(0xf4f7f2, 0.36));
 
-  const sun = new THREE.DirectionalLight(0xfff1d6, 1.48);
+  const sun = new THREE.DirectionalLight(0xfff3d2, 1.82);
   sun.position.set(-7.5, 18, 9.2);
   sun.target.position.set(0, 0, 0);
   scene.add(sun);

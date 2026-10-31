@@ -7,7 +7,7 @@ export const PALETTE = {
   sand: 0x8a7a5c,
   meadow: 0x6b7a4e,
   meadowDeep: 0x5a6b42,
-  road: 0x5c5348,
+  road: 0x8d7b64,
   roadEdge: 0x4a433c,
   trunk: 0x4a3b2a,
   leaf: 0x3f5a3a,

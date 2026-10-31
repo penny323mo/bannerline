@@ -108,3 +108,8 @@
 - An upgradeable count stays a 64×64 circle. The 26×26 ⬆ chip sits 4px outside the disc, on the right. On a payable barracks the circle measured 64×64 with radius 999px, and the chip stayed inside the 390px frame.
 - Round 13 balance was not retuned. Loop-r8 faction paints, the bunker and the hangar, the hard circles, the mute glyphs, and the formal copy stayed as they were.
 - 57 tests passed. Rebuilt `static/app.js` (546427 bytes). At 390×844 on this machine’s software renderer, shadows stayed on the blob fallback. After a 2.5s warm-up on 對岸, particles stayed on: average 49.4 fps, p95 about 33.4ms, across 159 frames. A burst of map loads in one session dipped under 40 fps and the existing gate dropped particles; a steady match did not. The meshes are still original low-poly merges.
+
+## Round 17 fixes
+
+- The round 17 review found no CRITICAL, MAJOR, or MINOR issues. The round 16 camera, soldier scale, and circular upgrade chip stay. Loop-r8 paints, the bunker and the hangar, the hard circles, the mute glyphs, the formal copy, and the round 13 balance stay closed.
+- 57 tests passed. No source or bundle change.

@@ -19,3 +19,6 @@ REPORT.md
 reviews/orch-r*.md
 # Local inspiration reference (do not ship ad branding in Pages build if stripped)
 # Keep assets/ref/ in repo for coder art direction; Pages publish may exclude via build script later.
+
+# Inspiration ad screenshot — local art-direction only, never publish
+assets/ref/

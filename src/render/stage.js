@@ -6,11 +6,13 @@ import { PALETTE } from './palette.js';
  * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  camera.fov = 52;
+  // Closer and less steep than the round-15 perch (fov 52 at y 16.4).
+  // Screen-right stays world +x: the camera sits on +z, up is +y, look is toward −z.
+  camera.fov = 42;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.2, 16.4, 14.35);
+  camera.position.set(0.15, 9.46, 18.77);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0.15, -0.25);
+  camera.lookAt(0.15, 0.8, 1.3);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
@@ -60,10 +62,10 @@ export function createStage(canvas) {
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(PALETTE.sky, 18, 38);
+  scene.fog = new THREE.Fog(PALETTE.sky, 22, 48);
   scene.background = new THREE.Color(PALETTE.sky);
 
-  const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 90);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
   scene.add(new THREE.HemisphereLight(0xc5d4e2, 0x5a6b42, 0.62));

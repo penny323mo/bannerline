@@ -102,7 +102,7 @@ function setHint(mode) {
     return;
   }
   if (!state || state.status !== 'playing') {
-    hintEl.textContent = '再戰，再嚟過';
+    hintEl.textContent = '再戰，或者揀地圖';
     return;
   }
   if (mode === 'drag') hintEl.textContent = '鬆手就出兵';
@@ -363,12 +363,14 @@ bindTap(document.getElementById('start'), () => {
   showHome(false);
   setHint('idle');
 });
-bindTap(document.getElementById('home-btn'), () => {
+function backToMaps() {
   hideSheet();
   showHome(true);
   mountMatch('menu');
   setHint('idle');
-});
+}
+bindTap(document.getElementById('home-btn'), backToMaps);
+bindTap(document.getElementById('sheet-map'), backToMaps);
 bindTap(upHaste, () => buyUpgrade('haste'));
 bindTap(upWall, () => buyUpgrade('bulwark'));
 if (coachEl) bindTap(coachEl, dismissCoach);

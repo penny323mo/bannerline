@@ -64,18 +64,38 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  min-width: 54px;
-  padding: 4px 6px 5px;
-  border-radius: 2px;
-  background: var(--panel);
-  border: 1px solid var(--edge);
+  isolation: isolate;
+  min-width: 66px;
+  padding: 6px 14px 5px;
+  border: 0;
+  border-radius: 0;
+  background: var(--edge);
+  clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%);
   text-align: center;
   line-height: 1;
+  pointer-events: none;
   will-change: transform;
 }
 
-.badge.player { border-color: var(--green); }
-.badge.enemy { border-color: var(--red-glow); }
+.badge::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  background: var(--panel);
+  clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%);
+  pointer-events: none;
+}
+
+.badge.player { background: var(--green); }
+.badge.enemy { background: var(--red-glow); }
+
+.badge .tag,
+.badge .num,
+.badge .sub {
+  position: relative;
+  z-index: 1;
+}
 
 .badge .tag {
   display: block;
@@ -120,19 +140,24 @@ body {
 .badge .sub:empty { display: none; }
 
 .badge.squad {
-  min-width: 40px;
-  padding: 2px 4px 3px;
-  border-radius: 2px;
+  min-width: 52px;
+  padding: 4px 12px 3px;
+  border-radius: 0;
 }
 
 .badge.squad .num { font-size: 13px; }
 .badge.squad .tag { font-size: 9px; letter-spacing: 0.02em; }
 
+.badge.can-up {
+  padding-right: 30px;
+}
+
 .badge.can-up::after {
   content: "⬆";
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: 1px;
+  right: 12%;
+  z-index: 2;
   width: 16px;
   height: 16px;
   border-radius: 2px;
@@ -215,6 +240,7 @@ body {
 #diffs button,
 #start,
 #retry,
+#sheet-map,
 #coach {
   border-radius: 2px;
   background: var(--panel);
@@ -358,11 +384,18 @@ body {
   color: var(--muted);
 }
 
-#retry {
+.sheet-actions {
+  display: flex;
+  gap: 8px;
   margin-top: 18px;
-  width: 100%;
+}
+
+#retry,
+#sheet-map {
+  flex: 1;
   min-height: 52px;
-  font-size: 20px;
+  margin: 0;
+  font-size: 18px;
 }
 
 #sheet.win #retry { border-color: var(--green); color: var(--green-glow); }

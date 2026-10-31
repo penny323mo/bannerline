@@ -138,3 +138,8 @@
 - Each map card is that battlefield. The thumbnail draws the map’s zones as owner pads, the road graph, and the z=0 stream, with a grey bridge where a road crosses the water. 對岸 and 長路 have one centre bridge. 雙橋 has two, one on each lane. Pines use the same spots as the island: 對岸’s flank list, and a pair on each pad for 長路 and 雙橋. 對岸 also keeps its rocks. Player green sits at the bottom of the card. At 390×844 the three canvases are different pictures, and the centre of 雙橋 is open water with the bridges off to the sides.
 - The home screen hides `#hint`. The card already carries the lede and 出戰. In a match the bar still reads 點自己建築，可以升級或者出兵. After the match it still reads 再戰，或者揀地圖.
 - 59 tests passed. Rebuilt `static/app.js` (552760 bytes).
+
+## Round 21 fixes
+
+- The island builds one grey deck at each road crossing of the stream, using the same plank and rails as before. 對岸 and 長路 still cross at x 0, so the deck stays on that road. 雙橋 crosses at x −1.85 and x +1.85, so those two lanes each get a deck and the origin is open water. At 390×844 the centre of the 雙橋 stream reads as water, and the west lane rail reads as the neutral grey deck beside the rank.
+- 60 tests passed. Rebuilt `static/app.js` (552862 bytes).

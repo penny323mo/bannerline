@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { yawForFacing } from '../sim/facing.js';
 import { boxMapZones, frontierFrom } from '../sim/territory.js';
 import { PALETTE, ownerPaint } from './palette.js';
-import { rocksFor, treesFor } from './scenery.js';
+import { rocksFor, streamCrossings, treesFor } from './scenery.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const LOCAL_Z = new THREE.Vector3(0, 0, 1);
@@ -325,6 +325,24 @@ function addMerged(group, parts, material) {
   group.add(mesh);
 }
 
+/** One grey deck per stream crossing. The plank runs along world z, across the stream. */
+export function bridgeDeckGeometries(crossings) {
+  const parts = [];
+  for (let i = 0; i < crossings.length; i++) {
+    const x = crossings[i].x;
+    const z = crossings[i].z;
+    const plank = new THREE.BoxGeometry(0.92, 0.08, 1.35);
+    plank.translate(x, 0.16, z);
+    parts.push(plank);
+    for (const side of [-0.42, 0.42]) {
+      const rail = new THREE.BoxGeometry(0.08, 0.22, 1.35);
+      rail.translate(x + side, 0.28, z);
+      parts.push(rail);
+    }
+  }
+  return parts;
+}
+
 function pushTree(trunks, crowns, x, z, scale, color) {
   const trunk = new THREE.CylinderGeometry(0.05 * scale, 0.09 * scale, 0.34 * scale, 5);
   trunk.translate(x, 0.06 + 0.16 * scale, z);
@@ -422,21 +440,13 @@ function buildIsland(map, reduceMotion) {
   stream.receiveShadow = true;
   group.add(stream);
 
-  const bridgeMat = mat(PALETTE.bridge);
-  const bridgeParts = [];
-  const plank = new THREE.BoxGeometry(0.92, 0.08, 1.35);
-  plank.translate(0, 0.16, 0);
-  bridgeParts.push(plank);
-  for (const side of [-0.42, 0.42]) {
-    const rail = new THREE.BoxGeometry(0.08, 0.22, 1.35);
-    rail.translate(side, 0.28, 0);
-    bridgeParts.push(rail);
-  }
-  addMerged(group, bridgeParts, bridgeMat);
-
   const roadGeo = new THREE.BoxGeometry(0.72, 0.07, 1);
   const roadMat = mat(PALETTE.road, { roughness: 0.88 });
   addEdges(group, map, roadGeo, roadMat);
+
+  // Decks sit on the crossings, after the road, so the plank is the surface you see.
+  const bridgeMat = mat(PALETTE.bridge, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  addMerged(group, bridgeDeckGeometries(streamCrossings(map)), bridgeMat);
 
   const trunks = [];
   const crowns = {};

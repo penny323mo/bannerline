@@ -1,0 +1,7 @@
+You are the coder. cd /workspace/sidequest/top-force-like. Read /workspace/sidequest/top-force-like/reviews/orch-r21-grok.md and fix every CRITICAL and MAJOR issue (MINOR where sensible). Keep matching /workspace/sidequest/top-force-like/PLAN.md. Do not edit reviews/ or prompts/. Run the tests. Append '## Round 21 fixes' to CHANGELOG.md. Do not git commit.
+
+ALSO (authoritative live 390px audit, same priority as MAJOR): read /workspace/sidequest/top-force-like/review/loop-r17/coder-audit.md and fix every still-open item. Do not finish while any remain.
+Previous round 390px review: /workspace/sidequest/top-force-like/reviews/orch-r20-grok.md
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-21.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-21.done

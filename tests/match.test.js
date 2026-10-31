@@ -220,26 +220,25 @@ test('the enemy barracks waits until after the player barracks first reads full'
   assert.ok(FIRST_SEND['enemy-bar'] > fullAt + 1);
 });
 
-test('a full send just after 滿 still takes the enemy headquarters', () => {
+test('a full send just after 滿 does not win 中 before 90s', () => {
   const state = createMatch();
   stepMatch(state, 11.5);
   const bar = buildingById(state, 'player-bar');
   assert.ok(bar.count >= bar.cap);
   assert.equal(sendSquad(state, 'player-bar', 'enemy-hq').ok, true);
-  stepMatch(state, 20);
-  assert.equal(buildingById(state, 'enemy-hq').owner, 'player');
-  assert.equal(state.status, 'win');
+  while (state.status === 'playing' && state.t < 90) stepMatch(state, 1);
+  assert.notEqual(state.status, 'win');
 });
 
-test('the same rush still wins when the player leaves a garrison', () => {
+test('the same rush with a garrison does not win 中 before 90s', () => {
   const state = createMatch();
   stepMatch(state, 11.5);
   const bar = buildingById(state, 'player-bar');
   const hold = playerHold(bar);
   assert.equal(sendSquad(state, 'player-bar', 'enemy-hq', hold).ok, true);
   assert.equal(bar.count, hold);
-  stepMatch(state, 20);
-  assert.equal(state.status, 'win');
+  while (state.status === 'playing' && state.t < 90) stepMatch(state, 1);
+  assert.notEqual(state.status, 'win');
 });
 
 test('idling loses the headquarters', () => {

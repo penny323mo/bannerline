@@ -73,3 +73,10 @@
 ## Round 10 fixes
 
 - The 390×844 review shipped with no critical, major, or minor defects. The military palette, bunker and hangar, soldier squads, hex badges, and the result-sheet 地圖 button were already in `static/app.js`. Tests stayed at 52/52.
+
+## Round 11 fixes
+
+- 中 holds a threatened barracks and counter-attacks from the headquarters. A single full-barracks rush on 對岸 loses. A scripted measured player still wins, and those wins take more than a minute. 易 still falls to one barracks rush. 難 stays harder than 中. Headquarters grace and the「敵軍打緊司令部」toast stay.
+- The sky is overcast grey (`#8A918C`) and the sea is grey steel (`#5C676E`). The frontier is a thin hard green|red split in the faction colours, at a fixed opacity.
+- Squad soldiers are about 1.4× larger on the same instanced meshes. Headquarters and barracks gain parapets, wing walls, and corner posts. The ⬆ chip is 22px. Unit badges hide while the map picker or the result sheet is open. 據點號令 sits on a dark plate.
+- 54 tests passed. Rebuilt `static/app.js`. At 390×844 a warmed match averaged 59.6 fps.

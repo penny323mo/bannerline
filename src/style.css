@@ -11,7 +11,7 @@
   --red-glow: #e25548;
   --panel: rgba(28, 36, 34, 0.88);
   --edge: #9aa39a;
-  --sky: #7fa8c4;
+  --sky: #8a918c;
   font-family: "PingFang HK", "Noto Sans CJK HK", "Noto Sans HK", "Heiti TC", "Microsoft JhengHei", system-ui, sans-serif;
 }
 
@@ -21,7 +21,7 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #5e86a4;
+  background: #4a524f;
 }
 
 body {
@@ -149,24 +149,24 @@ body {
 .badge.squad .tag { font-size: 9px; letter-spacing: 0.02em; }
 
 .badge.can-up {
-  padding-right: 30px;
+  padding-right: 40px;
 }
 
 .badge.can-up::after {
   content: "⬆";
   position: absolute;
-  top: 1px;
-  right: 12%;
+  top: 2px;
+  right: 11%;
   z-index: 2;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   border-radius: 2px;
   background: var(--panel);
   color: var(--paper);
   border: 1px solid var(--edge);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 800;
-  line-height: 14px;
+  line-height: 20px;
   text-align: center;
 }
 
@@ -175,7 +175,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 3;
+  z-index: 7;
   padding: calc(10px + env(safe-area-inset-top)) 12px 0;
   pointer-events: none;
   display: flex;
@@ -193,9 +193,13 @@ body {
 .brand {
   font-size: 18px;
   font-weight: 800;
-  color: var(--paper);
+  color: #f7faf8;
   letter-spacing: 0.04em;
-  text-shadow: 0 1px 2px rgba(16, 24, 22, 0.7);
+  line-height: 1;
+  padding: 8px 10px;
+  border-radius: 2px;
+  background: rgba(16, 22, 20, 0.92);
+  border: 1px solid var(--edge);
 }
 
 .scores {

@@ -29,9 +29,13 @@ export const DIFFICULTIES = {
     firstShift: 0,
     hqGrace: 20,
     marchCap: 0,
-    // A reinforcing stack keeps more back, so a push that leaves with the
-    // opening wave is not met by the whole garrison.
-    reliefKeep: 0.62,
+    // The threatened building holds. A neighbour reinforces the headquarters,
+    // and the headquarters answers a barracks attack without emptying itself.
+    reliefKeep: 0.58,
+    counterKeep: 0.75,
+    holdWall: true,
+    riposte: 8,
+    hqRegen: 0.3,
   },
   hard: {
     id: 'hard',
@@ -43,6 +47,11 @@ export const DIFFICULTIES = {
     firstShift: -6,
     hqGrace: 12,
     marchCap: 0,
+    reliefKeep: 0.45,
+    counterKeep: 0.4,
+    holdWall: true,
+    riposte: 5,
+    hqRegen: 0.55,
   },
 };
 

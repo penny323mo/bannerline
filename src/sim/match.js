@@ -7,8 +7,10 @@ import { GRAPH, NODES } from './mapdata.js';
 import { difficultyById, mapById, scaleFirstSend } from './maps.js';
 import { findPath } from './path.js';
 
-function blankBuilding(spec, regenScale) {
-  const scale = spec.owner === 'enemy' ? regenScale : 1;
+function blankBuilding(spec, diff) {
+  const scale = spec.owner === 'enemy' ? (diff.regenScale > 0 ? diff.regenScale : 1) : 1;
+  let regen = spec.regen * scale;
+  if (spec.owner === 'enemy' && spec.kind === 'hq' && diff.hqRegen > 0) regen += diff.hqRegen;
   return {
     id: spec.id,
     kind: spec.kind,
@@ -16,7 +18,7 @@ function blankBuilding(spec, regenScale) {
     node: spec.node,
     count: spec.count,
     cap: spec.cap,
-    regen: spec.regen * scale,
+    regen,
     baseRegen: spec.regen,
     bank: 0,
     capture: 0,
@@ -27,7 +29,7 @@ function blankBuilding(spec, regenScale) {
 export function createMatch(opts = {}) {
   const map = mapById(opts.mapId || 'crossing');
   const diff = difficultyById(opts.difficulty || 'normal');
-  const buildings = map.buildings.map((spec) => blankBuilding(spec, diff.regenScale));
+  const buildings = map.buildings.map((spec) => blankBuilding(spec, diff));
   const nextSendAt = {};
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
@@ -56,6 +58,9 @@ export function createMatch(opts = {}) {
     hqGrace: diff.hqGrace > 0 ? diff.hqGrace : 0,
     marchCap: diff.marchCap > 0 ? diff.marchCap : 0,
     reliefKeep: diff.reliefKeep > 0 ? diff.reliefKeep : 0,
+    holdWall: !!diff.holdWall,
+    riposte: diff.riposte > 0 ? diff.riposte : 0,
+    counterKeep: diff.counterKeep > 0 ? diff.counterKeep : 0,
     alarmAt: null,
     answered: {},
     opened: {},
@@ -212,7 +217,7 @@ function pathTravel(path, nodes) {
 }
 
 const threatSlot = { id: null };
-const orderSlot = { targetId: '', keep: 0 };
+const orderSlot = { targetId: '', keep: 0, relief: false, counter: false };
 const targetScratch = [];
 for (let ti = 0; ti < 12; ti++) {
   targetScratch.push({ id: '', kind: '', count: 0, travel: 0 });
@@ -273,6 +278,25 @@ function planEnemy(state) {
   const threatened = buildingById(state, threatSlot.id);
   const pressing = under && threatSlot.dist <= RULES.arriveRadius;
   const opened = state.opened || (state.opened = {});
+  let relieverId = null;
+  if (state.holdWall && under && threatened && threatened.owner === 'enemy') {
+    const nodes = nodesOf(state);
+    const dest = nodes[threatened.node];
+    let bestD = Infinity;
+    if (dest) {
+      for (let k = 0; k < state.buildings.length; k++) {
+        const other = state.buildings[k];
+        if (other.owner !== 'enemy' || other.id === threatened.id || other.count < 2) continue;
+        const p = nodes[other.node];
+        if (!p) continue;
+        const d = (p.x - dest.x) * (p.x - dest.x) + (p.z - dest.z) * (p.z - dest.z);
+        if (d < bestD) {
+          bestD = d;
+          relieverId = other.id;
+        }
+      }
+    }
+  }
   for (let i = 0; i < state.buildings.length; i++) {
     const b = state.buildings[i];
     if (b.owner !== 'enemy') continue;
@@ -298,12 +322,18 @@ function planEnemy(state) {
       hqGrace: state.hqGrace || 0,
       marchCap: state.marchCap || 0,
       reliefKeep: state.reliefKeep || 0,
+      holdWall: !!state.holdWall,
+      counterKeep: state.counterKeep || 0,
+      relieve: !!(relieverId && relieverId === b.id && !opened[b.id] && threatened.kind === 'hq'),
     }, orderSlot);
     if (!ready) continue;
     const res = sendSquad(state, b.id, orderSlot.targetId, orderSlot.keep);
     if (!res.ok) continue;
     opened[b.id] = true;
-    state.nextSendAt[b.id] = state.t + state.sendPeriod;
+    let delay = state.sendPeriod;
+    if (orderSlot.relief && state.riposte > 0) delay = state.riposte;
+    else if (orderSlot.counter && state.riposte > 0) delay = state.riposte + state.sendPeriod;
+    state.nextSendAt[b.id] = state.t + delay;
     if (under) state.answered[b.id] = true;
   }
 }

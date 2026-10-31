@@ -1,0 +1,14 @@
+You are the coder. cd /workspace/sidequest/top-force-like. The round-10 review shipped and the supervisor's live 390px audit confirmed the mature military restyle. Now fix the items in /workspace/sidequest/top-force-like/review/loop-r10/live-audit.md. Keep matching /workspace/sidequest/top-force-like/PLAN.md and ART-STYLE.md (do NOT regress toward pastel / rounded / toy look). Do not edit reviews/ or prompts/. Run the tests. Append '## Round 11 fixes' to CHANGELOG.md. Do not git commit.
+
+Priority:
+1. [MAJOR] 中 difficulty is nearly passive: the supervisor won 對岸 on 中 in 33 seconds and enemy troops went 62 -> 0. Make 中 a real fight (AI reinforces/counter-attacks, defends its barracks, and sends waves), while 易 stays beatable and 難 harder than 中 but keep the HQ grace + danger toast. Add a node test that a passive player cannot beat 中 in under ~90s with a single rush, and that a 中 match averages > 60s with a scripted reasonable player.
+2. [MINOR] Sea/sky: mute the saturated teal sea and bright sky-blue gradient to match the drab military palette (grey-steel water, overcast sky).
+3. [MINOR] The red|green frontier stripe across the river still reads rainbow-like; make it a cleaner two-tone hard split with less glow.
+4. [MINOR] Soldiers are tiny at 390px; scale squad soldiers up ~1.3-1.5x (keep InstancedMesh, >=50fps). Give red buildings a bit more structural detail so they don't look flat blocks.
+5. [MINOR] ⬆ upgrade chip is ~16px; make it at least 22px visual.
+6. [MINOR] Home/map-picker: the dimmed scene shows only the enemy HQ badge (44) poking above the sheet; hide unit badges while a menu sheet is open.
+7. [MINOR] 據點號令 title is low contrast when a sheet is open; raise contrast.
+Rebuild static/app.js so the live Pages bundle carries the changes.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-11.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-11.done

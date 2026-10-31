@@ -407,10 +407,13 @@ function frame(now) {
     consumeEvents(now);
   }
   const t = now / 1000;
+  const menuOpen = (homeEl && !homeEl.hidden) || (sheetEl && !sheetEl.hidden);
+  const badgeHost = document.getElementById('badges');
+  if (badgeHost) badgeHost.hidden = menuOpen;
   if (state) {
     world.update(t, state, dragging ? null : selected);
     crowds.update(state);
-    badges.update(state, stage.camera, canvas);
+    if (!menuOpen) badges.update(state, stage.camera, canvas);
     paintUpgrades();
     syncHud();
     warnHq();

@@ -70,6 +70,58 @@ test('a double send on 雙橋 as the opening wave comes due still wins on 中', 
   assert.equal(state.status, 'win');
 });
 
+function playMeasured(difficulty, margin) {
+  const state = createMatch({ mapId: 'crossing', difficulty });
+  while (state.status === 'playing' && state.t < 160) {
+    stepMatch(state, 1);
+    const enemyHq = buildingById(state, 'enemy-hq');
+    const playerHq = buildingById(state, 'player-hq');
+    if (!playerHq || playerHq.owner !== 'player') break;
+    const ours = state.buildings.filter((b) => b.owner === 'player' && b.kind === 'barracks');
+    const foes = state.buildings.filter((b) => b.owner === 'enemy' && b.kind === 'barracks');
+    foes.sort((a, b) => a.count - b.count);
+    if (state.squads.some((s) => s.owner === 'player')) continue;
+    const foe = foes[0];
+    if (foe) {
+      const donor = ours.slice().sort((a, b) => b.count - a.count)[0];
+      if (donor && donor.count > foe.count + margin) {
+        sendSquad(state, donor.id, foe.id, Math.max(8, Math.floor(donor.count * 0.3)));
+      }
+    } else if (enemyHq && enemyHq.owner === 'enemy') {
+      const pile = ours.reduce((n, b) => n + b.count, 0);
+      if (pile > enemyHq.count + margin) {
+        for (let i = 0; i < ours.length; i++) {
+          if (ours[i].count >= 16) sendSquad(state, ours[i].id, 'enemy-hq', 6);
+        }
+      }
+    }
+  }
+  return state;
+}
+
+test('a measured player on 中 takes more than a minute, and the same line loses on 難', () => {
+  const times = [];
+  for (const margin of [6, 8, 12]) {
+    const state = playMeasured('normal', margin);
+    assert.equal(state.status, 'win', `margin ${margin} ended ${state.status} at ${state.t}`);
+    assert.ok(state.t > 60, `margin ${margin} won at ${state.t}`);
+    times.push(state.t);
+  }
+  const average = times.reduce((sum, t) => sum + t, 0) / times.length;
+  assert.ok(average > 60, `average ${average}`);
+  const hard = playMeasured('hard', 8);
+  assert.equal(hard.status, 'lose');
+});
+
+test('易 still falls to one barracks rush', () => {
+  const state = createMatch({ mapId: 'crossing', difficulty: 'easy' });
+  stepMatch(state, 11.5);
+  const bar = buildingById(state, 'player-bar');
+  assert.equal(sendSquad(state, 'player-bar', 'enemy-hq', Math.min(6, bar.count - 1)).ok, true);
+  while (state.status === 'playing' && state.t < 70) stepMatch(state, 1);
+  assert.equal(state.status, 'win');
+});
+
 test('upgrade affordance is only a player building that can pay', () => {
   const player = {
     id: 'player-bar',
@@ -98,8 +150,8 @@ test('the frontier band is green on the player side and red on the enemy side', 
   const pos = geo.attributes.position;
   const col = geo.attributes.color;
   const vertex = new THREE.Vector3();
-  const green = new THREE.Color(PALETTE.player.glow);
-  const red = new THREE.Color(PALETTE.enemy.glow);
+  const green = new THREE.Color(PALETTE.player.main);
+  const red = new THREE.Color(PALETTE.enemy.main);
   let playerSide = 0;
   let enemySide = 0;
   for (let i = 0; i < pos.count; i++) {
@@ -114,7 +166,7 @@ test('the frontier band is green on the player side and red on the enemy side', 
       playerSide += 1;
     } else if (vertex.z < -0.01) {
       assert.ok(Math.abs(r - red.r) < 0.02 && Math.abs(g - red.g) < 0.02, `enemy side ${r},${g},${b}`);
-      assert.ok(r > g && r > 0.7, 'enemy side is operational red');
+      assert.ok(r > g, 'enemy side is operational red');
       enemySide += 1;
     }
   }
@@ -123,8 +175,9 @@ test('the frontier band is green on the player side and red on the enemy side', 
 });
 
 test('palette and soldiers match the military art brief', () => {
-  assert.equal(PALETTE.sky, 0x7fa8c4);
-  assert.equal(PALETTE.water, 0x3e6f8f);
+  assert.equal(PALETTE.sky, 0x8a918c);
+  assert.equal(PALETTE.water, 0x5c676e);
+  assert.equal(PALETTE.stream, 0x5c676e);
   assert.equal(PALETTE.meadow, 0x6b7a4e);
   assert.equal(PALETTE.leaf, 0x3f5a3a);
   assert.equal(PALETTE.leafDeep, 0x2f4530);

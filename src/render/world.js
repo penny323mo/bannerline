@@ -100,6 +100,8 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(2.05, 0.18, 0.36), 0, 0.18, -0.78),
     // Positive rotation.x takes local +y toward +z, so −0.5 lowers the −z edge.
     baked(new THREE.BoxGeometry(2.05, 0.08, 0.7), 0, 0.36, -0.72, -0.5, 0, 0),
+    baked(new THREE.BoxGeometry(0.16, 0.46, 0.72), -1.16, 0.38, -0.15),
+    baked(new THREE.BoxGeometry(0.16, 0.46, 0.72), 1.16, 0.38, -0.15),
   ], mat(PALETTE.concrete));
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(2.4, 0.12, 1.75), 0, 0.1, 0),
@@ -115,10 +117,16 @@ function makeHq(paint) {
   const roof = mergedMesh([
     baked(new THREE.BoxGeometry(2.16, 0.12, 1.4), 0, 0.72, 0),
     baked(new THREE.BoxGeometry(2.16, 0.16, 0.12), 0, 0.86, 0.62),
+    baked(new THREE.BoxGeometry(0.14, 0.2, 1.16), -0.96, 0.88, 0),
+    baked(new THREE.BoxGeometry(0.14, 0.2, 1.16), 0.96, 0.88, 0),
+    baked(new THREE.BoxGeometry(1.7, 0.08, 0.1), 0, 0.84, -0.58),
   ], mat(paint.deep));
   roof.userData.slot = 'roof';
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.06), mat(PALETTE.ink));
-  door.position.set(0, 0.3, -0.66);
+  const door = mergedMesh([
+    baked(new THREE.BoxGeometry(0.42, 0.28, 0.06), 0, 0.3, -0.66),
+    baked(new THREE.BoxGeometry(0.08, 0.12, 0.04), -0.58, 0.5, -0.64),
+    baked(new THREE.BoxGeometry(0.08, 0.12, 0.04), 0.58, 0.5, -0.64),
+  ], mat(PALETTE.ink));
   const metal = mergedMesh([
     baked(new THREE.CylinderGeometry(0.04, 0.05, 1.2, 5), -0.15, 1.38, 0.05),
     baked(new THREE.CylinderGeometry(0.36, 0.4, 0.07, 8), 0.22, 1.99, 0.02, 0.25, 0, 0.7),
@@ -146,11 +154,14 @@ function makeBarracks(paint) {
   body.userData.slot = 'body';
   body.castShadow = true;
   body.receiveShadow = true;
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.1, 0.98), mat(paint.deep));
-  roof.position.y = 0.72;
+  const roof = mergedMesh([
+    baked(new THREE.BoxGeometry(1.74, 0.1, 0.98), 0, 0.72, 0),
+    baked(new THREE.BoxGeometry(1.36, 0.08, 0.14), 0, 0.81, 0),
+    baked(new THREE.BoxGeometry(0.1, 0.18, 0.86), -0.8, 0.82, 0),
+    baked(new THREE.BoxGeometry(0.1, 0.18, 0.86), 0.8, 0.82, 0),
+    baked(new THREE.BoxGeometry(1.5, 0.06, 0.08), 0, 0.78, -0.46),
+  ], mat(paint.deep));
   roof.userData.slot = 'roof';
-  roof.castShadow = true;
-  roof.receiveShadow = true;
   const ink = mergedMesh([
     baked(new THREE.BoxGeometry(0.62, 0.32, 0.05), 0, 0.28, -0.45),
     baked(new THREE.BoxGeometry(0.26, 0.05, 0.04), -0.48, 0.46, -0.44),
@@ -159,8 +170,13 @@ function makeBarracks(paint) {
   const spawn = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.36), mat(PALETTE.concrete));
   spawn.position.set(0, 0.1, -0.82);
   spawn.receiveShadow = true;
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.42, 5), mat(PALETTE.metal));
-  pole.position.set(-0.7, 0.96, 0);
+  const pole = mergedMesh([
+    baked(new THREE.CylinderGeometry(0.018, 0.022, 0.42, 5), -0.7, 0.96, 0),
+    baked(new THREE.BoxGeometry(0.07, 0.4, 0.07), -0.74, 0.32, -0.36),
+    baked(new THREE.BoxGeometry(0.07, 0.4, 0.07), 0.74, 0.32, -0.36),
+    baked(new THREE.BoxGeometry(0.07, 0.4, 0.07), -0.74, 0.32, 0.34),
+    baked(new THREE.BoxGeometry(0.07, 0.4, 0.07), 0.74, 0.32, 0.34),
+  ], mat(PALETTE.metal));
   const flag = pennant(paint.flag);
   flag.scale.setScalar(0.65);
   flag.position.set(-0.7, 1.14, 0);
@@ -196,17 +212,17 @@ function writeRgb(hex, target, offset) {
  * The quad starts in XY. rotateX(-π/2) maps (x, y, 0) → (x, 0, -y),
  * so local −Y becomes world +Z (player green) and local +Y becomes world −Z
  * (enemy red). The halves do not share vertices, so the GPU cannot mix them.
- * Depth is 0.5 so the grey bridge stays visible beside the stripe.
+ * The stripe is a thin hard split in the faction mains, not a glowing ribbon.
  */
 export function frontierBandGeometry() {
-  const half = 0.25;
+  const half = 0.14;
   const positions = new Float32Array([
     -0.5, -half, 0, 0.5, -half, 0, 0.5, 0, 0, -0.5, 0, 0,
     -0.5, 0, 0, 0.5, 0, 0, 0.5, half, 0, -0.5, half, 0,
   ]);
   const colors = new Float32Array(8 * 3);
-  for (let i = 0; i < 4; i++) writeRgb(PALETTE.player.glow, colors, i * 3);
-  for (let i = 4; i < 8; i++) writeRgb(PALETTE.enemy.glow, colors, i * 3);
+  for (let i = 0; i < 4; i++) writeRgb(PALETTE.player.main, colors, i * 3);
+  for (let i = 4; i < 8; i++) writeRgb(PALETTE.enemy.main, colors, i * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -572,8 +588,7 @@ function buildIsland(map, reduceMotion) {
       }
 
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
-      const pulse = reduceMotion ? 0.9 : 0.72 + 0.28 * Math.sin(time * 3.1);
-      glowMat.opacity = reduceMotion ? 0.9 : 0.82 + pulse * 0.18;
+      glowMat.opacity = 0.72;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
@@ -587,7 +602,7 @@ function buildIsland(map, reduceMotion) {
         const cz = alongX ? seg.z : (seg.z0 + seg.z1) / 2;
         const flip = seg.plusOwner === 'player' ? 0 : Math.PI;
         band.visible = true;
-        band.position.set(cx, 0.36, cz);
+        band.position.set(cx, 0.18, cz);
         band.scale.set(span, 1, 1);
         band.rotation.y = alongX ? flip : Math.PI / 2 + flip;
       }

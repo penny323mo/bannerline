@@ -31,6 +31,22 @@ function attackScore(personality, target) {
   return -target.travel * 10 - target.count * 0.01;
 }
 
+/** A counter-attack hits the fullest legal building, so it strikes the economy. */
+export function counterTarget(targets, count, skipHq) {
+  let best = null;
+  let bestScore = -Infinity;
+  const n = count == null ? targets.length : count;
+  for (let i = 0; i < n; i++) {
+    if (skipHq && targets[i].kind === 'hq') continue;
+    const score = targets[i].count * 10 - targets[i].travel;
+    if (score > bestScore) {
+      bestScore = score;
+      best = targets[i];
+    }
+  }
+  return best;
+}
+
 export function bestTarget(personality, targets, count, skipHq) {
   let best = null;
   let bestScore = -Infinity;
@@ -54,6 +70,8 @@ export function bestTarget(personality, targets, count, skipHq) {
  * during the opening so it does not sit idle.
  */
 export function writeOrder(ctx, out) {
+  out.relief = false;
+  out.counter = false;
   const ready = canIssue(
     ctx.t,
     ctx.nextSendAt,
@@ -64,14 +82,54 @@ export function writeOrder(ctx, out) {
   );
   if (!ready || ctx.count < 2) return false;
 
-  if (ctx.t < ctx.nextSendAt) {
+  // On 中 and 難 a threatened building with a real garrison stays and fights.
+  // A thin stack still sallies, so a siege cannot freeze a building that
+  // cannot hold the wall.
+  const wall = !!(
+    ctx.holdWall
+    && ctx.underAttack
+    && ctx.ownsThreatened
+    && ctx.threatenedId
+  );
+  const threatenedHere = wall && ctx.buildingId === ctx.threatenedId;
+  if (threatenedHere && ctx.count >= 8) return false;
+
+  // The nearest other building reinforces once. Later orders from it,
+  // and every other building, counter-attack even during the opening timer.
+  const helping = wall && !threatenedHere;
+  if (helping) {
+    const reliefFrac = ctx.reliefKeep > 0 ? ctx.reliefKeep : 0.35;
+    const counterFrac = ctx.counterKeep > 0 ? ctx.counterKeep : reliefFrac;
+    const frac = ctx.relieve ? reliefFrac : counterFrac;
+    let keep = Math.min(ctx.count - 1, Math.max(0, Math.floor(ctx.count * frac)));
+    if (ctx.marchCap > 0) {
+      const capped = ctx.count - ctx.marchCap;
+      if (capped > keep) keep = capped;
+    }
+    if (ctx.count - keep < 1) return false;
+    if (ctx.relieve) {
+      out.targetId = ctx.threatenedId;
+      out.keep = keep;
+      out.relief = true;
+      return true;
+    }
+    const skipHq = ctx.hqGrace > 0 && ctx.t < ctx.hqGrace;
+    const target = counterTarget(ctx.targets, ctx.targetCount, skipHq);
+    if (!target) return false;
+    out.targetId = target.id;
+    out.keep = keep;
+    out.counter = true;
+    return true;
+  }
+
+  if (!helping && ctx.t < ctx.nextSendAt) {
     const tooSmall = ctx.kind === 'hq' ? ctx.count < 14 : ctx.count < ctx.sendMin;
     if (!tooSmall && !ctx.opened) return false;
   }
 
   // A squad already standing on the building is a siege, not a march to cut off.
   const defending = !!(ctx.underAttack && ctx.threatenedId && !ctx.pressing);
-  if (defending && ctx.buildingId !== ctx.threatenedId && ctx.ownsThreatened) {
+  if (!helping && defending && ctx.buildingId !== ctx.threatenedId && ctx.ownsThreatened) {
     const frac = ctx.reliefKeep > 0 ? ctx.reliefKeep : 0.35;
     const keep = Math.min(ctx.count - 1, Math.max(0, Math.floor(ctx.count * frac)));
     if (ctx.count - keep < 1) return false;

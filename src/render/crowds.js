@@ -112,7 +112,7 @@ export function createCrowds(scene) {
     const n = visualCount(count);
     if (n <= 0) return;
     const cols = n > 18 ? 6 : 5;
-    const spacing = 0.3;
+    const spacing = 0.36;
     for (let i = 0; i < n; i++) {
       const c = i % cols;
       const r = Math.floor(i / cols);
@@ -122,7 +122,8 @@ export function createCrowds(scene) {
       const lz = r * spacing;
       rotateXZ(lx, lz, yaw, _slot);
       const bob = 1 + ((i * 17) % 5) * 0.015;
-      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.2 * bob, track && i === 0);
+      // 1.68 is 1.4× the previous 1.2, inside the 1.3–1.5× read at 390px.
+      push(owner, anchorX + _slot.x, 0.06, anchorZ + _slot.z, yaw, 1.68 * bob, track && i === 0);
     }
   }
 
@@ -152,8 +153,8 @@ export function createCrowds(scene) {
         const yaw = exitYaw(b.node);
         // Crowd stands in front of the door. Local −z is that facing; ranks extend +z, behind it.
         rotateXZ(0, -1, yaw, _slot);
-        const anchorX = p.x + _slot.x * 1.25;
-        const anchorZ = p.z + _slot.z * 1.25;
+        const anchorX = p.x + _slot.x * 1.45;
+        const anchorZ = p.z + _slot.z * 1.45;
         formation(b.owner, anchorX, anchorZ, yaw, b.count, false);
       }
 

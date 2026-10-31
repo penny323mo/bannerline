@@ -59,15 +59,15 @@ function nearer(bestD, d) {
 /**
  * Choose a building or a friendly squad.
  * Screen hits (pill, roof, flag) win over the ground disc.
- * A squad parked on a headquarters overlaps that building's flag and roof.
- * If the pointer is closer to the squad pill than to the building pill, the
- * squad wins.
+ * A squad's screen sample is its count pill. The lift point sits on the tower
+ * foot, so it is not a hit; the 44px pill disc still covers the badge.
+ * Steal the pick only when the pointer is nearer that pill than any building
+ * screen point, so the roof, flag, and foot stay on the building.
  * `pointerX` / `pointerY` are CSS pixels from the canvas top-left.
  */
 export function pickBuilding(buildings, camera, width, height, pointerX, pointerY, ground) {
   let best = null;
   let bestScreen = Infinity;
-  let bestPill = Infinity;
   let groundBest = null;
   let bestGround = PICK_RADIUS;
   let steal = null;
@@ -84,11 +84,14 @@ export function pickBuilding(buildings, camera, width, height, pointerX, pointer
     if (canProject) {
       const lift = squad ? SQUAD_LIFT : BADGE_LIFT[kind];
       if (projectToCss(b.x, lift, b.z, camera, width, height, css)) {
-        const onAnchor = Math.hypot(pointerX - css.x, pointerY - css.y);
         const onPill = Math.hypot(pointerX - css.x, pointerY - (css.y - PILL_SHIFT_PX));
         pillDist = onPill;
-        if (onAnchor < localBest) localBest = onAnchor;
         if (onPill < localBest) localBest = onPill;
+        // Squad lift overlaps the mesh under the flag. Buildings still use it.
+        if (!squad) {
+          const onAnchor = Math.hypot(pointerX - css.x, pointerY - css.y);
+          if (onAnchor < localBest) localBest = onAnchor;
+        }
       }
       if (!squad && projectToCss(b.x, ROOF_Y[kind], b.z, camera, width, height, css)) {
         const d = Math.hypot(pointerX - css.x, pointerY - css.y);
@@ -101,7 +104,6 @@ export function pickBuilding(buildings, camera, width, height, pointerX, pointer
       if (nearer(bestScreen, localBest)) {
         bestScreen = localBest;
         best = b;
-        bestPill = pillDist;
       }
       if (squad && pillDist <= SCREEN_HIT_PX && pillDist < stealPill) {
         steal = b;
@@ -117,7 +119,7 @@ export function pickBuilding(buildings, camera, width, height, pointerX, pointer
     }
   }
 
-  if (best && best.kind !== 'squad' && steal && stealPill < bestPill) {
+  if (best && best.kind !== 'squad' && steal && stealPill < bestScreen) {
     best = steal;
   }
   return best || groundBest;

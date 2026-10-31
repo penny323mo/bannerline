@@ -25,3 +25,8 @@
 
 - Rebuilt `static/app.js` so the shipped page uses the 44px screen pick for count pills, roofs, and flags.
 - A friendly squad waiting outside a full building can be tapped or dragged to another building. That order retargets the squad and leaves the garrison where it is.
+
+## Round 3 fixes
+
+- A squad standing on a building keeps its count pill. That building's roof, flag, and foot stay on the building.
+- Rebuilt `static/app.js` so the shipped page uses that pick.

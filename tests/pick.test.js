@@ -12,6 +12,7 @@ import {
   SQUAD_LIFT,
   pickBuilding,
   projectToCss,
+  squadMarkX,
 } from '../src/render/pointer-math.js';
 import { frameDioramaCamera } from '../src/render/stage.js';
 
@@ -101,7 +102,7 @@ test('the ground disc still picks a building the pointer is not hovering as a pi
   assert.equal(outside, null);
 });
 
-test('a squad parked on a headquarters is ordered from its own pill', () => {
+test('a squad on a building keeps its pill and leaves the roof, flag, and foot', () => {
   const camera = cameraAtPhone();
   const hq = NODES['player-hq'];
   const list = [
@@ -110,7 +111,15 @@ test('a squad parked on a headquarters is ordered from its own pill', () => {
   ];
   const building = project(camera, hq.x, BADGE_LIFT.hq, hq.z);
   const squad = project(camera, hq.x, SQUAD_LIFT, hq.z);
-  const onSquad = pickBuilding(list, camera, WIDTH, HEIGHT, squad.x, squad.y - 28, { x: hq.x, z: hq.z });
+  const onSquad = pickBuilding(
+    list,
+    camera,
+    WIDTH,
+    HEIGHT,
+    squad.x,
+    squad.y - PILL_SHIFT_PX,
+    { x: hq.x, z: hq.z },
+  );
   assert.equal(onSquad && onSquad.id, 'sq-parked');
   const onBuilding = pickBuilding(
     list,
@@ -124,8 +133,35 @@ test('a squad parked on a headquarters is ordered from its own pill', () => {
   assert.equal(onBuilding && onBuilding.id, 'player-hq');
   const roof = project(camera, hq.x, ROOF_Y.hq, hq.z);
   const onRoof = pickBuilding(list, camera, WIDTH, HEIGHT, roof.x, roof.y, { x: hq.x, z: hq.z });
-  assert.equal(onRoof && onRoof.id, 'sq-parked');
+  assert.equal(onRoof && onRoof.id, 'player-hq');
   const flag = project(camera, hq.x, FLAG_Y.hq, hq.z);
   const onFlag = pickBuilding(list, camera, WIDTH, HEIGHT, flag.x, flag.y, { x: hq.x, z: hq.z });
-  assert.equal(onFlag && onFlag.id, 'sq-parked');
+  assert.equal(onFlag && onFlag.id, 'player-hq');
+  const onFoot = pickBuilding(list, camera, WIDTH, HEIGHT, building.x, flag.y + 37, { x: hq.x, z: hq.z });
+  assert.equal(onFoot && onFoot.id, 'player-hq');
+});
+
+test('a squad sieging the enemy headquarters does not take its roof or flag', () => {
+  const camera = cameraAtPhone();
+  const hq = NODES['enemy-hq'];
+  const sx = squadMarkX(hq.x, 'player', 'siege');
+  const list = [
+    { id: 'enemy-hq', kind: 'hq', owner: 'enemy', x: hq.x, z: hq.z },
+    { id: 'sq-siege', kind: 'squad', owner: 'player', x: sx, z: hq.z },
+  ];
+  const building = project(camera, hq.x, BADGE_LIFT.hq, hq.z);
+  const squad = project(camera, sx, SQUAD_LIFT, hq.z);
+  const roof = project(camera, hq.x, ROOF_Y.hq, hq.z);
+  const flag = project(camera, hq.x, FLAG_Y.hq, hq.z);
+  assert.equal(
+    pickBuilding(list, camera, WIDTH, HEIGHT, building.x, building.y - PILL_SHIFT_PX, null).id,
+    'enemy-hq',
+  );
+  assert.equal(pickBuilding(list, camera, WIDTH, HEIGHT, roof.x, roof.y, null).id, 'enemy-hq');
+  assert.equal(pickBuilding(list, camera, WIDTH, HEIGHT, flag.x, flag.y, null).id, 'enemy-hq');
+  assert.equal(pickBuilding(list, camera, WIDTH, HEIGHT, flag.x, flag.y + 37, null).id, 'enemy-hq');
+  assert.equal(
+    pickBuilding(list, camera, WIDTH, HEIGHT, squad.x, squad.y - PILL_SHIFT_PX, null).id,
+    'sq-siege',
+  );
 });

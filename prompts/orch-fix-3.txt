@@ -1,0 +1,5 @@
+You are the coder. cd /workspace/sidequest/top-force-like. Read /workspace/sidequest/top-force-like/reviews/orch-r3-grok.md and fix every CRITICAL and MAJOR issue (MINOR where sensible). Keep matching /workspace/sidequest/top-force-like/PLAN.md. Do not edit reviews/ or prompts/. Run the tests. Append '## Round 3 fixes' to CHANGELOG.md. Do not git commit.
+Previous round 390px review: /workspace/sidequest/top-force-like/reviews/orch-r2-grok.md
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-3.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-3.done

@@ -226,3 +226,8 @@
 - Opening ranks sit inside the 390×844 frame. A headquarters flank is 1.28 on the player pad and 1.55 on the enemy pad. The headquarters forward cap stays 0.15, and the play camera stays at fov 48, (0.15, 10, 14). Barracks ranks stand on the lane side of the pad (step −1.9) so every opening figure lands between x=8 and x=382. Stream-bank ranks step −1.5 toward the lane and stay on the home side of the stream.
 - Barracks group scale is 1.47, one and a half times the previous 0.98, so the hangar reads about 90 CSS pixels from the ground to the roof. The sandbag ring and the team roof stay clear of the count pill. Headquarters towers stay at scale 0.92.
 - 67 tests passed. Rebuilt `static/app.js` (563647 bytes) and `static/style.css` (10780 bytes).
+
+## Round 34 fixes
+
+- The round 34 review found no CRITICAL, MAJOR, or MINOR issues. Opening ranks stay inside the 390×844 frame, the player hangar reads 93 CSS pixels, and the enemy hangar reads 80. Headquarters stay at scale 0.92. The eight loop-r32 art items stay closed on `screenshots/fix-33/home.png` and `combat.png`.
+- 67 tests passed. No source or bundle change. `static/app.js` stays 563647 bytes and `static/style.css` stays 10780 bytes.

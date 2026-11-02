@@ -128,7 +128,7 @@ function buildSoldier(soldierRoot, rifleRoot) {
     if (!obj.isSkinnedMesh) return;
     const geo = bakeSkinned(obj);
     const name = obj.name || (obj.parent && obj.parent.name) || '';
-    const tone = name.includes('Head') ? 0.78 : 1;
+    const tone = name.includes('Head') ? 0.42 : 1;
     parts.push(posColor(geo, new THREE.Color(tone, tone, tone).getHex()));
   });
   const rifleParts = staticParts(rifleRoot).map((geo) => posColor(geo, 0xffffff));
@@ -730,6 +730,43 @@ function forestSpots(box) {
     if (Math.hypot(x + 2.15, z + 1.05) < 1.45) continue;
     if (Math.hypot(x - 1.45, z + 0.7) < 1.15) continue;
     spots.push({ x, z: z - (i % 2) * 0.32, s: 1.46 + (i % 3) * 0.16 });
+  }
+  // Close crowns across the far edge, in front of the two meadow discs (z ≈ −14).
+  // Split around the road. Spacing about 0.74 so the crowns meet.
+  const farZ = box.minZ - 0.78;
+  const skipsFarDisc = (x, z) => (
+    Math.hypot((x + 6.6) / 1.55, (z + 13.4) / 1.1) < 1.05
+    || Math.hypot((x + 0.05) / 1.32, (z + 14.2) / 1.0) < 1.05
+  );
+  for (let k = 0; k < 5; k++) {
+    const x = -(1.15 + k * 0.74);
+    const z = farZ - (k % 2) * 0.2;
+    if (Math.abs(x) < 0.95) continue;
+    if (skipsFarDisc(x, z)) continue;
+    spots.push({ x, z, s: 1.2 });
+  }
+  for (let k = 0; k < 5; k++) {
+    const x = 1.15 + k * 0.74;
+    const z = farZ - ((k + 1) % 2) * 0.2;
+    if (Math.abs(x) < 0.95) continue;
+    if (skipsFarDisc(x, z)) continue;
+    spots.push({ x, z, s: 1.2 });
+  }
+  // Six pines in the open grass immediately right of the enemy fort pad.
+  const fortRight = [
+    [1.75, -6.6],
+    [2.38, -6.48],
+    [2.9, -6.36],
+    [1.75, -5.96],
+    [2.38, -5.84],
+    [2.9, -5.72],
+  ];
+  for (let i = 0; i < fortRight.length; i++) {
+    const x = fortRight[i][0];
+    const z = fortRight[i][1];
+    if (Math.abs(x) < 0.95) continue;
+    if (Math.abs(x) < 1.4 && z > -7.65 && z < -5.45) continue;
+    spots.push({ x, z, s: 1.2 });
   }
   return spots;
 }

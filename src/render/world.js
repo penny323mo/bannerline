@@ -69,8 +69,10 @@ const _tuft = new THREE.Color(0x2f6a32);
 const _wornTan = new THREE.Color(0xd2ae74);
 const _paleTuft = new THREE.Color(0xdff3b0);
 const _shadeTuft = new THREE.Color(0x3c6834);
+const _farLight = new THREE.Color(0xa6d25e);
+const _farDark = new THREE.Color(0x3d7a36);
 
-/** Dark grass left of the red block. Flat tan right of the tank. Two tufts in the open middle. */
+/** Dark grass left of the red block. Flat tan right of the tank. Two tufts in the open middle. Two tones above the far pines. */
 function applyMeadowMarks(tone, x, z) {
   const tuft = Math.hypot((x + 4.9) / 1.05, (z + 3.15) / 0.85);
   if (tuft < 1) tone.lerp(_tuft, 1 - tuft * 0.1);
@@ -80,9 +82,13 @@ function applyMeadowMarks(tone, x, z) {
   if (pale < 1) tone.lerp(_paleTuft, 1 - pale * 0.12);
   const shade = Math.hypot((x - 1.45) / 0.7, (z + 0.7) / 0.5);
   if (shade < 1) tone.lerp(_shadeTuft, 1 - shade * 0.12);
+  const farLight = Math.hypot((x + 6.6) / 1.55, (z + 13.4) / 1.1);
+  if (farLight < 1) tone.lerp(_farLight, 1 - farLight * 0.1);
+  const farDark = Math.hypot((x + 0.05) / 1.32, (z + 14.2) / 1.0);
+  if (farDark < 1) tone.lerp(_farDark, 1 - farDark * 0.1);
 }
 
-function meadowMarkGeometry(x, z, rx, rz, hex) {
+function meadowMarkGeometry(x, z, rx, rz, hex, lift = 0.07) {
   const geo = new THREE.CircleGeometry(1, 24);
   geo.rotateX(-Math.PI / 2);
   geo.scale(rx, 1, rz);
@@ -101,7 +107,7 @@ function meadowMarkGeometry(x, z, rx, rz, hex) {
     colors[i * 3 + 2] = tone.b;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geo.translate(x, 0.07, z);
+  geo.translate(x, lift, z);
   return geo;
 }
 
@@ -1193,6 +1199,8 @@ function buildIsland(map, reduceMotion) {
     meadowMarkGeometry(3.2, 4.65, 1.55, 1.25, 0xd2ae74),
     meadowMarkGeometry(-2.15, -1.05, 0.95, 0.65, 0xdff3b0),
     meadowMarkGeometry(1.45, -0.7, 0.7, 0.5, 0x3c6834),
+    meadowMarkGeometry(-6.6, -13.4, 1.55, 1.1, 0xa6d25e),
+    meadowMarkGeometry(-0.05, -14.2, 1.32, 1.0, 0x3d7a36, 0.082),
   ], mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 
   const ownerById = {};

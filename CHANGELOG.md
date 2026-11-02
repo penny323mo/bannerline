@@ -286,3 +286,9 @@
 
 - Soldiers. The dome Y scale is 0.35, so the cap is a flat disc. The brim radius is 0.22 and sticks out past that dome. The short yoke stays wider than the cap. The head sits under the cap. Loose offsets stay. The rifle stays at x 0.34, outside the yoke. The olive dome and the team colour on the band and one arm stay. The tracked marcher stays on the standing pose. Scale stays 1.28. At 390px the dome’s shorter axis is 16.4 CSS px.
 - 67 tests passed. Rebuilt `static/app.js` (597434 bytes, sha256 `d87836503884ba88752162be9feb5c9ad7e1ce252ad66695ac29ac65e4c74d0f`) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844. No git commit.
+
+## Round 43 fixes
+
+- Pages. Live `static/app.js` is 597434 bytes, sha256 `d87836503884ba88752162be9feb5c9ad7e1ce252ad66695ac29ac65e4c74d0f`. That is the bundle this review asked to publish. GitHub Pages has built `main` at `d7d213c`, which contains the round 42 tree. `index.html` is 2246 bytes and `static/style.css` is 10850 bytes. No source change. No git commit.
+- The seven 390px audit items stay closed on `screenshots/fix-35/home.png` and `combat.png`. The flat cap, short yoke, loose squads, olive buildings, open road, front curve, river, and one-line counts stay as round 42 left them.
+- 67 tests passed.

@@ -3,7 +3,8 @@ import test from 'node:test';
 import * as THREE from 'three';
 import { NODES } from '../src/sim/mapdata.js';
 import { rotateXZ } from '../src/sim/facing.js';
-import { RANK_SPACING, colsFor, garrisonAnchor, visualCount } from '../src/render/crowds.js';
+import { RANK_SPACING, SOLDIER_SCALE, colsFor, garrisonAnchor, visualCount } from '../src/render/crowds.js';
+import { createMatch } from '../src/sim/match.js';
 import {
   BADGE_LIFT,
   FLAG_Y,
@@ -196,6 +197,95 @@ test('a squad on a building keeps its pill and leaves the roof, flag, and foot',
   assert.equal(onFlag && onFlag.id, 'player-hq');
   const onFoot = pickBuilding(list, camera, WIDTH, HEIGHT, building.x, flag.y + 37, { x: hq.x, z: hq.z });
   assert.equal(onFoot && onFoot.id, 'player-hq');
+});
+
+function soldierBoxes(owner, kind, x, z, count, camera) {
+  const spot = garrisonAnchor(owner, kind, x, z, count);
+  const n = visualCount(count);
+  const cols = colsFor(n);
+  const slot = { x: 0, z: 0 };
+  const boxes = [];
+  for (let i = 0; i < n; i++) {
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const rows = Math.ceil(n / cols);
+    const rowCount = r === rows - 1 ? n - r * cols : cols;
+    rotateXZ((c - (rowCount - 1) / 2) * RANK_SPACING, r * RANK_SPACING, spot.yaw, slot);
+    const wx = spot.x + slot.x;
+    const wz = spot.z + slot.z;
+    const o = { x: 0, y: 0 };
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    const samples = [
+      [wx, 0.02, wz],
+      [wx, 0.02 + 0.72 * SOLDIER_SCALE, wz],
+      [wx + 0.16 * SOLDIER_SCALE, 0.4 * SOLDIER_SCALE, wz],
+      [wx - 0.16 * SOLDIER_SCALE, 0.4 * SOLDIER_SCALE, wz],
+    ];
+    for (let s = 0; s < samples.length; s++) {
+      if (!projectToCss(samples[s][0], samples[s][1], samples[s][2], camera, WIDTH, HEIGHT, o)) continue;
+      minX = Math.min(minX, o.x);
+      maxX = Math.max(maxX, o.x);
+      minY = Math.min(minY, o.y);
+      maxY = Math.max(maxY, o.y);
+    }
+    boxes.push({ minX, maxX, minY, maxY });
+  }
+  return boxes;
+}
+
+function pillHits(pill, boxes) {
+  let hit = 0;
+  for (let i = 0; i < boxes.length; i++) {
+    const box = boxes[i];
+    if (box.minX < pill.maxX && box.maxX > pill.minX && box.minY < pill.maxY && box.maxY > pill.minY) hit += 1;
+  }
+  return hit;
+}
+
+test('a headquarters rank stays off the barracks pill at 390px', () => {
+  const camera = cameraAtPhone();
+  const maps = ['crossing', 'long-road', 'two-lanes'];
+  for (let m = 0; m < maps.length; m++) {
+    const state = createMatch({ mapId: maps[m], difficulty: 'normal' });
+    const nodes = state.nodes;
+    const points = state.buildings.map((b) => ({
+      x: nodes[b.node].x,
+      y: BADGE_LIFT[b.kind] || BADGE_LIFT.barracks,
+      z: nodes[b.node].z,
+      squad: 0,
+    }));
+    const laid = points.map(() => ({ px: 0, py: 0, ok: 0 }));
+    layoutPills(points, points.length, camera, WIDTH, HEIGHT, laid);
+    const pills = {};
+    const boxes = {};
+    for (let i = 0; i < state.buildings.length; i++) {
+      const b = state.buildings[i];
+      const node = nodes[b.node];
+      pills[b.id] = {
+        minX: laid[i].px - 42,
+        maxX: laid[i].px + 42,
+        minY: laid[i].py - 18,
+        maxY: laid[i].py + 18,
+      };
+      boxes[b.id] = soldierBoxes(b.owner, b.kind, node.x, node.z, b.count, camera);
+    }
+    if (maps[m] !== 'two-lanes') {
+      const hit = pillHits(pills['enemy-bar'], boxes['enemy-hq']);
+      assert.equal(hit, 0, `${maps[m]} barracks pill hits ${hit} headquarters soldiers`);
+    } else {
+      const west = pillHits(pills['player-west'], boxes['enemy-west']);
+      const east = pillHits(pills['player-east'], boxes['enemy-east']);
+      assert.equal(west, 0, `雙橋 west pill hits ${west} soldiers across the stream`);
+      assert.equal(east, 0, `雙橋 east pill hits ${east} soldiers across the stream`);
+    }
+    const hq = nodes['enemy-hq'];
+    const spot = garrisonAnchor('enemy', 'hq', hq.x, hq.z, state.buildings.find((b) => b.id === 'enemy-hq').count);
+    assert.ok(spot.x > 1.5, `${maps[m]} headquarters rank stays on the far side (${spot.x})`);
+    assert.ok(spot.z < hq.z + 0.4, `${maps[m]} headquarters rank stays on its pad (${spot.z})`);
+  }
 });
 
 test('a squad sieging the enemy headquarters does not take its roof or flag', () => {

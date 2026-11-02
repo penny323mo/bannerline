@@ -32,10 +32,11 @@ export function colsFor(n) {
 const _garrison = { x: 0, z: 0 };
 
 /**
- * Front rank ahead of the pad and off the mesh.
- * Formation local +z grows back toward the building. forward stops the
- * near-stream edge about 0.72 from the bank. The sideways step uses the
- * soldier's right from rotateXZ, flipped so the block steps away from x=0.
+ * Front rank beside the pad, off the mesh and off the next count pill.
+ * Formation local +z grows back toward the building. A headquarters stays
+ * on its own pad, on the far side of that pad's barracks. A pad on the
+ * stream bank stands on the home side. Other ranks stop about 0.72 from
+ * the bank. The sideways step uses the soldier's right from rotateXZ.
  * Player yaw 0 faces −z. Enemy yaw π mirrors it.
  */
 export function garrisonAnchor(owner, kind, x, z, count) {
@@ -44,13 +45,20 @@ export function garrisonAnchor(owner, kind, x, z, count) {
   const rows = Math.ceil(n / cols);
   const depth = (rows - 1) * RANK_SPACING;
   const room = Math.abs(z) - 0.72;
-  const forward = Math.max(0.28, Math.min(depth + 0.5, Math.max(0.28, room)));
-  const flank = kind === 'hq' ? 1.85 : 1.8;
+  let forward = Math.max(0.28, Math.min(depth + 0.5, Math.max(0.28, room)));
+  let flank = kind === 'hq' ? 2.7 : 1.8;
   const yaw = owner === 'player' ? yawForFacing(0, -1) : yawForFacing(0, 1);
   let side = 0;
   if (x > 0.4) side = 1;
   else if (x < -0.4) side = -1;
   else side = owner === 'player' ? 1 : -1;
+  if (kind === 'hq') {
+    forward = Math.min(forward, 0.15);
+    if (Math.abs(x) <= 0.4) side = -side;
+  } else if (Math.abs(z) < 2.4) {
+    forward = -0.45;
+    flank = Math.abs(x) > 0.4 ? 2.35 : 2.05;
+  }
   rotateXZ(1, 0, yaw, _garrison);
   const localSide = _garrison.x * side >= 0 ? flank : -flank;
   rotateXZ(localSide, -forward, yaw, _garrison);

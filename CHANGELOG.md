@@ -186,3 +186,8 @@
 - The frontier hard band uses z scale 1.2 and the tint uses z scale 1.75. On this camera that lip is about 9 CSS px across the stream. Zone colour stays on the slabs, and the grey deck stays on the water.
 - The selected 易 / 中 / 難 segment has a light top inset and a dark bottom inset. Map cards keep their own selection edge.
 - 66 tests passed. Rebuilt `static/app.js` (558362 bytes) and `static/style.css` (9597 bytes).
+
+## Round 28 fixes
+
+- A headquarters rank stays on its own pad, on the far side of that pad's barracks. On 對岸 and 長路 the enemy barracks pill no longer covers the headquarters soldiers. On 雙橋 each flank rank stands on the home side of the stream, so the barracks pill across the bridge misses that rank.
+- 67 tests passed. Rebuilt `static/app.js` (558477 bytes). `static/style.css` stays 9597 bytes.

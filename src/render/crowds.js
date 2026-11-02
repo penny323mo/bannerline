@@ -59,8 +59,8 @@ export function formationLocal(owner, index, n) {
     ? (enemy ? (count >= 20 ? 6 : Math.min(count, 4)) : (count >= 24 ? 6 : 5))
     : Math.min(4, count);
   // Six across. Rows are far enough apart that a block of 30 or 40 reads as ranks, not one line.
-  const colGap = mass ? 0.44 : 0.42;
-  const rowGap = mass ? (enemy ? 0.72 : 0.44) : 0.36;
+  const colGap = mass ? (enemy ? 0.36 : 0.34) : 0.42;
+  const rowGap = mass ? (enemy ? 0.38 : 0.32) : 0.36;
   const row = Math.floor(index / cols);
   const col = index % cols;
   const rowCount = Math.min(cols, count - row * cols);
@@ -386,7 +386,9 @@ export function createCrowds(scene) {
     const tip = lean || 0;
     dummy.position.set(x, y, z);
     dummy.rotation.set(tip * 0.4, yaw, tip * 0.25);
-    dummy.scale.setScalar(scale * modelMul);
+    const wide = scale * modelMul;
+    // Wider than the thin GLB so a rank reads as helmets and jackets, not sticks.
+    dummy.scale.set(wide * 1.55, wide * 1.08, wide * 1.28);
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
     if (pi < MAX) {

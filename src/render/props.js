@@ -196,6 +196,30 @@ function preparedGeometry(root, tint, strength = 0.45, gain = 1) {
   return geo;
 }
 
+/** Brown trunk, rich green crown, lighter tips. The raw gain of 0.35 read as burnt wood. */
+function paintPine(geo) {
+  const pos = geo.attributes.position;
+  const col = geo.attributes.color;
+  if (!pos || !col) return geo;
+  const trunk = new THREE.Color(0x6b4630);
+  const leaf = new THREE.Color(0x1f6b38);
+  const sun = new THREE.Color(0xa4d46e);
+  const tone = new THREE.Color();
+  let maxY = 0.001;
+  for (let i = 0; i < pos.count; i++) maxY = Math.max(maxY, pos.getY(i));
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i) / maxY;
+    if (y < 0.16) tone.copy(trunk);
+    else {
+      tone.copy(leaf);
+      tone.lerp(sun, Math.max(0, (y - 0.58) / 0.42) * 0.75);
+    }
+    col.setXYZ(i, tone.r, tone.g, tone.b);
+  }
+  col.needsUpdate = true;
+  return geo;
+}
+
 function concreteMaterial(hex) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0.02 });
 }
@@ -425,38 +449,47 @@ function dressBuilding(group, kit) {
   hidePrimitives(group);
   const enemy = group.userData.owner === 'enemy';
   const hq = group.userData.kind === 'hq';
-  if (hq && enemy && kit.tower) {
-    const tower = kit.tower.clone(true);
-    detach(tower);
-    repaint(tower, concreteMaterial(0xd4cfc6), true);
-    fitHeight(tower, group, 3.15, 1.45);
-    group.updateWorldMatrix(true, true);
-    _box.setFromObject(tower);
-    const foot = _box.min.y;
-    const top = _box.max.y;
-    const halfW = Math.max(0.25, (_box.max.x - _box.min.x) * 0.5);
-    const bandMat = new THREE.MeshStandardMaterial({
-      color: 0xe0241c,
-      emissive: 0xff2a22,
-      emissiveIntensity: 0.7,
-      roughness: 0.45,
-      metalness: 0.04,
+  const sx0 = frameOf(group).scale.x || 1;
+  function dropBox(w, h, d, mat, x, z, footY) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w / sx0, h / sx0, d / sx0), mat);
+    mesh.position.set(x / sx0, 0, z / sx0);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    setFeetWorldY(mesh, group, footY);
+    return mesh;
+  }
+  if (hq && enemy) {
+    const concrete = concreteMaterial(0xb7b2a8);
+    const red = new THREE.MeshStandardMaterial({
+      color: 0xc42822,
+      emissive: 0x9a1c16,
+      emissiveIntensity: 0.28,
+      roughness: 0.55,
+      metalness: 0.02,
     });
-    const sx = frameOf(group).scale.x || 1;
-    for (const frac of [0.28, 0.52, 0.76]) {
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.16, 20), bandMat);
-      band.scale.setScalar((halfW * 1.2) / (0.5 * sx));
-      band.castShadow = true;
-      band.receiveShadow = true;
-      group.add(band);
-      setFeetWorldY(band, group, foot + (top - foot) * frac);
-    }
+    const gateMat = new THREE.MeshStandardMaterial({
+      color: 0x8e1c1c,
+      emissive: 0x6a1010,
+      emissiveIntensity: 0.22,
+      roughness: 0.62,
+    });
+    // Two-storey concrete block. Red is a roofline band, not a house roof.
+    // Local −Z faces the road.
+    dropBox(2.55, 0.12, 2.15, concreteMaterial(0xc4bfb6), 0, 0, 0.02);
+    dropBox(2.05, 0.72, 1.7, concrete, 0, 0, 0.12);
+    dropBox(2.12, 0.08, 1.78, red, 0, 0, 0.82);
+    dropBox(1.62, 0.5, 1.28, concreteMaterial(0xc9c4bb), 0, 0, 0.88);
+    dropBox(1.72, 0.08, 1.38, red, 0, 0, 1.36);
+    dropBox(1.35, 0.14, 1.02, concreteMaterial(0xd4cfc6), 0, 0, 1.42);
+    dropBox(0.52, 0.58, 0.1, gateMat, 0, -0.9, 0.16);
+    const sx = sx0;
     if (kit.radar) {
       const dish = kit.radar.clone(true);
       detach(dish);
       ownMaterials(dish);
-      fitHeight(dish, group, 0.9, 1.25);
-      setFeetWorldY(dish, group, top - 0.04);
+      fitHeight(dish, group, 0.55, 0.95);
+      setFeetWorldY(dish, group, 1.52);
     }
     const wallSrc = kit.wall || kit.fort;
     if (wallSrc) {
@@ -467,7 +500,7 @@ function dressBuilding(group, kit) {
       const wallCount = 36;
       const radius = 1.62 / sx;
       const gate = 1.28;
-      const wallMat = concreteMaterial(0xc4bfb6);
+      const wallMat = concreteMaterial(0xb7b3aa);
       const trimMat = new THREE.MeshStandardMaterial({
         color: 0xd01818,
         emissive: 0xff241c,
@@ -475,7 +508,7 @@ function dressBuilding(group, kit) {
         roughness: 0.5,
         metalness: 0.02,
       });
-      const wallH = 0.14 / sx;
+      const wallH = 0.22 / sx;
       const trimH = 0.02 / sx;
       const brick = 0.3 / sx;
       const lip = 0.04 / sx;
@@ -543,7 +576,47 @@ function dressBuilding(group, kit) {
       cloth.castShadow = true;
       group.add(cloth);
     }
-    seatFlag(group, top + 0.02);
+    if (kit.bags) ringBags(group, kit.bags, 1.2 / sx, 11);
+    seatFlag(group, 1.62);
+    return;
+  }
+  if (hq && !enemy) {
+    // Pull the pad up-screen so the roof clears the bottom bar.
+    group.position.z -= 0.95;
+    const bodyMat = concreteMaterial(0x8e9684);
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0x2f8a48,
+      emissive: 0x143c22,
+      emissiveIntensity: 0.14,
+      roughness: 0.76,
+      metalness: 0,
+    });
+    dropBox(2.05, 0.1, 1.45, concreteMaterial(0xd7d2c8), 0, 0, 0.02);
+    dropBox(1.4, 0.4, 0.98, bodyMat, 0, 0.02, 0.1);
+    dropBox(1.58, 0.2, 1.12, roofMat, 0, 0, 0.48);
+    if (kit.bags) ringBags(group, kit.bags, 0.98 / sx0, 10);
+    if (kit.tank) {
+      if (!kit.tankGeo) kit.tankGeo = bakeProp(kit.tank);
+      if (kit.tankGeo) {
+        const tank = new THREE.Mesh(shadeMesh(kit.tankGeo.clone(), 0x4e5a34), new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.82,
+          metalness: 0.08,
+          vertexColors: true,
+        }));
+        tank.castShadow = true;
+        tank.receiveShadow = true;
+        tank.frustumCulled = false;
+        fitHeight(tank, group, 0.72, 1.9);
+        group.updateWorldMatrix(true, true);
+        const want = new THREE.Vector3(1.7, 0, 4.35);
+        group.worldToLocal(want);
+        tank.position.x = want.x;
+        tank.position.z = want.z;
+        reseatFeet(tank, group);
+      }
+    }
+    seatFlag(group, 0.82);
     return;
   }
   if (!kit.bunker || !kit.roof) return;
@@ -630,26 +703,10 @@ function dressIsland(group, kit) {
   const box = group.userData.playBox || { minX: -3.4, maxX: 3.4, minZ: -7.7, maxZ: 7.7 };
   const trees = forestSpots(box);
   const pineMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0 });
-  const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
   const fenceMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84, metalness: 0 });
   scatter(group, kit.pineA, trees.filter((_, i) => i % 2 === 0), pineMat, (i) => i * 0.7, true);
   scatter(group, kit.pineB, trees.filter((_, i) => i % 2 === 1), pineMat, (i) => i * 0.9, true);
-  const nestA = [];
-  const nestB = [];
-  for (let i = 0; i < trees.length; i += 2) {
-    const tree = trees[i];
-    const rock = {
-      x: tree.x + (i % 4 === 0 ? 0.46 : -0.38),
-      z: tree.z + (i % 3 === 0 ? 0.3 : -0.24),
-      s: 0.36 + (i % 3) * 0.1,
-    };
-    if (Math.abs(rock.z) < 0.6) continue;
-    if (Math.abs(rock.x) < 1.4 && Math.abs(rock.z) < 6.2) continue;
-    if (i % 4 === 0) nestA.push(rock);
-    else nestB.push(rock);
-  }
-  scatter(group, kit.rockA, nestA, rockMat);
-  scatter(group, kit.rockB, nestB, rockMat);
+  // Grey blob rocks between the pines read as ghosts. The edge trees stand alone.
   const fences = [
     { x: -7.2, z: 2.4, s: 1.15, y: 0.4 },
     { x: -7.4, z: -2.2, s: 1.15, y: 0.2 },
@@ -691,8 +748,8 @@ export function loadBattlefield(world, crowds) {
       bags: gltf.bags.scene,
       tank: gltf.tank.scene,
       radar: gltf.radar ? gltf.radar.scene : null,
-      pineA: preparedGeometry(gltf.pineA.scene, 0x142016, 0.94, 0.35),
-      pineB: preparedGeometry(gltf.pineB.scene, 0x101810, 0.96, 0.35),
+      pineA: paintPine(preparedGeometry(gltf.pineA.scene, 0x2a6a38, 0.4, 1)),
+      pineB: paintPine(preparedGeometry(gltf.pineB.scene, 0x245e32, 0.4, 1)),
       rockA: preparedGeometry(gltf.rockA.scene, 0x6a6560),
       rockB: preparedGeometry(gltf.rockB.scene, 0x746e68),
       fence: preparedGeometry(gltf.fence.scene, 0x6a5340),

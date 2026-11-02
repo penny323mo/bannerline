@@ -1,4 +1,5 @@
 import { NODES } from '../sim/mapdata.js';
+import { TROOP_DISPLAY, shownTroops } from '../sim/match.js';
 import { quoteUpgrade, upgradeAffordance } from '../sim/upgrades.js';
 import { BADGE_LIFT, PILL_SHIFT_PX, SQUAD_LIFT, layoutPills, projectToCss, squadMarkX } from './pointer-math.js';
 
@@ -95,13 +96,13 @@ export function createBadges(host) {
           const haste = quoteUpgrade(b, 'haste');
           const wall = quoteUpgrade(b, 'bulwark');
           const quote = haste.ok ? haste : wall;
-          node.dataset.cost = quote && quote.cost ? ` ${quote.cost}` : '';
+          node.dataset.cost = quote && quote.cost ? ` ${quote.cost * TROOP_DISPLAY}` : '';
         } else if (node.dataset.cost) {
           node.dataset.cost = '';
         }
         const label = b.kind === 'hq' ? '司令部' : '兵營';
         setText(node, '.tag', label);
-        setText(node, '.num', String(Math.max(0, Math.floor(b.count))));
+        setText(node, '.num', String(shownTroops(b.count)));
         const ranks = b.upgrades;
         const markIndex = (ranks && ranks.haste > 0 ? 1 : 0) + (ranks && ranks.bulwark > 0 ? 2 : 0);
         const mark = MARKS[markIndex];
@@ -139,7 +140,7 @@ export function createBadges(host) {
         node.classList.toggle('can-up', false);
         node.classList.toggle('is-danger', false);
         setText(node, '.tag', s.mode === 'siege' ? '攻城' : '行軍');
-        setText(node, '.num', String(Math.max(0, Math.floor(s.count))));
+        setText(node, '.num', String(shownTroops(s.count)));
         setText(node, '.sub', s.mode === 'fight' ? '交戰' : '');
         const row = pointAt(n);
         row.x = squadMarkX(s.x, s.owner, s.mode);

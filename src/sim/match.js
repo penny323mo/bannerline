@@ -140,6 +140,13 @@ export function retargetSquad(state, squadId, targetId) {
   return { ok: true };
 }
 
+/** HUD, badges, and the upgrade chip. Sim counts and win checks stay on the real headcount. */
+export const TROOP_DISPLAY = 10;
+
+export function shownTroops(count) {
+  return Math.max(0, Math.floor(count || 0)) * TROOP_DISPLAY;
+}
+
 export function sideStrength(state, owner) {
   let n = 0;
   for (let i = 0; i < state.buildings.length; i++) {

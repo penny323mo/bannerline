@@ -447,3 +447,15 @@
 
 - Pages. The review measured live `static/app.js` as the round-62 file, 716794 bytes, sha256 `db47d0a31a4884de79c083d252961f040655fcfa3193055d06a7d823d1b506b5`, and asked to publish the local round-63 script, 717338 bytes, sha256 `a53221db308d272dba22413defabdb03c8b71915329698de41e1917e7c89766f`. A fresh fetch of `https://penny323mo.github.io/bannerline/static/app.js` returns HTTP 200 and that hash. Live `static/style.css` is HTTP 200, 11915 bytes, sha256 `750881b49dcce70a33b52e15763fc8648706e202da79e3a4ddb0e0823a237718`. Live `index.html` is HTTP 200, 2402 bytes, sha256 `18b128d203931cce741924f8fcdfc4b07c5b4fe8a26b058e0514e05c27057185`. Both match local. No source change and no rebuild, so the published hash stays. This round does not commit.
 - The round-64 suite reports 67 passing tests. Items 1–7 stay closed on `screenshots/fix-63/home.png` and `combat.png`. Beside `review/art-mockup-v2/01-combat-390x844.png`, the frame is still low-poly CC0 art. Exposure stays 1.15. No git commit.
+
+## Round 65 fixes
+
+- Trees. Pine crowns are a rich green with lighter tips, and the trunks are brown. The grey blob rocks between the trees are gone.
+- Front. The visible line is a thin curve, green on our side and red toward the enemy, on the player bank. `band.scale.set(span, 1, 1.2)` and `tint.scale.set(span, 1, 1.75)` stay, and those meshes stay hidden.
+- Fort. The enemy headquarters is a two-storey concrete block with red bands at the roofline, a red gate, a roof dish, and a low stone wall with sandbags. It is not the tall chimney tower.
+- Armies. Figures are wider. Red ranks are tight blocks and the green crowd is a dense mass. `visualCount` stays 16. Badges still carry the real headcount. Sim counts are unchanged.
+- Ground. Meadow vertices are a lighter green. The road is a clean tan. Exposure stays 1.15 and the sun stays.
+- Fire. The opening frame shows a yellow-white flash and a short streak from the tank and from the fort.
+- Player base. A low green-roofed bunker sits on a concrete pad with a sandbag ring, above the bottom bar. The upgrade chip sits above its pill.
+- Numbers. The HUD, the badges, and the upgrade chip show ten times the real headcount. Win checks still use the real counts.
+- The round-65 suite reports 67 passing tests. Shots are `screenshots/fix-65/home.png` and `combat.png`, both 390×844. Local `static/app.js` is 719100 bytes, sha256 `b1324e19a31c24f0d358b4d8b3926332519b31661e99ca45c270df21054066f6`. `static/style.css` is 11942 bytes, sha256 `879407baa453306cb5e101bb43ee852857a4fc686395ebbd5c60333b3d5cd14a`. `index.html` is unchanged. This round does not commit, so live Pages stays the round-63 file, 717338 bytes, sha256 `a53221db308d272dba22413defabdb03c8b71915329698de41e1917e7c89766f`. Beside the mockup, the frame is still low-poly CC0 art. No git commit.

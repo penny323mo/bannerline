@@ -116,10 +116,10 @@ function tintZone(mesh, hex) {
   const oz = mesh.position.z;
   const sx = mesh.scale.x || 1;
   const sz = mesh.scale.z || 1;
-  const sunGrass = new THREE.Color(0x6fa84a);
-  const deepGrass = new THREE.Color(0x4f8a3c);
-  const pale = new THREE.Color(0x8ec85a);
-  const worn = new THREE.Color(0x8a6844);
+  const sunGrass = new THREE.Color(0x8ed45c);
+  const deepGrass = new THREE.Color(0x5eae46);
+  const pale = new THREE.Color(0xc6ee86);
+  const worn = new THREE.Color(0xc6a56c);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i) * sx + ox;
     const z = pos.getZ(i) * sz + oz;
@@ -131,7 +131,7 @@ function tintZone(mesh, hex) {
     else _stainTone.lerp(deepGrass, 0.12);
     // Mud stays on the road corridor and a few worn spots, not across the meadow.
     const onRoad = Math.abs(x) < 0.95 && Math.abs(z) > 0.9;
-    if (onRoad && patch > 0.35) _stainTone.lerp(worn, 0.45);
+    if (onRoad && patch > 0.55) _stainTone.lerp(worn, 0.2);
     _stainTone.lerp(_stainBase, 0.08);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
@@ -719,10 +719,10 @@ function islandCapGeometry(spanX, spanZ) {
   const count = 1 + rings * segs;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
-  const meadow = new THREE.Color(0x6fa84a);
-  const deep = new THREE.Color(0x4e8638);
-  const pale = new THREE.Color(0x8ec85a);
-  const worn = new THREE.Color(0x8a6844);
+  const meadow = new THREE.Color(0x8ed45c);
+  const deep = new THREE.Color(0x5eae46);
+  const pale = new THREE.Color(0xc6ee86);
+  const worn = new THREE.Color(0xc6a56c);
   const tone = new THREE.Color();
   let vi = 1;
   for (let r = 1; r <= rings; r++) {
@@ -747,7 +747,7 @@ function islandCapGeometry(spanX, spanZ) {
     else if (speckle < -0.25) tone.lerp(deep, 0.35);
     else tone.lerp(deep, 0.1);
     const onRoad = Math.abs(x) < 0.95 && Math.abs(z) > 0.9;
-    if (onRoad && patch > 0.2) tone.lerp(worn, 0.5);
+    if (onRoad && patch > 0.55) tone.lerp(worn, 0.18);
     if (u > 0.92) tone.lerp(deep, 0.18);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
@@ -1005,25 +1005,24 @@ export function planRoadSegments(map) {
 function paintDirt(geo) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const base = new THREE.Color(PALETTE.road);
-  base.lerp(new THREE.Color(0x6a4e32), 0.7);
-  const dark = new THREE.Color(0x3f2c1a);
-  const light = new THREE.Color(0x8d6844);
+  const base = new THREE.Color(0xd2ae74);
+  const dark = new THREE.Color(0xb89258);
+  const light = new THREE.Color(0xe8c98a);
   const tone = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
     const n = Math.sin(x * 6.5 + z * 3.1) * Math.cos(z * 5.2 - x * 2.4);
     if (n > 0.45) tone.copy(light);
-    else if (n < 0.12) tone.copy(dark);
+    else if (n < 0.05) tone.copy(dark);
     else {
       tone.copy(base);
-      tone.lerp(dark, 0.55);
+      tone.lerp(dark, 0.12);
     }
     const groove = Math.sin(z * 18 + x * 2.4);
     const rut = Math.sin(x * 16 + z * 0.6);
-    if (groove > 0.45 || rut > 0.72) tone.lerp(dark, 0.82);
-    else if (groove < -0.35) tone.lerp(light, 0.75);
+    if (groove > 0.55 || rut > 0.82) tone.lerp(dark, 0.28);
+    else if (groove < -0.35) tone.lerp(light, 0.45);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -1132,7 +1131,7 @@ function addEdges(group, map, roadMat) {
     ));
   }
   addMerged(group, parts, roadMat, { cast: false, receive: true });
-  addMerged(group, shoulderParts, mat(0x6b5138, { roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
+  addMerged(group, shoulderParts, mat(0xd2b07a, { roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 }
 
 function buildIsland(map, reduceMotion) {
@@ -1461,21 +1460,21 @@ function buildIsland(map, reduceMotion) {
     group.add(lip);
     lips.push(lip);
   }
-  const coreGeo = glowFrontGeometry(0.22, 0.16);
-  const auraGeo = glowFrontGeometry(0.46, 0.16);
+  const coreGeo = glowFrontGeometry(0.07, 1.05);
+  const auraGeo = glowFrontGeometry(0.13, 1.05);
   const coreMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
     opacity: 1,
     depthWrite: false,
-    depthTest: true,
+    depthTest: false,
     side: THREE.DoubleSide,
     toneMapped: false,
   });
   const auraMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.48,
+    opacity: 0.72,
     depthWrite: false,
     depthTest: false,
     blending: THREE.AdditiveBlending,
@@ -1741,8 +1740,11 @@ function buildIsland(map, reduceMotion) {
         cores[i].visible = showFront;
         auras[i].visible = showFront;
         if (showFront) {
-          cores[i].position.set(cx + ox, 0.36, cz + oz);
-          auras[i].position.set(cx + ox, 0.3, cz + oz);
+          // Curve sits on the player bank. Ends stay clear of the water.
+          const fox = Math.sin(yaw) * 1.15;
+          const foz = Math.cos(yaw) * 1.15;
+          cores[i].position.set(cx + fox, 0.42, cz + foz);
+          auras[i].position.set(cx + fox, 0.36, cz + foz);
           cores[i].scale.set(wideSpan, 1, 1);
           auras[i].scale.set(wideSpan, 1, 1);
           cores[i].rotation.y = yaw;
@@ -1815,10 +1817,10 @@ export function createWorld(scene) {
   const fieldGeo = new THREE.PlaneGeometry(180, 220, 36, 40);
   const fieldPos = fieldGeo.attributes.position;
   const fieldColors = new Float32Array(fieldPos.count * 3);
-  const meadowA = new THREE.Color(0x6fa84a);
-  const meadowB = new THREE.Color(0x4e8638);
-  const meadowC = new THREE.Color(0x8ec85a);
-  const worn = new THREE.Color(0x8a6844);
+  const meadowA = new THREE.Color(0x8ed45c);
+  const meadowB = new THREE.Color(0x5eae46);
+  const meadowC = new THREE.Color(0xc6ee86);
+  const worn = new THREE.Color(0xc6a56c);
   const meadowTone = new THREE.Color();
   for (let i = 0; i < fieldPos.count; i++) {
     const x = fieldPos.getX(i);
@@ -1829,7 +1831,7 @@ export function createWorld(scene) {
     if (n > 0.25) meadowTone.lerp(meadowC, 0.4);
     else if (blot < -0.35) meadowTone.lerp(meadowB, 0.32);
     else meadowTone.lerp(meadowB, 0.12);
-    if (Math.abs(x) < 1.1 && blot > 0.55) meadowTone.lerp(worn, 0.4);
+    if (Math.abs(x) < 1.1 && blot > 0.7) meadowTone.lerp(worn, 0.18);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;

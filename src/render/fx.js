@@ -246,6 +246,7 @@ export function createFx(scene) {
 
   const slot = { x: 0, z: 0 };
   const face = { x: 0, z: 0 };
+  let lines = 0;
 
   function yawOf(q, nodes) {
     let dx = 0;
@@ -263,7 +264,7 @@ export function createFx(scene) {
   function flashOn(sprite, x, z, yaw) {
     rotateXZ(MUZZLE.x, MUZZLE.z, yaw, slot);
     sprite.position.set(x + slot.x * FIGURE, 0.02 + MUZZLE.y * FIGURE, z + slot.z * FIGURE);
-    sprite.scale.set(0.16, 0.16, 1);
+    sprite.scale.set(0.42, 0.42, 1);
     sprite.visible = enabled;
   }
 
@@ -280,6 +281,34 @@ export function createFx(scene) {
     const lead = placed[0];
     const next = placed[Math.min(placed.length - 1, Math.max(1, Math.floor(n / 8)))];
     return next && next !== lead ? [lead, next] : [lead];
+  }
+
+  function pushStreak(x0, y0, z0, x1, y1, z1, color) {
+    if (lines >= MAX_LINES) return;
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const dist = Math.hypot(dx, dz) || 1;
+    const halfW = 0.055;
+    const inv = 1 / dist;
+    const hx = -dz * inv * halfW;
+    const hz = dx * inv * halfW;
+    const o = lines * 18;
+    const xyz = [
+      x0 - hx, y0, z0 - hz,
+      x0 + hx, y0, z0 + hz,
+      x1 - hx, y1, z1 - hz,
+      x0 + hx, y0, z0 + hz,
+      x1 + hx, y1, z1 + hz,
+      x1 - hx, y1, z1 - hz,
+    ];
+    for (let k = 0; k < 18; k++) linePos[o + k] = xyz[k];
+    for (let v = 0; v < 6; v++) {
+      const co = o + v * 3;
+      lineCol[co] = color.r;
+      lineCol[co + 1] = color.g;
+      lineCol[co + 2] = color.b;
+    }
+    lines += 1;
   }
 
   function spawn(x, y, z, color, ttl, vx, vy, vz) {
@@ -322,7 +351,6 @@ export function createFx(scene) {
       const squads = state.squads || [];
       let budget = 64;
       const tick = Math.floor((state.t || 0) * 8);
-      let playerFighting = false;
       let muzzleIndex = 0;
       let dustIndex = 0;
       const nodesNow = state.nodes;
@@ -343,7 +371,6 @@ export function createFx(scene) {
             }
           }
         } else if (q.mode === 'fight' || q.mode === 'siege') {
-          if (q.owner === 'player') playerFighting = true;
           const spot = drawAnchor(q.owner, q.x, q.z, q.count);
           const side = ((s + tick) % 3) - 1;
           const yaw = yawOf(q, nodesNow);
@@ -382,12 +409,23 @@ export function createFx(scene) {
           }
         }
       }
-      if (playerFighting) {
-        const barrel = muzzles[muzzles.length - 1];
-        // Baked Tank_Gun runs toward the camera. The visible tip is just short of the mesh max-Z.
-        barrel.position.set(1.69, 0.5, 5.14);
-        barrel.scale.set(0.18, 0.18, 1);
-        barrel.visible = enabled;
+      const barrel = muzzles[muzzles.length - 1];
+      // Baked Tank_Gun runs toward the camera. The visible tip is just short of the mesh max-Z.
+      const pulse = 0.86 + 0.14 * Math.sin((state.t || 0) * 16);
+      barrel.position.set(1.69, 0.7, 5.05);
+      barrel.scale.set(0.85 * pulse, 0.85 * pulse, 1);
+      barrel.visible = enabled;
+      if (muzzleIndex < muzzles.length - 1) {
+        const hqFlash = muzzles[muzzleIndex];
+        hqFlash.position.set(0.15, 1.25, -4.7);
+        hqFlash.scale.set(0.7 * pulse, 0.7 * pulse, 1);
+        hqFlash.visible = enabled;
+      }
+      if (dustIndex < dustPuffs.length) {
+        const kick = dustPuffs[dustIndex];
+        kick.position.set(1.55, 0.1, 4.55);
+        kick.scale.set(0.42, 0.2, 1);
+        kick.visible = enabled;
       }
       const nodes = state.nodes;
       const buildings = state.buildings;
@@ -424,7 +462,7 @@ export function createFx(scene) {
           }
         }
       }
-      let lines = 0;
+      lines = 0;
       rankPuffs[0].visible = false;
       rankPuffs[1].visible = false;
       streaks[0].visible = false;
@@ -519,6 +557,15 @@ export function createFx(scene) {
           }
         }
       }
+      // Opening volley. Short yellow-white streaks from the tank and the fort, not a needle across the map.
+      pushStreak(1.69, 0.7, 5.05, 1.35, 0.5, 3.35, traceGreen);
+      pushStreak(0.15, 1.25, -4.7, 0.45, 0.55, -3.15, traceRed);
+      streaks[0].position.set(1.55, 0.72, 4.4);
+      streaks[0].scale.set(0.7, 0.7, 1);
+      streaks[0].visible = enabled;
+      streaks[1].position.set(0.2, 1.28, -4.3);
+      streaks[1].scale.set(0.62, 0.62, 1);
+      streaks[1].visible = enabled;
       lineGeo.setDrawRange(0, lines * 6);
       lineGeo.attributes.position.needsUpdate = true;
       lineGeo.attributes.color.needsUpdate = true;

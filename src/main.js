@@ -9,7 +9,7 @@ import { loadBattlefield } from './render/props.js';
 import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
 import { DIFFICULTIES, MAP_LIST } from './sim/maps.js';
-import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, sideStrength, squadById, stepMatch } from './sim/match.js';
+import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, shownTroops, sideStrength, squadById, stepMatch } from './sim/match.js';
 import { COACH_KEY } from './sim/settings.js';
 import { applyUpgrade, quoteUpgrade } from './sim/upgrades.js';
 import { squadMarkX } from './render/pointer-math.js';
@@ -130,8 +130,8 @@ function hideSheet() {
 
 function syncHud() {
   if (!state) return;
-  scoreMine.textContent = String(sideStrength(state, 'player'));
-  scoreFoe.textContent = String(sideStrength(state, 'enemy'));
+  scoreMine.textContent = String(shownTroops(sideStrength(state, 'player')));
+  scoreFoe.textContent = String(shownTroops(sideStrength(state, 'enemy')));
 }
 
 function applyFrame() {

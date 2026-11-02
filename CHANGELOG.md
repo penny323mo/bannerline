@@ -270,3 +270,8 @@
 
 - Soldiers. The helmet is an upper hemisphere squashed on Y, so the dome reads as a cap. The rifle is longer and sits outside the shoulder from the play camera. Each figure still keeps its own offset. The olive dome and the team colour on the band and one arm stay. The tracked marcher stays on the standing pose. Scale stays 1.28.
 - 67 tests passed. Rebuilt `static/app.js` (597420 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.
+
+## Round 40 fixes
+
+- Soldiers. The dome radius is 0.08 and the Y scale is 0.3, so the cap is smaller and flatter. The brim is a disc of radius 0.2, wider than that dome. The shoulders are a bar 0.7 wide, wider than the head in the 390 shot. The rifle stays outside that bar. Loose offsets stay. The olive dome and the team colour on the band and one arm stay. The tracked marcher stays on the standing pose. Scale stays 1.28.
+- 67 tests passed. Rebuilt `static/app.js` (597417 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.

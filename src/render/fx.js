@@ -136,6 +136,22 @@ export function createFx(scene) {
     blending: THREE.AdditiveBlending,
     toneMapped: false,
   });
+  const rankMap = radialMap([
+    [0, 'rgba(255, 252, 230, 1)'],
+    [0.34, 'rgba(255, 236, 150, 1)'],
+    [0.62, 'rgba(255, 190, 60, 0.9)'],
+    [1, 'rgba(255, 140, 30, 0)'],
+  ]);
+  const rankMat = new THREE.SpriteMaterial({
+    map: rankMap,
+    color: 0xffffff,
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
   const muzzles = [0, 1, 2, 3, 4].map(() => {
     const sprite = new THREE.Sprite(muzzleMat);
     sprite.scale.set(0.16, 0.16, 1);
@@ -192,9 +208,34 @@ export function createFx(scene) {
   roofSmoke.renderOrder = 3;
   roofSmoke.frustumCulled = false;
   scene.add(roofSmoke);
-  // Baked shotgun tip in the unit-height soldier. crowds modelMul is 1.4.
+  // Baked shotgun tip in the unit-height soldier. crowds modelMul is 1.8.
   const MUZZLE = { x: -0.024, y: 0.6, z: -0.397 };
-  const FIGURE = SOLDIER_SCALE * 1.4;
+  const FIGURE = SOLDIER_SCALE * 1.8;
+  // Short sparks on the near edge of each red block and the front of the green rank.
+  const rankSpots = [
+    [-3.45, 0.58, -1.58],
+    [-2.85, 0.58, -1.58],
+    [-2.25, 0.58, -1.58],
+    [-1.7, 0.58, -1.58],
+    [0.25, 0.58, -1.88],
+    [0.85, 0.58, -1.88],
+    [1.45, 0.58, -1.88],
+    [2.05, 0.58, -1.88],
+    [-0.9, 0.58, 1.48],
+    [-0.25, 0.58, 1.48],
+    [0.4, 0.58, 1.48],
+    [1.05, 0.58, 1.48],
+  ];
+  const rankSparks = rankSpots.map((spot) => {
+    const sprite = new THREE.Sprite(rankMat);
+    sprite.scale.set(0.4, 0.4, 1);
+    sprite.position.set(spot[0], spot[1], spot[2]);
+    sprite.visible = false;
+    sprite.renderOrder = 6;
+    sprite.frustumCulled = false;
+    scene.add(sprite);
+    return sprite;
+  });
   const traceGreen = new THREE.Color(0xfff4c8);
   const traceRed = new THREE.Color(0xffd27a);
 
@@ -302,6 +343,7 @@ export function createFx(scene) {
       points.visible = enabled;
       tracers.visible = enabled;
       roofSmoke.visible = enabled;
+      for (let i = 0; i < rankSparks.length; i++) rankSparks[i].visible = enabled;
       if (!enabled) {
         rankPuffs[0].visible = false;
         rankPuffs[1].visible = false;
@@ -436,6 +478,13 @@ export function createFx(scene) {
       const driftT = (typeof performance !== 'undefined' ? performance.now() : 0) * 0.001;
       roofSmoke.position.y = 1.78 + Math.sin(driftT * 0.35) * 0.03;
       roofSmoke.visible = enabled;
+      const sparkPulse = 0.86 + 0.14 * Math.sin((state.t || 0) * 18);
+      for (let i = 0; i < rankSparks.length; i++) {
+        const spot = rankSpots[i];
+        rankSparks[i].position.set(spot[0], spot[1], spot[2]);
+        rankSparks[i].scale.set(0.4 * sparkPulse, 0.4 * sparkPulse, 1);
+        rankSparks[i].visible = enabled;
+      }
       for (let a = 0; a < squads.length; a++) {
         const qa = squads[a];
         if (!qa || qa.count <= 0) continue;

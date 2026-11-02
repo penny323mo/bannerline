@@ -65,15 +65,37 @@ const _stainBase = new THREE.Color();
 const _stainDirt = new THREE.Color(0x8d6840);
 const _stainDeep = new THREE.Color(0x3a4a2c);
 const _stainTone = new THREE.Color();
-const _tuft = new THREE.Color(0x1f5c32);
-const _wornTan = new THREE.Color(0xd2ae74);
+const _tuft = new THREE.Color(0x12361c);
+const _wornTan = new THREE.Color(0xc48a48);
 
-/** A dark grass tuft and a tan worn patch, far enough apart to both show at 390. */
+/** Dark tuft in the open grass left of the red block. Tan patch right of the tank. */
 function applyMeadowMarks(tone, x, z) {
-  const tuft = Math.hypot((x + 3.4) / 2.4, (z + 8.0) / 2.0);
-  if (tuft < 1) tone.lerp(_tuft, (1 - tuft) * 0.96);
-  const worn = Math.hypot((x - 3.0) / 1.9, (z - 2.6) / 1.7);
-  if (worn < 1) tone.lerp(_wornTan, (1 - worn) * 0.94);
+  const tuft = Math.hypot((x + 4.9) / 1.05, (z + 3.15) / 0.85);
+  if (tuft < 1) tone.lerp(_tuft, 1 - tuft * 0.06);
+  const worn = Math.hypot((x - 3.2) / 1.55, (z - 4.65) / 1.25);
+  if (worn < 1) tone.lerp(_wornTan, 1 - worn * 0.06);
+}
+
+function meadowMarkGeometry(x, z, rx, rz, hex) {
+  const geo = new THREE.CircleGeometry(1, 24);
+  geo.rotateX(-Math.PI / 2);
+  geo.scale(rx, 1, rz);
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const core = new THREE.Color(hex);
+  const edge = new THREE.Color(0x8ed45c);
+  const tone = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const u = Math.min(1, Math.hypot(pos.getX(i) / rx, pos.getZ(i) / rz));
+    tone.copy(core);
+    if (u > 0.62) tone.lerp(edge, (u - 0.62) / 0.38);
+    colors[i * 3] = tone.r;
+    colors[i * 3 + 1] = tone.g;
+    colors[i * 3 + 2] = tone.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.translate(x, 0.07, z);
+  return geo;
 }
 
 /** Break a flat owner disc into dirt and deep-grass patches. */
@@ -1159,6 +1181,10 @@ function buildIsland(map, reduceMotion) {
   cap.receiveShadow = true;
   cap.castShadow = false;
   group.add(cap);
+  addMerged(group, [
+    meadowMarkGeometry(-4.9, -3.15, 1.05, 0.85, 0x12361c),
+    meadowMarkGeometry(3.2, 4.65, 1.55, 1.25, 0xc48a48),
+  ], mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 
   const ownerById = {};
   for (let i = 0; i < map.buildings.length; i++) {

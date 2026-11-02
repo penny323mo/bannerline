@@ -571,7 +571,7 @@ export function createCrowds(scene) {
         red[v].material = redMat;
       }
       pads.visible = true;
-      modelMul = 1.4;
+      modelMul = 1.8;
     },
   };
 }

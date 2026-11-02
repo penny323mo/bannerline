@@ -9,7 +9,7 @@ import { rocksFor, streamBand, streamCrossings, treesFor } from './scenery.js';
 /** Olive-grey walls. Team colour stays on the roof and the flag. */
 const WALL = 0x5a6158;
 const WATER_HALF = 0.64;
-const BANK_OUT = 0.36;
+const BANK_OUT = 0.52;
 const STREAM_BOW = 0.28;
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -25,10 +25,10 @@ function mat(color, extra = {}) {
   });
 }
 
-/** About 40% toward concrete so a team band stays paint, not a neon slab. */
+/** Most of the way toward the wall, so a trim stays a dull team edge. */
 function muteTeam(hex) {
   const color = new THREE.Color(hex);
-  color.lerp(new THREE.Color(0x8a877c), 0.42);
+  color.lerp(new THREE.Color(WALL), 0.74);
   return color.getHex();
 }
 
@@ -37,6 +37,35 @@ function stain(hex) {
   const color = new THREE.Color(hex);
   color.lerp(new THREE.Color(PALETTE.meadow), 0.58);
   return color.getHex();
+}
+
+const _stainBase = new THREE.Color();
+const _stainDirt = new THREE.Color(0x6a5c3e);
+const _stainDeep = new THREE.Color(0x3c4a30);
+const _stainTone = new THREE.Color();
+
+/** Break a flat owner disc into dirt and deep-grass patches. */
+function tintZone(mesh, hex) {
+  const geo = mesh.geometry;
+  const pos = geo.attributes.position;
+  let colors = geo.attributes.color;
+  if (!colors) {
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3));
+    colors = geo.attributes.color;
+  }
+  _stainBase.setHex(hex);
+  const ox = mesh.position.x;
+  const oz = mesh.position.z;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const n = Math.sin(x * 7.5 + ox * 1.6 + z * 4.2) * Math.cos(z * 5.5 + oz * 0.9);
+    _stainTone.copy(_stainBase);
+    if (n > 0.12) _stainTone.lerp(_stainDirt, 0.58);
+    else if (n < -0.12) _stainTone.lerp(_stainDeep, 0.66);
+    colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
+  }
+  colors.needsUpdate = true;
 }
 
 function exitDir(map, nodeId, out) {
@@ -113,6 +142,15 @@ function mergedMesh(parts, material) {
   return mesh;
 }
 
+/** Standalone bevel. RoundedBox is non-indexed, so it stays off the indexed merges. */
+function roundMesh(w, h, d, segs, radius, x, y, z, material) {
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, segs, radius), material);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
 /**
  * Fortified bunker. Local −z faces the road (the same yaw as the squad exit).
  * The dish sits at local y 1.99 so the roof pick (world y 2.05, group at 0.06) lands on it.
@@ -147,12 +185,13 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), -0.42, 3.48, 0.32),
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), 0.42, 3.48, 0.32),
   ], mat(PALETTE.concrete, { roughness: 0.88, metalness: 0.02 }));
+  const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
+  const sandPad = roundMesh(2.55, 0.16, 1.85, 3, 0.06, 0, 0.1, 0.05, sandMat);
   const sand = mergedMesh([
-    baked(new THREE.BoxGeometry(2.55, 0.12, 1.85), 0, 0.1, 0.05),
     baked(new THREE.BoxGeometry(0.34, 0.14, 0.18), -0.7, 0.28, -1.02),
     baked(new THREE.BoxGeometry(0.34, 0.14, 0.18), 0, 0.28, -1.02),
     baked(new THREE.BoxGeometry(0.34, 0.14, 0.18), 0.7, 0.28, -1.02),
-  ], mat(PALETTE.sand, { roughness: 0.94, metalness: 0 }));
+  ], sandMat);
   const bodyMat = mat(WALL, { roughness: 0.82, metalness: 0.06 });
   bodyMat.emissive = new THREE.Color(paint.glow);
   bodyMat.emissiveIntensity = 0;
@@ -161,20 +200,13 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), -1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), 1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(1.7, 0.08, 0.1), 0, 0.84, -0.6),
-    baked(new THREE.BoxGeometry(2.05, 0.52, 1.28), 0, 0.42, 0),
     baked(new THREE.BoxGeometry(1.05, 0.42, 0.78), 0, 3.12, 0.02),
   ], bodyMat);
   body.userData.slot = 'body';
-  const tower = new THREE.Mesh(
-    new RoundedBoxGeometry(1.22, 2.15, 0.96, 2, 0.1),
-    bodyMat,
-  );
-  tower.position.set(0, 1.85, 0.02);
-  tower.castShadow = true;
-  tower.receiveShadow = true;
+  const plinth = roundMesh(2.05, 0.52, 1.28, 4, 0.16, 0, 0.42, 0, bodyMat);
+  const tower = roundMesh(1.22, 2.15, 0.96, 4, 0.18, 0, 1.85, 0.02, bodyMat);
   const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(1.26, 0.06, 0.08), 0, 2.42, 0.48),
-    baked(new THREE.BoxGeometry(1.26, 0.06, 0.08), 0, 2.42, -0.44),
+    baked(new THREE.BoxGeometry(0.9, 0.026, 0.038), 0, 2.5, 0.46),
   ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.08 }));
   roof.userData.slot = 'roof';
   const door = mergedMesh([
@@ -186,7 +218,7 @@ function makeHq(paint) {
   ], mat(PALETTE.ink, { roughness: 0.8, metalness: 0.12 }));
   const metal = mergedMesh([
     baked(new THREE.CylinderGeometry(0.028, 0.034, 0.46, 6), 0.16, 3.58, 0.02),
-    baked(new THREE.CylinderGeometry(0.13, 0.18, 0.028, 12), 0.16, 3.84, 0.1, 1.05, 0.15, 0.2),
+    baked(new THREE.CylinderGeometry(0.18, 0.18, 0.032, 16), 0.16, 3.84, 0.1, 1.05, 0.15, 0.2),
     baked(new THREE.TorusGeometry(0.15, 0.008, 6, 14), 0.16, 3.86, 0.12, 1.05, 0.15, 0.1),
     baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, -0.48),
     baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), 0.62, 1.85, -0.48),
@@ -213,15 +245,16 @@ function makeHq(paint) {
   g.userData.pip = pip;
   g.userData.pulse = bodyMat;
   g.userData.dangerRing = danger;
-  g.add(concrete, sand, body, tower, roof, door, metal, flag, pip, danger);
+  g.add(concrete, sandPad, sand, plinth, body, tower, roof, door, metal, flag, pip, danger);
   return g;
 }
 
 /** Lower hangar: roll door, vents, spawn pad. No dish. Roof center is world y 0.78. */
 function makeBarracks(paint) {
   const g = new THREE.Group();
+  const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
+  const sandPad = roundMesh(2.05, 0.16, 1.35, 3, 0.06, 0, 0.08, 0.05, sandMat);
   const sand = mergedMesh([
-    baked(new THREE.BoxGeometry(2.05, 0.1, 1.35), 0, 0.06, 0.05),
     baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, -0.55),
     baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, -0.55),
     baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, 0.15),
@@ -232,28 +265,24 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.55, 0.18, 0.78),
     baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), -0.2, 0.18, -0.72),
     baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.35, 0.18, -0.72),
-  ], mat(PALETTE.sand, { roughness: 0.94, metalness: 0 }));
-  const body = new THREE.Mesh(
-    new RoundedBoxGeometry(1.62, 0.46, 0.92, 2, 0.08),
-    mat(WALL, { roughness: 0.84, metalness: 0.05 }),
-  );
-  body.position.y = 0.32;
+  ], sandMat);
+  const wallMat = mat(WALL, { roughness: 0.84, metalness: 0.05 });
+  const body = roundMesh(1.74, 0.54, 1.0, 4, 0.15, 0, 0.36, 0, wallMat);
   body.userData.slot = 'body';
-  body.castShadow = true;
-  body.receiveShadow = true;
+  const shellMat = mat(WALL, { roughness: 0.8, metalness: 0.06 });
+  const slopeNear = roundMesh(1.66, 0.16, 0.58, 3, 0.06, 0, 0.86, -0.22, shellMat);
+  slopeNear.rotation.x = -0.45;
+  const slopeFar = roundMesh(1.66, 0.16, 0.58, 3, 0.06, 0, 0.86, 0.22, shellMat);
+  slopeFar.rotation.x = 0.45;
   const shell = mergedMesh([
-    baked(new THREE.BoxGeometry(1.78, 0.08, 1.02), 0, 0.7, 0),
-    // Negative rotation.x lowers the −z edge, so each slab rises toward the ridge.
-    baked(new THREE.BoxGeometry(1.7, 0.07, 0.62), 0, 0.84, -0.22, -0.45, 0, 0),
-    baked(new THREE.BoxGeometry(1.7, 0.07, 0.62), 0, 0.84, 0.22, 0.45, 0, 0),
-    baked(new THREE.BoxGeometry(0.1, 0.28, 0.95), -0.86, 0.84, 0),
-    baked(new THREE.BoxGeometry(0.1, 0.28, 0.95), 0.86, 0.84, 0),
-    baked(new THREE.BoxGeometry(1.48, 0.05, 0.12), 0, 1.06, 0.02),
-    baked(new THREE.BoxGeometry(0.14, 0.08, 0.14), -0.52, 1.02, 0.04),
-    baked(new THREE.BoxGeometry(0.14, 0.08, 0.14), 0.52, 1.02, -0.04),
-  ], mat(WALL, { roughness: 0.8, metalness: 0.06 }));
+    baked(new THREE.BoxGeometry(0.1, 0.22, 0.9), -0.84, 0.86, 0),
+    baked(new THREE.BoxGeometry(0.1, 0.22, 0.9), 0.84, 0.86, 0),
+    baked(new THREE.BoxGeometry(1.2, 0.04, 0.1), 0, 1.04, 0.02),
+    baked(new THREE.BoxGeometry(0.12, 0.07, 0.12), -0.46, 1.02, 0.02),
+    baked(new THREE.BoxGeometry(0.12, 0.07, 0.12), 0.46, 1.02, -0.02),
+  ], shellMat);
   const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(1.36, 0.04, 0.08), 0, 1.0, 0),
+    baked(new THREE.BoxGeometry(0.72, 0.022, 0.034), 0, 1.02, 0.02),
   ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.1 }));
   roof.userData.slot = 'roof';
   const ink = mergedMesh([
@@ -290,7 +319,7 @@ function makeBarracks(paint) {
   g.userData.pip = pip;
   g.userData.pulse = body.material;
   g.userData.dangerRing = captureRing;
-  g.add(sand, body, shell, roof, ink, spawn, pole, flag, pip, captureRing);
+  g.add(sandPad, sand, body, slopeNear, slopeFar, shell, roof, ink, spawn, pole, flag, pip, captureRing);
   return g;
 }
 
@@ -378,14 +407,15 @@ function frontLineGeometry() {
   for (let i = 0; i <= steps; i++) {
     const u = i / steps;
     const x = -0.5 + u;
-    const bow = -Math.sin(u * Math.PI) * 0.78;
+    // Positive bow lifts the middle toward the player field, clear of the stream.
+    const bow = Math.sin(u * Math.PI) * 0.72;
     const o = i * 6;
     positions[o] = x;
-    positions[o + 1] = 0.06;
-    positions[o + 2] = bow + 0.2;
+    positions[o + 1] = 0.1;
+    positions[o + 2] = bow + 0.28;
     positions[o + 3] = x;
-    positions[o + 4] = 0.06;
-    positions[o + 5] = bow - 0.18;
+    positions[o + 4] = 0.1;
+    positions[o + 5] = bow - 0.24;
     colors[o] = green.r;
     colors[o + 1] = green.g;
     colors[o + 2] = green.b;
@@ -443,19 +473,22 @@ export function bridgeDeckGeometries(crossings) {
 
 function pushTree(trunks, crowns, x, z, scale, color) {
   const wave = Math.sin(x * 12.7 + z * 4.3);
-  const s = scale * (0.5 + Math.abs(wave) * 1.05);
-  const lean = wave * 0.18;
-  const trunk = new THREE.CylinderGeometry(0.05 * s, 0.09 * s, 0.38 * s, 5);
-  trunk.translate(x + lean, 0.06 + 0.18 * s, z);
+  const tall = 0.48 + Math.abs(Math.sin(z * 2.15 + x * 0.37)) * 1.35;
+  const fat = 0.4 + Math.abs(Math.cos(x * 1.85 - z * 0.62)) * 0.95;
+  const lean = wave * 0.32;
+  const trunk = new THREE.CylinderGeometry(0.04 * fat * scale, 0.08 * fat * scale, 0.4 * tall * scale, 5);
+  trunk.translate(x + lean, 0.05 + 0.18 * tall * scale, z);
   trunks.push(trunk);
-  const varied = wave > 0.35 ? 0x5a7344 : wave < -0.35 ? 0x2a3c28 : color;
+  const pick = Math.abs(Math.sin(x * 5.1 + z * 3.7));
+  const varied = pick > 0.72 ? 0x6c8646 : pick > 0.48 ? 0x243628 : pick > 0.24 ? 0x4a6238 : color;
   const list = crowns[varied] || (crowns[varied] = []);
-  const lower = new THREE.ConeGeometry(0.42 * s, 0.72 * s, 8);
-  lower.translate(x + lean * 0.4, 0.06 + 0.52 * s, z);
-  const upper = new THREE.ConeGeometry(0.28 * s, 0.5 * s, 8);
-  upper.translate(x - lean * 0.2, 0.06 + 0.96 * s, z);
-  const tip = new THREE.ConeGeometry(0.14 * s, 0.3 * s, 6);
-  tip.translate(x, 0.06 + 1.28 * s, z);
+  const y0 = 0.05;
+  const lower = new THREE.ConeGeometry(0.48 * fat * scale, 0.82 * tall * scale, 7);
+  lower.translate(x + lean * 0.45, y0 + 0.46 * tall * scale, z);
+  const upper = new THREE.ConeGeometry(0.3 * fat * scale, 0.62 * tall * scale, 7);
+  upper.translate(x - lean * 0.25, y0 + 0.98 * tall * scale, z);
+  const tip = new THREE.ConeGeometry(0.13 * fat * scale, 0.36 * tall * scale, 5);
+  tip.translate(x + lean * 0.08, y0 + 1.4 * tall * scale, z);
   list.push(lower, upper, tip);
 }
 
@@ -507,13 +540,14 @@ function islandCapGeometry(spanX, spanZ) {
     const x = positions[i * 3];
     const z = positions[i * 3 + 2];
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
-    const n = Math.sin(x * 1.7 + z * 0.8) * Math.cos(z * 1.3 - x * 0.6) + Math.sin(x * 4.2 + z * 2.8) * 0.45;
-    tone.copy(meadow).lerp(deep, 0.45);
-    if (n > 0.2) tone.lerp(khaki, 0.82);
-    else if (n < -0.08) tone.lerp(deep, 0.9);
-    if (Math.abs(x) < 2.2 && Math.abs(z) > 0.9) tone.lerp(dirt, 0.55 * (1 - Math.min(1, Math.abs(x) / 2.2)));
-    if (Math.sin(x * 2.1 + 1.3) * Math.sin(z * 1.35) > 0.28) tone.lerp(sand, 0.7);
-    if (u > 0.86) tone.lerp(deepEdge, 0.28);
+    const n = Math.sin(x * 0.42 + z * 0.28) + Math.sin(x * 1.15 - z * 0.7) * 0.7;
+    tone.copy(meadow);
+    if (n > 0.45) tone.lerp(khaki, 0.78);
+    else if (n < -0.35) tone.lerp(deep, 0.88);
+    else tone.lerp(deep, 0.22);
+    if (Math.abs(x) < 2.6 && Math.abs(z) > 1.15) tone.lerp(dirt, 0.48 * (1 - Math.min(1, Math.abs(x) / 2.6)));
+    if (Math.sin(x * 0.9 + 0.4) * Math.sin(z * 0.55) > 0.2) tone.lerp(sand, 0.62);
+    if (u > 0.82) tone.lerp(deepEdge, 0.4);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -564,6 +598,12 @@ function streamRibbon(span) {
       positions[p + 1] = band.y;
       positions[p + 2] = bow + band.off;
       tone.setHex(band.hex);
+      if (Math.abs(band.off) < 0.02) {
+        const glint = Math.pow(Math.max(0, Math.sin(x * 1.35 + 0.6)), 1.35);
+        tone.lerp(new THREE.Color(0xe7f6fb), 0.28 + glint * 0.58);
+      } else if (Math.abs(Math.abs(band.off) - (WATER_HALF - 0.12)) < 0.03) {
+        tone.lerp(new THREE.Color(0xd7eef6), 0.22 + 0.28 * (0.5 + 0.5 * Math.sin(x * 2.1)));
+      }
       colors[p] = tone.r;
       colors[p + 1] = tone.g;
       colors[p + 2] = tone.b;
@@ -833,8 +873,8 @@ function buildIsland(map, reduceMotion) {
     const owner = ownerById[z.buildingId];
     const slab = owner ? stain(ownerPaint(owner).slab) : PALETTE.meadow;
     const mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(1, 1.02, 0.045, 18),
-      mat(slab, { roughness: 0.96, metalness: 0 }),
+      new THREE.CylinderGeometry(1, 1.02, 0.045, 24),
+      mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }),
     );
     if (owner) mesh.userData.owner = owner;
     mesh.scale.set(z.rx, 1, z.rz);
@@ -842,6 +882,7 @@ function buildIsland(map, reduceMotion) {
     mesh.rotation.y = 0;
     mesh.receiveShadow = true;
     mesh.castShadow = false;
+    tintZone(mesh, slab);
     group.add(mesh);
     zoneMeshes.set(z.buildingId, mesh);
   }
@@ -983,7 +1024,7 @@ function buildIsland(map, reduceMotion) {
   const haloMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.78,
     depthWrite: false,
     toneMapped: false,
     side: THREE.DoubleSide,
@@ -1163,7 +1204,7 @@ function buildIsland(map, reduceMotion) {
         const zone = zoneMeshes.get(b.id);
         if (zone && zone.userData.owner !== b.owner) {
           zone.userData.owner = b.owner;
-          zone.material.color.setHex(stain(ownerPaint(b.owner).slab));
+          tintZone(zone, stain(ownerPaint(b.owner).slab));
         }
         const ranks = b.upgrades;
         if (mesh.userData.pip) {
@@ -1200,7 +1241,7 @@ function buildIsland(map, reduceMotion) {
       }
 
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
-      glowMat.opacity = 0.28;
+      glowMat.opacity = 0.12;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
@@ -1235,14 +1276,15 @@ function buildIsland(map, reduceMotion) {
         const halo = halos[i];
         front.visible = true;
         halo.visible = true;
-        // Sit the curve on the bank with the lip, so the colour stays off the water.
-        const wide = Math.max(span * 1.2, 8.8);
-        const gx = cx + ox * 1.35;
-        const gz = cz + oz * 1.7;
-        front.position.set(gx, 0.52, gz);
-        halo.position.set(gx, 0.44, gz);
-        front.scale.set(wide, 1, 1.15);
-        halo.scale.set(wide * 1.04, 1, 1.55);
+        // A short width keeps the sine bow visible across the 390 frame.
+        // The shift lands the curve on the grass, past the sand bank.
+        const wide = 9.2;
+        const gx = cx + ox * 1.15;
+        const gz = cz + oz * 2.15;
+        front.position.set(gx, 0.68, gz);
+        halo.position.set(gx, 0.6, gz);
+        front.scale.set(wide, 1, 1.5);
+        halo.scale.set(wide * 1.04, 1, 2.05);
         front.rotation.y = yaw;
         halo.rotation.y = yaw;
       }
@@ -1316,9 +1358,11 @@ export function createWorld(scene) {
   for (let i = 0; i < fieldPos.count; i++) {
     const x = fieldPos.getX(i);
     const y = fieldPos.getY(i);
-    const n = Math.sin(x * 0.55) * Math.cos(y * 0.47) + Math.sin(x * 1.7 + y * 1.1) * 0.55;
-    meadowTone.copy(n > 0.22 ? meadowC : n < -0.18 ? meadowB : meadowA);
-    if (Math.abs(Math.sin(x * 0.31) * Math.cos(y * 0.27)) > 0.72) meadowTone.lerp(meadowC, 0.65);
+    const n = Math.sin(x * 0.18) * Math.cos(y * 0.14) + Math.sin(x * 0.55 + y * 0.4) * 0.65;
+    meadowTone.copy(meadowA);
+    if (n > 0.35) meadowTone.lerp(meadowC, 0.72);
+    else if (n < -0.25) meadowTone.lerp(meadowB, 0.55);
+    else meadowTone.lerp(meadowB, 0.18);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;

@@ -88,61 +88,82 @@ function limb(radiusTop, radiusBottom, height, sides) {
   return new THREE.CylinderGeometry(radiusTop, radiusBottom, height, sides);
 }
 
-export function soldierGeometry() {
-  // Proportioned infantry. Local −z is the rifle, which yawForFacing aims along travel.
-  // The helmet is about a sixth of the height. Limbs stay round so they do not read as cubes.
-  const legL = shade(limb(0.038, 0.046, 0.4, 6), 0.22);
-  legL.translate(-0.062, 0.2, 0.02);
-  const legR = shade(limb(0.038, 0.046, 0.4, 6), 0.16);
-  legR.translate(0.062, 0.2, -0.02);
-  const torso = shade(limb(0.1, 0.12, 0.4, 8), 0.42);
-  torso.translate(0, 0.52, 0);
-  const shoulders = shade(new THREE.CylinderGeometry(0.155, 0.13, 0.05, 8), 0.38);
-  shoulders.translate(0, 0.7, 0);
-  const armL = shade(limb(0.026, 0.03, 0.24, 6), 0.9);
-  armL.translate(-0.13, 0.52, -0.04);
-  const armR = shade(limb(0.024, 0.028, 0.22, 6), 0.26);
-  armR.translate(0.13, 0.5, -0.06);
-  const head = shade(limb(0.04, 0.044, 0.07, 8), 0.55);
-  head.translate(0, 0.78, 0);
+function around(geo, x, y, z, rx, ry) {
+  geo.translate(-x, -y, -z);
+  if (rx) geo.rotateX(rx);
+  if (ry) geo.rotateY(ry);
+  geo.translate(x, y, z);
+  return geo;
+}
+
+export function soldierGeometry(variant = 0) {
+  // Longer cloth under a helmet that stays about a sixth of the height.
+  // Variant 0 is the standing mesh the size tests measure. 1 and 2 stride.
+  const legL = shade(limb(0.04, 0.05, 0.46, 6), 0.22);
+  legL.translate(-0.07, 0.23, 0.02);
+  const legR = shade(limb(0.04, 0.05, 0.46, 6), 0.16);
+  legR.translate(0.07, 0.23, -0.02);
+  const torso = shade(limb(0.11, 0.135, 0.46, 8), 0.42);
+  torso.translate(0, 0.58, 0);
+  const shoulders = shade(new THREE.CylinderGeometry(0.168, 0.14, 0.055, 8), 0.38);
+  shoulders.translate(0, 0.78, 0);
+  const armL = shade(limb(0.028, 0.034, 0.3, 6), 0.9);
+  armL.translate(-0.15, 0.58, -0.04);
+  const armR = shade(limb(0.026, 0.03, 0.28, 6), 0.26);
+  armR.translate(0.15, 0.56, -0.05);
+  const head = shade(limb(0.042, 0.046, 0.08, 8), 0.55);
+  head.translate(0, 0.86, 0);
   const helmet = shade(new THREE.SphereGeometry(0.07, 10, 8), 1);
   helmet.scale(1, 0.94, 1);
-  helmet.translate(0, 0.84, -0.01);
-  const band = shade(new THREE.TorusGeometry(0.066, 0.012, 6, 10), 0.88);
+  helmet.translate(0, 0.94, -0.01);
+  const band = shade(new THREE.TorusGeometry(0.066, 0.016, 6, 10), 0.88);
   band.rotateX(Math.PI / 2);
-  band.translate(0, 0.82, -0.01);
-  const brim = shade(new THREE.BoxGeometry(0.15, 0.018, 0.1), 0.78);
-  brim.translate(0, 0.79, -0.04);
+  band.translate(0, 0.91, -0.01);
+  const brim = shade(new THREE.BoxGeometry(0.15, 0.016, 0.09), 0.72);
+  brim.translate(0, 0.88, -0.045);
   // Rifle on local −z. Length stays short so a rank cannot stripe the road.
   const rifle = shade(new THREE.BoxGeometry(0.04, 0.036, 0.42), 0.08);
-  rifle.translate(0.11, 0.5, -0.28);
+  rifle.translate(0.12, 0.52, -0.28);
   const stock = shade(new THREE.BoxGeometry(0.05, 0.06, 0.08), 0.12);
-  stock.translate(0.11, 0.44, -0.06);
-  const pack = shade(new THREE.BoxGeometry(0.08, 0.1, 0.05), 0.2);
-  pack.translate(0, 0.48, 0.08);
+  stock.translate(0.12, 0.46, -0.06);
+  const pack = shade(new THREE.BoxGeometry(0.09, 0.12, 0.06), 0.2);
+  pack.translate(0, 0.54, 0.09);
+  if (variant === 1) {
+    around(legL, -0.07, 0.46, 0.02, 0.62, 0);
+    around(legR, 0.07, 0.46, -0.02, -0.48, 0);
+    around(armL, -0.15, 0.72, -0.04, -0.5, 0);
+    around(armR, 0.15, 0.7, -0.05, 0.38, 0);
+    around(torso, 0, 0.58, 0, 0.06, 0.2);
+  } else if (variant === 2) {
+    around(legL, -0.07, 0.46, 0.02, -0.42, 0);
+    around(legR, 0.07, 0.46, -0.02, 0.58, 0);
+    around(armL, -0.15, 0.72, -0.04, 0.72, 0);
+    around(armR, 0.15, 0.7, -0.05, -0.22, 0);
+    around(torso, 0, 0.58, 0, -0.1, -0.24);
+  }
   const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, band, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;
 }
 
-/** Grey shade on soldierGeometry becomes khaki cloth, a team armband, helmet, skin, and rifle. */
-function troopGeometry(uniformHex, helmetHex, accentHex) {
-  const geo = soldierGeometry();
+/** Grey shade becomes khaki cloth, an olive dome, and a team band plus one arm. */
+function troopGeometry(uniformHex, bandHex, variant) {
+  const geo = soldierGeometry(variant || 0);
   const src = geo.getAttribute('color');
   const colors = new Float32Array(src.count * 3);
   const uniform = new THREE.Color(uniformHex);
   const deep = uniform.clone().multiplyScalar(0.62);
-  const helmet = new THREE.Color(helmetHex);
-  const brim = helmet.clone().multiplyScalar(0.62);
-  const accent = new THREE.Color(accentHex);
+  const dome = new THREE.Color(0x4c5342);
+  const band = new THREE.Color(bandHex);
+  const brim = new THREE.Color(0x343a30);
   const skin = new THREE.Color(0xc4a882);
   const rifle = new THREE.Color(0x2c332e);
   const cloth = new THREE.Color();
   for (let i = 0; i < src.count; i++) {
     const v = src.getX(i);
     let tone = uniform;
-    if (v >= 0.95) tone = helmet;
-    else if (v >= 0.85) tone = accent;
+    if (v >= 0.95) tone = dome;
+    else if (v >= 0.85) tone = band;
     else if (v >= 0.7) tone = brim;
     else if (v >= 0.5) tone = skin;
     else if (v <= 0.14) tone = rifle;
@@ -179,32 +200,32 @@ function exitYaw(nodeId) {
   return yawForFacing(b.x - a.x, b.z - a.z);
 }
 
+const POSES = 3;
+
 export function createCrowds(scene) {
-  const troopMat = () => new THREE.MeshStandardMaterial({
+  const troopMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     vertexColors: true,
     roughness: 0.74,
     metalness: 0.04,
   });
-  const green = new THREE.InstancedMesh(
-    troopGeometry(0x5a6048, HELMET_PLAYER, PALETTE.player.main),
-    troopMat(),
-    MAX,
-  );
-  const red = new THREE.InstancedMesh(
-    troopGeometry(0x645e4c, HELMET_ENEMY, PALETTE.enemy.main),
-    troopMat(),
-    MAX,
-  );
-  // Soldiers do not cast. A few hundred casters blow the 1024 shadow map.
-  green.castShadow = false;
-  red.castShadow = false;
-  green.receiveShadow = false;
-  red.receiveShadow = false;
-  green.frustumCulled = false;
-  red.frustumCulled = false;
-  green.count = 0;
-  red.count = 0;
+  const green = [];
+  const red = [];
+  for (let v = 0; v < POSES; v++) {
+    const gMesh = new THREE.InstancedMesh(troopGeometry(0x5a6048, HELMET_PLAYER, v), troopMat, MAX);
+    const rMesh = new THREE.InstancedMesh(troopGeometry(0x645e4c, HELMET_ENEMY, v), troopMat, MAX);
+    // Soldiers do not cast. A few hundred casters blow the 1024 shadow map.
+    gMesh.castShadow = false;
+    rMesh.castShadow = false;
+    gMesh.receiveShadow = false;
+    rMesh.receiveShadow = false;
+    gMesh.frustumCulled = false;
+    rMesh.frustumCulled = false;
+    gMesh.count = 0;
+    rMesh.count = 0;
+    green.push(gMesh);
+    red.push(rMesh);
+  }
   const padGeo = new THREE.CircleGeometry(0.3, 12);
   padGeo.rotateX(-Math.PI / 2);
   const pads = new THREE.InstancedMesh(
@@ -221,14 +242,14 @@ export function createCrowds(scene) {
   pads.receiveShadow = false;
   pads.frustumCulled = false;
   pads.count = 0;
-  scene.add(green, red, pads);
+  scene.add(...green, ...red, pads);
 
   const dummy = new THREE.Object3D();
   let pi = 0;
   const yawCache = new Map();
   const prevPos = new Map();
-  let gi = 0;
-  let ri = 0;
+  const gCount = [0, 0, 0];
+  const rCount = [0, 0, 0];
   let lastDot = null;
   let noseMesh = null;
   let noseIndex = -1;
@@ -240,9 +261,12 @@ export function createCrowds(scene) {
     return yaw;
   }
 
-  function push(owner, x, y, z, yaw, scale, trackNose, lean) {
-    const mesh = owner === 'player' ? green : red;
-    const index = owner === 'player' ? gi : ri;
+  function push(owner, x, y, z, yaw, scale, trackNose, lean, pose) {
+    const meshes = owner === 'player' ? green : red;
+    const counts = owner === 'player' ? gCount : rCount;
+    const slot = pose || 0;
+    const mesh = meshes[slot];
+    const index = counts[slot];
     if (index >= MAX) return;
     const tip = lean || 0;
     dummy.position.set(x, y, z);
@@ -259,8 +283,7 @@ export function createCrowds(scene) {
       pi += 1;
       dummy.rotation.set(0, yaw, 0);
     }
-    if (owner === 'player') gi += 1;
-    else ri += 1;
+    counts[slot] += 1;
     if (trackNose) {
       noseMesh = mesh;
       noseIndex = index;
@@ -278,14 +301,17 @@ export function createCrowds(scene) {
       const r = Math.floor(i / cols);
       const rows = Math.ceil(n / cols);
       const rowCount = r === rows - 1 ? n - r * cols : cols;
-      const lx = (c - (rowCount - 1) / 2) * spacing + (r % 2) * spacing * 0.5 + ((i * 3) % 5 - 2) * spacing * 0.12;
-      const lz = r * spacing * 0.74 + ((i * 5) % 5 - 2) * spacing * 0.14;
+      const lx = (c - (rowCount - 1) / 2) * spacing * 1.34
+        + (r % 2) * spacing * 0.72
+        + ((i * 3) % 7 - 3) * spacing * 0.24;
+      const lz = r * spacing * 0.98 + ((i * 5) % 7 - 3) * spacing * 0.22;
       rotateXZ(lx, lz, yaw, _slot);
-      const bob = 1 + ((i * 17) % 5) * 0.02;
+      const bob = 0.92 + ((i * 17) % 5) * 0.045;
       const lead = track && i === 0;
-      const yawJ = lead ? yaw : yaw + ((i * 5) % 5 - 2) * 0.07;
-      const lean = lead ? 0 : ((i * 3) % 5 - 2) * 0.08;
-      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean);
+      const yawJ = lead ? yaw : yaw + ((i * 5) % 7 - 3) * 0.11;
+      const lean = lead ? 0 : ((i * 3) % 5 - 2) * 0.1;
+      const pose = lead ? 0 : i % POSES;
+      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean, pose);
     }
   }
 
@@ -300,8 +326,10 @@ export function createCrowds(scene) {
       prevPos.clear();
     },
     update(state) {
-      gi = 0;
-      ri = 0;
+      for (let v = 0; v < POSES; v++) {
+        gCount[v] = 0;
+        rCount[v] = 0;
+      }
       pi = 0;
       noseMesh = null;
       noseIndex = -1;
@@ -362,11 +390,13 @@ export function createCrowds(scene) {
         }
       }
 
-      green.count = gi;
-      red.count = ri;
+      for (let v = 0; v < POSES; v++) {
+        green[v].count = gCount[v];
+        red[v].count = rCount[v];
+        green[v].instanceMatrix.needsUpdate = true;
+        red[v].instanceMatrix.needsUpdate = true;
+      }
       pads.count = pi;
-      green.instanceMatrix.needsUpdate = true;
-      red.instanceMatrix.needsUpdate = true;
       pads.instanceMatrix.needsUpdate = true;
     },
   };

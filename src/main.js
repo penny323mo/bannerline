@@ -744,6 +744,9 @@ window.__BL = {
   quality() {
     return { shadows: stage.shadowsOn, fx: fxOn, software: stage.software };
   },
+  setShadows(on) {
+    stage.setShadows(!!on);
+  },
   start(nextMap, nextDiff) {
     if (nextMap) mapId = nextMap;
     if (nextDiff) difficulty = nextDiff;

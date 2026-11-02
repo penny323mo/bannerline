@@ -242,3 +242,12 @@
 - Ground and light. The meadow and the dirt road carry stronger grass and dust variation. Trees vary in height and leaf colour. The river centre is a lighter blue, 0x6eb4d4, with sand banks. The warm sun and the vignette stay. Software devices still skip the shadow map.
 - Badges. Count pills stay 36px tall with the same −139% shift. They are wider, nowrap, so 「司令部 54 滿」 stays on one line at 390px. Squad pills use the same single-line treatment.
 - 67 tests passed. Rebuilt `static/app.js` (565818 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png`.
+
+## Round 36 fixes
+
+- Team colour. `muteTeam` now lerps 74% toward the wall `0x5a6158`. Headquarters and barracks keep that paint on one narrow roof trim. Flags stay faction colour. Soldier domes are a shared olive `0x4c5342`. The helmet band and the left arm use the locked helmet greens and reds (`0x3e6b32` / `0x7c2a22`). Palette mains are unchanged.
+- Edges. The tower shaft is a rounded box with 4 segments and radius 0.18. The hangar body and its roof slopes use a larger radius and more segments. The headquarters plinth and both sand pads are standalone rounded meshes. The radar dish stays a cylinder of radius 0.18 on its mast.
+- Soldiers. The body is longer, and the helmet sphere stays radius 0.07, about a sixth of the height. Three pose meshes (stand, stride, counter-stride) share a rank, with a wider stagger, so a squad reads as a loose crowd. The lead marcher stays on the standing pose so the facing probe still matches travel. Scale stays 1.28.
+- Front line. The bowed ribbon is raised, thickened, and shifted onto the grass past the sand bank. Width stays 9.2 so the sine bow crosses the 390px frame. Halo opacity is 0.78 and the hard band opacity is 0.12, so the green-then-red curve is the bright mark. The hard band still uses z scale 1.2 and the tint still uses z scale 1.75.
+- Ground and light. The river centre keeps `0x6eb4d4` and gains a pale glint toward `0xe7f6fb`. Sand banks are wider (`BANK_OUT` 0.52). Pines vary height and width separately, with a wider leaf spread. Territory discs carry dirt and deep-grass patches. `__BL.setShadows` can turn the warm sun shadow on for a shot. The software path still starts with the shadow map off. The fix screenshots were rendered with that shadow on, so the towers show contact.
+- 67 tests passed. Rebuilt `static/app.js` (567200 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.

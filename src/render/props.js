@@ -165,7 +165,7 @@ function buildSoldier(soldierRoot, rifleRoot) {
   return merged;
 }
 
-function preparedGeometry(root, tint) {
+function preparedGeometry(root, tint, strength = 0.45) {
   root.updateMatrixWorld(true);
   const parts = [];
   root.traverse((obj) => {
@@ -175,7 +175,7 @@ function preparedGeometry(root, tint) {
     const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     const color = mat && mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
     const lum = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
-    if (tint && lum >= 0.25) color.lerp(new THREE.Color(tint), 0.45);
+    if (tint && lum >= 0.25) color.lerp(new THREE.Color(tint), strength);
     parts.push(posColor(geo, color.getHex()));
   });
   const geo = mergeGeometries(parts);
@@ -198,13 +198,32 @@ function concreteMaterial(hex) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0.02 });
 }
 
-function repaint(root, material) {
+function repaint(root, material, cast = false) {
   root.traverse((obj) => {
     if (!obj.isMesh) return;
     obj.material = material;
-    obj.castShadow = false;
+    obj.castShadow = cast;
     obj.receiveShadow = true;
   });
+}
+
+/** Downward faces go darker so a single olive does not read as flat plastic. */
+function shadeMesh(geo, hex) {
+  const pos = geo.attributes.position;
+  const norm = geo.attributes.normal;
+  const colors = new Float32Array(pos.count * 3);
+  const base = new THREE.Color(hex);
+  const tone = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const ny = norm ? norm.getY(i) : 0.5;
+    const shade = 0.55 + 0.45 * Math.max(0, Math.min(1, ny * 0.5 + 0.5));
+    tone.copy(base).multiplyScalar(shade);
+    colors[i * 3] = tone.r;
+    colors[i * 3 + 1] = tone.g;
+    colors[i * 3 + 2] = tone.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
 }
 
 function ownMaterials(root) {
@@ -391,6 +410,8 @@ function ringBags(parent, template, radius, count) {
       obj.material.color.set(0xc4a36a);
       obj.material.roughness = 0.92;
       obj.material.metalness = 0;
+      obj.castShadow = true;
+      obj.receiveShadow = true;
     });
     bag.position.x += Math.cos(a) * radius;
     bag.position.z += Math.sin(a) * radius;
@@ -405,7 +426,7 @@ function dressBuilding(group, kit) {
   if (hq && enemy && kit.tower) {
     const tower = kit.tower.clone(true);
     detach(tower);
-    repaint(tower, concreteMaterial(0x9a958c));
+    repaint(tower, concreteMaterial(0x9a958c), true);
     fitHeight(tower, group, 3.15, 1.45);
     group.updateWorldMatrix(true, true);
     _box.setFromObject(tower);
@@ -423,6 +444,8 @@ function dressBuilding(group, kit) {
     for (const frac of [0.34, 0.68]) {
       const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.09, 20), bandMat);
       band.scale.setScalar((halfW * 1.2) / (0.5 * sx));
+      band.castShadow = true;
+      band.receiveShadow = true;
       group.add(band);
       setFeetWorldY(band, group, foot + (top - foot) * frac);
     }
@@ -433,18 +456,75 @@ function dressBuilding(group, kit) {
       fitHeight(dish, group, 0.9, 1.25);
       setFeetWorldY(dish, group, top - 0.04);
     }
-    const wallSrc = kit.fort || kit.wall;
+    const wallSrc = kit.wall || kit.fort;
     if (wallSrc) {
-      for (let i = 0; i < 4; i++) {
-        const wall = wallSrc.clone(true);
-        detach(wall);
-        repaint(wall, concreteMaterial(0x8d887e));
-        const a = (i / 4) * Math.PI * 2 + 0.35;
-        fitHeight(wall, group, 0.5, 1.05);
-        wall.position.x += Math.cos(a) * (1.15 / sx);
-        wall.position.z += Math.sin(a) * (0.95 / sx);
+      // Parent local −Z is the building forward (yawForFacing). The gap faces the road.
+      const wallCount = 20;
+      const radius = 1.62 / sx;
+      const wallMat = concreteMaterial(0x9a948c);
+      const trimMat = new THREE.MeshStandardMaterial({
+        color: 0x8e1c1c,
+        emissive: 0x5a1010,
+        emissiveIntensity: 0.3,
+        roughness: 0.58,
+        metalness: 0.04,
+      });
+      for (let i = 0; i < wallCount; i++) {
+        const a = -Math.PI / 2 + (i / wallCount) * Math.PI * 2;
+        const gap = Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)));
+        if (gap < 0.18) continue;
+        const wall = new THREE.Mesh(
+          new THREE.BoxGeometry(0.7 / sx, 0.58 / sx, 0.18 / sx),
+          wallMat,
+        );
+        wall.position.set(Math.cos(a) * radius, 0.29 / sx, Math.sin(a) * radius);
         wall.rotation.y = a + Math.PI / 2;
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        group.add(wall);
+        const trim = new THREE.Mesh(
+          new THREE.BoxGeometry(0.72 / sx, 0.08 / sx, 0.2 / sx),
+          trimMat,
+        );
+        trim.position.set(wall.position.x, wall.position.y + 0.32 / sx, wall.position.z);
+        trim.rotation.y = wall.rotation.y;
+        trim.castShadow = true;
+        trim.receiveShadow = true;
+        group.add(trim);
       }
+      for (const side of [-1, 1]) {
+        const a = -Math.PI / 2 + side * 0.28;
+        const post = new THREE.Mesh(
+          new THREE.BoxGeometry(0.18 / sx, 0.72 / sx, 0.18 / sx),
+          wallMat,
+        );
+        post.position.set(Math.cos(a) * radius, 0.36 / sx, Math.sin(a) * radius);
+        post.castShadow = true;
+        post.receiveShadow = true;
+        group.add(post);
+      }
+      const gateZ = -radius;
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02 / sx, 0.02 / sx, 0.62 / sx, 6),
+        concreteMaterial(0x3e3a34),
+      );
+      pole.position.set(0.22 / sx, 0.31 / sx, gateZ);
+      pole.castShadow = true;
+      group.add(pole);
+      const cloth = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.55 / sx, 0.32 / sx),
+        new THREE.MeshStandardMaterial({
+          color: 0x8e1c1c,
+          emissive: 0x6a1010,
+          emissiveIntensity: 0.28,
+          side: THREE.DoubleSide,
+          roughness: 0.62,
+        }),
+      );
+      cloth.position.set(0.46 / sx, 0.52 / sx, gateZ);
+      cloth.rotation.y = 0.65;
+      cloth.castShadow = true;
+      group.add(cloth);
     }
     seatFlag(group, top + 0.02);
     return;
@@ -452,7 +532,7 @@ function dressBuilding(group, kit) {
   if (!kit.bunker || !kit.roof) return;
   const body = kit.bunker.clone(true);
   detach(body);
-  repaint(body, concreteMaterial(enemy ? 0x8a847c : 0x7f8a72));
+  repaint(body, concreteMaterial(enemy ? 0x8a847c : 0x7f8a72), true);
   fitHeight(body, group, hq ? 0.85 : 0.68, hq ? 1.7 : 1.35);
   group.updateWorldMatrix(true, true);
   _box.setFromObject(body);
@@ -469,11 +549,14 @@ function dressBuilding(group, kit) {
   if (!enemy && hq && kit.tank) {
     if (!kit.tankGeo) kit.tankGeo = bakeProp(kit.tank);
     if (kit.tankGeo) {
-      const tank = new THREE.Mesh(kit.tankGeo.clone(), new THREE.MeshStandardMaterial({
-        color: 0x2a6b34,
-        roughness: 0.74,
-        metalness: 0.12,
+      const tank = new THREE.Mesh(shadeMesh(kit.tankGeo.clone(), 0x4e5a34), new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.82,
+        metalness: 0.08,
+        vertexColors: true,
       }));
+      tank.castShadow = true;
+      tank.receiveShadow = true;
       tank.frustumCulled = false;
       fitHeight(tank, group, 0.72, 1.9);
       group.updateWorldMatrix(true, true);
@@ -492,7 +575,25 @@ function dressIsland(group, kit) {
   group.userData.assetDress = true;
   const flora = group.userData.flora || [];
   for (let i = 0; i < flora.length; i++) flora[i].visible = false;
-  const trees = (group.userData.treeSpots || []).filter((spot) => Math.abs(spot.x) > 3.6 || Math.abs(spot.z) > 4.6);
+  const baseTrees = (group.userData.treeSpots || []).filter((spot) => Math.abs(spot.x) > 3.6 || Math.abs(spot.z) > 4.6);
+  const trees = baseTrees.slice();
+  for (let i = 0; i < baseTrees.length; i++) {
+    const spot = baseTrees[i];
+    if (Math.abs(spot.x) < 6 && Math.abs(spot.z) < 6.5) continue;
+    trees.push({ x: spot.x + 0.62, z: spot.z - 0.4, s: spot.s * 0.82 });
+    trees.push({ x: spot.x - 0.48, z: spot.z + 0.55, s: spot.s * 0.74 });
+  }
+  const corners = [
+    [-8.6, 6.4, 1.2], [-7.7, 7.2, 1.05], [-8.9, 5.1, 0.95],
+    [8.5, 6.6, 1.15], [7.6, 7.3, 1.0], [9.0, 5.2, 0.9],
+    [-8.7, -6.2, 1.1], [-7.5, -7.1, 0.95],
+    [8.6, -6.0, 1.1], [7.4, -6.9, 0.92],
+    [-5.4, 8.8, 1.05], [5.2, 8.7, 1.0],
+    [-5.2, -8.6, 1.0], [5.4, -8.5, 0.95],
+  ];
+  for (let i = 0; i < corners.length; i++) {
+    trees.push({ x: corners[i][0], z: corners[i][1], s: corners[i][2] });
+  }
   const pineMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0 });
   const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
   const fenceMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84, metalness: 0 });
@@ -501,6 +602,26 @@ function dressIsland(group, kit) {
   const rocks = group.userData.rockSpots || [];
   scatter(group, kit.rockA, rocks.filter((_, i) => i % 2 === 0).map((spot) => ({ x: spot.x, z: spot.z, s: 0.28 + spot.s * 0.12 })), rockMat);
   scatter(group, kit.rockB, rocks.filter((_, i) => i % 2 === 1).map((spot) => ({ x: spot.x, z: spot.z, s: 0.32 + spot.s * 0.1 })), rockMat);
+  const nest = corners.map((c, i) => ({
+    x: c[0] + (i % 2 ? 0.45 : -0.4),
+    z: c[1] + (i % 3 ? 0.35 : -0.3),
+    s: 0.34 + (i % 3) * 0.08,
+  }));
+  scatter(group, kit.rockA, nest.filter((_, i) => i % 2 === 0), rockMat);
+  scatter(group, kit.rockB, nest.filter((_, i) => i % 2 === 1), rockMat);
+  const pebblesA = [];
+  const pebblesB = [];
+  for (let i = 0; i < 36; i++) {
+    const x = Math.sin(i * 12.9898) * 6.8;
+    const z = Math.cos(i * 78.233) * 7.6;
+    if (Math.abs(z) < 0.9) continue;
+    if (Math.abs(x) < 1.5 && Math.abs(z) < 2.6) continue;
+    const spot = { x, z, s: 0.22 + (i % 4) * 0.05 };
+    if (i % 2 === 0) pebblesA.push(spot);
+    else pebblesB.push(spot);
+  }
+  scatter(group, kit.rockA, pebblesA, rockMat);
+  scatter(group, kit.rockB, pebblesB, rockMat);
   const fences = [
     { x: -7.2, z: 2.4, s: 1.15, y: 0.4 },
     { x: -7.4, z: -2.2, s: 1.15, y: 0.2 },
@@ -542,10 +663,10 @@ export function loadBattlefield(world, crowds) {
       bags: gltf.bags.scene,
       tank: gltf.tank.scene,
       radar: gltf.radar ? gltf.radar.scene : null,
-      pineA: preparedGeometry(gltf.pineA.scene, 0x8fbf62),
-      pineB: preparedGeometry(gltf.pineB.scene, 0x9ed070),
-      rockA: preparedGeometry(gltf.rockA.scene, 0x8e8a84),
-      rockB: preparedGeometry(gltf.rockB.scene, 0x9a9690),
+      pineA: preparedGeometry(gltf.pineA.scene, 0x243628, 0.82),
+      pineB: preparedGeometry(gltf.pineB.scene, 0x1c3024, 0.84),
+      rockA: preparedGeometry(gltf.rockA.scene, 0x6a6560),
+      rockB: preparedGeometry(gltf.rockB.scene, 0x746e68),
       fence: preparedGeometry(gltf.fence.scene, 0x6a5340),
     };
     world.setDresser((group) => dressIsland(group, kit));

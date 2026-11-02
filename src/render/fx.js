@@ -96,6 +96,40 @@ export function createFx(scene) {
     scene.add(sprite);
     return sprite;
   });
+  const muzzleMat = new THREE.SpriteMaterial({
+    color: 0xff9a3c,
+    transparent: true,
+    opacity: 0.92,
+    depthWrite: false,
+    depthTest: false,
+    toneMapped: false,
+  });
+  const muzzles = [0, 1, 2, 3, 4].map(() => {
+    const sprite = new THREE.Sprite(muzzleMat);
+    sprite.scale.set(0.28, 0.16, 1);
+    sprite.visible = false;
+    sprite.renderOrder = 6;
+    sprite.frustumCulled = false;
+    scene.add(sprite);
+    return sprite;
+  });
+  const dustMat = new THREE.SpriteMaterial({
+    color: 0xc4a574,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+    depthTest: false,
+    toneMapped: false,
+  });
+  const dustPuffs = [0, 1, 2, 3].map(() => {
+    const sprite = new THREE.Sprite(dustMat);
+    sprite.scale.set(0.36, 0.2, 1);
+    sprite.visible = false;
+    sprite.renderOrder = 5;
+    sprite.frustumCulled = false;
+    scene.add(sprite);
+    return sprite;
+  });
   const smokeCanvas = document.createElement('canvas');
   smokeCanvas.width = 64;
   smokeCanvas.height = 64;
@@ -117,21 +151,22 @@ export function createFx(scene) {
   const driftSpots = [
     [0.6, 1.6, 6.0],
     [1.5, 2.5, -4.8],
+    [0.15, 3.05, -6.2],
     [6.6, 2.3, 2.4],
     [-6.8, 2.5, -2.2],
   ];
   const drifts = driftSpots.map((spot, i) => {
     const sprite = new THREE.Sprite(driftMat);
-    const wide = i < 2 ? 4.4 : 2.6;
-    sprite.scale.set(wide, i < 2 ? 4.6 : 2.8, 1);
+    const wide = i < 3 ? 4.4 : 2.6;
+    sprite.scale.set(wide, i < 3 ? 4.6 : 2.8, 1);
     sprite.position.set(spot[0], spot[1], spot[2]);
     sprite.renderOrder = 3;
     sprite.frustumCulled = false;
     scene.add(sprite);
     return sprite;
   });
-  const traceGreen = new THREE.Color(0xb6ff6a);
-  const traceRed = new THREE.Color(0xffb15a);
+  const traceGreen = new THREE.Color(0xff9a3c);
+  const traceRed = new THREE.Color(0xff6a28);
 
   const life = new Float32Array(POOL);
   const maxLife = new Float32Array(POOL);
@@ -175,6 +210,8 @@ export function createFx(scene) {
         rankPuffs[1].visible = false;
         streaks[0].visible = false;
         streaks[1].visible = false;
+        for (let i = 0; i < muzzles.length; i++) muzzles[i].visible = false;
+        for (let i = 0; i < dustPuffs.length; i++) dustPuffs[i].visible = false;
       }
     },
     update(dt, state) {
@@ -182,6 +219,11 @@ export function createFx(scene) {
       const squads = state.squads || [];
       let budget = 64;
       const tick = Math.floor((state.t || 0) * 8);
+      let playerFighting = false;
+      let muzzleIndex = 0;
+      let dustIndex = 0;
+      for (let i = 0; i < muzzles.length; i++) muzzles[i].visible = false;
+      for (let i = 0; i < dustPuffs.length; i++) dustPuffs[i].visible = false;
       for (let s = 0; s < squads.length && budget > 0; s++) {
         const q = squads[s];
         if (!q || q.count <= 0) continue;
@@ -194,8 +236,25 @@ export function createFx(scene) {
             budget -= 1;
           }
         } else if (q.mode === 'fight' || q.mode === 'siege') {
-          spawn(q.x, 0.45, q.z, smoke, 1.2, s % 2 ? 0.6 : -0.6, 1.1, 0);
-          budget -= 1;
+          if (q.owner === 'player') playerFighting = true;
+          const spot = q.owner === 'enemy' && q.z > -3.6 ? { x: 0.4, z: -4.4 } : { x: q.x, z: q.z };
+          const side = ((s + tick) % 3) - 1;
+          if (muzzleIndex < muzzles.length - 1) {
+            const flashSprite = muzzles[muzzleIndex];
+            muzzleIndex += 1;
+            flashSprite.position.set(spot.x + side * 0.2, 0.36, spot.z);
+            flashSprite.visible = enabled;
+          }
+          if (dustIndex < dustPuffs.length) {
+            const puffSprite = dustPuffs[dustIndex];
+            dustIndex += 1;
+            puffSprite.position.set(spot.x + side * 0.12, 0.12, spot.z + 0.06);
+            puffSprite.visible = enabled;
+          }
+          if (budget > 0) {
+            spawn(q.x, 0.45, q.z, smoke, 1.2, s % 2 ? 0.6 : -0.6, 1.1, 0);
+            budget -= 1;
+          }
           if (budget > 0) {
             spawn(q.x + 0.12, 0.62, q.z, q.mode === 'siege' ? fire : flash, 0.4, 0, 0.4, 0);
             budget -= 1;
@@ -228,6 +287,11 @@ export function createFx(scene) {
             }
           }
         }
+      }
+      if (playerFighting) {
+        const barrel = muzzles[muzzles.length - 1];
+        barrel.position.set(1.7, 0.46, 3.75);
+        barrel.visible = enabled;
       }
       const nodes = state.nodes;
       const buildings = state.buildings;

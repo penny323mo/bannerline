@@ -36,6 +36,7 @@ function tintSoldierGeo(source, tintHex) {
   const geo = source.clone();
   const attr = geo.getAttribute('color');
   if (!attr) return geo;
+  const pos = geo.getAttribute('position');
   const team = new THREE.Color(tintHex);
   const tone = new THREE.Color();
   for (let i = 0; i < attr.count; i++) {
@@ -43,6 +44,11 @@ function tintSoldierGeo(source, tintHex) {
     const lum = tone.r * 0.2126 + tone.g * 0.7152 + tone.b * 0.0722;
     if (lum < 0.25) continue;
     tone.multiply(team);
+    const y = pos ? pos.getY(i) : 0.5;
+    let shade = 0.94 + (i % 5) * 0.02;
+    if (y < 0.42) shade *= 0.82;
+    else if (y > 0.8) shade *= 0.88;
+    tone.multiplyScalar(shade);
     attr.setXYZ(i, tone.r, tone.g, tone.b);
   }
   attr.needsUpdate = true;
@@ -259,14 +265,14 @@ export function createCrowds(scene) {
     green.push(gMesh);
     red.push(rMesh);
   }
-  const padGeo = new THREE.CircleGeometry(0.3, 12);
+  const padGeo = new THREE.CircleGeometry(0.42, 14);
   padGeo.rotateX(-Math.PI / 2);
   const pads = new THREE.InstancedMesh(
     padGeo,
     new THREE.MeshBasicMaterial({
-      color: 0x1a2016,
+      color: 0x12160f,
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.5,
       depthWrite: false,
     }),
     MAX,
@@ -309,9 +315,9 @@ export function createCrowds(scene) {
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
     if (pi < MAX) {
-      dummy.position.y = 0.03;
+      dummy.position.y = 0.025;
       dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(scale * 0.72, 1, scale * 0.46);
+      dummy.scale.set(scale * modelMul * 1.05, 1, scale * modelMul * 0.7);
       dummy.updateMatrix();
       pads.setMatrixAt(pi, dummy.matrix);
       pi += 1;
@@ -328,21 +334,41 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const raw = Math.max(0, Math.floor(count));
     // visualCount stays the garrison cap. The drawn block is larger so a squad reads as a crowd.
-    const n = raw <= 8 ? raw : (owner === 'enemy' ? Math.min(32, raw) : Math.min(36, raw));
+    const enemy = owner === 'enemy';
+    const n = raw <= 8 ? raw : (enemy ? Math.min(44, raw) : Math.min(48, raw));
     if (n <= 0) return;
-    const cols = owner === 'enemy' ? Math.min(6, Math.max(1, n)) : Math.min(6, Math.max(1, n));
-    const spacing = owner === 'enemy' ? 0.36 : 0.55;
+    if (enemy) {
+      const cols = Math.min(8, Math.max(1, n));
+      const spacing = 0.27;
+      for (let i = 0; i < n; i++) {
+        const lead = track && i === 0;
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const rowCount = Math.min(cols, n - row * cols);
+        const lx = (col - (rowCount - 1) / 2) * spacing;
+        const lz = row * spacing * 0.7;
+        rotateXZ(lx, lz, yaw, _slot);
+        const bob = lead ? 1 : 0.96;
+        const pose = lead ? 0 : (i % 2) + 1;
+        push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yaw, SOLDIER_SCALE * bob, lead, 0, pose);
+      }
+      return;
+    }
+    const gap = 0.42;
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      const rowCount = Math.min(cols, n - row * cols);
-      const lx = (col - (rowCount - 1) / 2) * spacing;
-      const lz = row * spacing * 0.82;
+      let lx = 0;
+      let lz = 0;
+      if (!lead) {
+        const ang = i * 2.399963;
+        const rad = gap * 0.55 * Math.sqrt(i);
+        lx = Math.cos(ang) * rad * 1.15;
+        lz = Math.sin(ang) * rad * 0.72;
+      }
       rotateXZ(lx, lz, yaw, _slot);
-      const bob = lead ? 1 : 0.94 + (i % 3) * 0.03;
-      const yawJ = lead ? yaw : yaw + ((i % 5) - 2) * 0.08;
-      const lean = lead ? 0 : ((i % 3) - 1) * 0.05;
+      const bob = lead ? 1 : 0.9 + (i % 4) * 0.035;
+      const yawJ = lead ? yaw : yaw + ((i % 7) - 3) * 0.07;
+      const lean = lead ? 0 : ((i % 5) - 2) * 0.04;
       const pose = lead ? 0 : (i % 2) + 1;
       push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean, pose);
     }
@@ -441,8 +467,8 @@ export function createCrowds(scene) {
       pads.instanceMatrix.needsUpdate = true;
     },
     useSoldier(geo) {
-      const greenGeo = tintSoldierGeo(geo, 0x2f9e5b);
-      const redGeo = tintSoldierGeo(geo, 0xc43c32);
+      const greenGeo = tintSoldierGeo(geo, 0x5a6a3c);
+      const redGeo = tintSoldierGeo(geo, 0x8e1c1c);
       const greenMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         roughness: 0.78,
@@ -461,8 +487,8 @@ export function createCrowds(scene) {
         green[v].material = greenMat;
         red[v].material = redMat;
       }
-      pads.visible = false;
-      modelMul = 1.75;
+      pads.visible = true;
+      modelMul = 1.14;
     },
   };
 }

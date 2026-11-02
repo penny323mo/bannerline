@@ -57,7 +57,7 @@ body {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 42%, transparent 62%, rgba(70, 84, 48, 0.16) 100%);
+  background: radial-gradient(ellipse at 50% 42%, transparent 70%, rgba(48, 32, 18, 0.2) 100%);
 }
 
 #badges {

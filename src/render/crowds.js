@@ -29,10 +29,10 @@ export function visualCount(count) {
  */
 function enemyBank(x, z) {
   // Headquarters rank stands on the road in front of the gate, clear of the curb.
-  if (z < -5.2) return { x: 1.75, z: -3.85 };
+  if (z < -5.2) return { x: 1.15, z: -3.85 };
   if (z > -3.6) {
     const lane = x > 0.4 ? 1 : -1;
-    return { x: lane < 0 ? -2.7 : 1.9, z: -3.55 };
+    return { x: lane < 0 ? -2.55 : 1.9, z: -3.55 };
   }
   return { x, z };
 }
@@ -43,7 +43,7 @@ function enemyBank(x, z) {
  */
 export function drawAnchor(owner, x, z, count = 0) {
   if (owner === 'enemy') return enemyBank(x, z, count);
-  if (z < 4.2 && z > -0.5) return { x: -0.85, z: 1.85 };
+  if (z < 4.2 && z > -0.5) return { x: 0.05, z: 1.85 };
   return { x, z };
 }
 
@@ -58,8 +58,9 @@ export function formationLocal(owner, index, n) {
   const cols = mass
     ? (enemy ? (count >= 20 ? 6 : Math.min(count, 4)) : (count >= 24 ? 6 : 5))
     : Math.min(4, count);
-  const colGap = mass ? 0.38 : 0.42;
-  const rowGap = mass ? (enemy ? 0.42 : 0.4) : 0.36;
+  // Six across. Rows are far enough apart that a block of 30 or 40 reads as ranks, not one line.
+  const colGap = mass ? 0.44 : 0.42;
+  const rowGap = mass ? (enemy ? 0.72 : 0.44) : 0.36;
   const row = Math.floor(index / cols);
   const col = index % cols;
   const rowCount = Math.min(cols, count - row * cols);
@@ -82,13 +83,27 @@ export function formationWorld(owner, index, n, yaw, out) {
   return rotateXZ(local.lx, local.lz, yaw, out);
 }
 
-/** Figures on screen. visualCount stays the pick cap. This only scales the draw. */
+/** Figures on screen for one squad. visualCount stays the pick cap. This only scales the draw. */
 export function drawnCount(owner, count) {
   const raw = Math.max(0, Math.floor(count));
   if (raw <= 8) return raw;
   if (owner === 'enemy') return Math.min(32, Math.max(raw, Math.round(raw * 2)));
   if (raw < 16) return Math.min(22, Math.round(raw * 1.4));
   return Math.min(44, Math.round(raw * 2.3));
+}
+
+/**
+ * Bodies for every squad that shares one anchor. A handful pooled on that
+ * spot is one block, about 30 red or about 40 green, not each squad's own
+ * handful stacked on the same point. A garrison that does not share the
+ * spot keeps its own count. Badges stay the real counts.
+ */
+export function blockDrawCount(owner, pooled) {
+  const raw = Math.max(0, Math.floor(pooled));
+  if (raw <= 8) return raw;
+  if (owner === 'enemy') return 30;
+  if (raw >= 16) return 40;
+  return Math.min(22, Math.round(raw * 1.4));
 }
 
 /** Team colour stays off vertices darker than about 0.25, so the shotgun stays dark metal. */
@@ -391,8 +406,7 @@ export function createCrowds(scene) {
     }
   }
 
-  function formation(owner, anchorX, anchorZ, yaw, count, track) {
-    const n = drawnCount(owner, count);
+  function formation(owner, anchorX, anchorZ, yaw, n, track) {
     if (n <= 0) return;
     const enemy = owner === 'enemy';
     for (let i = 0; i < n; i++) {
@@ -425,6 +439,7 @@ export function createCrowds(scene) {
       noseIndex = -1;
       let tracked = false;
       const nodes = (state && state.nodes) || activeNodes;
+      const pending = [];
 
       for (let i = 0; i < state.buildings.length; i++) {
         const b = state.buildings[i];
@@ -434,7 +449,14 @@ export function createCrowds(scene) {
         // Face the enemy, and stand beside the mesh so the rank does not cover the badge.
         const spot = garrisonAnchor(b.owner, b.kind, p.x, p.z, b.count);
         const parked = drawAnchor(b.owner, spot.x, spot.z, b.count);
-        formation(b.owner, parked.x, parked.z, spot.yaw, b.count, false);
+        pending.push({
+          owner: b.owner,
+          x: parked.x,
+          z: parked.z,
+          yaw: spot.yaw,
+          count: b.count,
+          squad: null,
+        });
       }
 
       for (let i = 0; i < state.squads.length; i++) {
@@ -457,30 +479,62 @@ export function createCrowds(scene) {
         }
         const yaw = rememberYaw(s.id, dx, dz);
         const parked = drawAnchor(s.owner, s.x, s.z, s.count);
-        const drawX = parked.x;
-        const drawZ = parked.z;
-        const wantTrack = !tracked && s.mode === 'march';
-        formation(s.owner, drawX, drawZ, yaw, s.count, wantTrack);
-        if (wantTrack) {
-          tracked = true;
-          const prev = prevPos.get(s.id);
-          if (prev && noseMesh) {
-            const vx = s.x - prev.x;
-            const vz = s.z - prev.z;
-            const vlen = Math.hypot(vx, vz);
-            if (vlen > 0.004) {
-              _vel.set(vx / vlen, 0, vz / vlen);
-              lastDot = _nose.dot(_vel);
-            }
+        pending.push({
+          owner: s.owner,
+          x: parked.x,
+          z: parked.z,
+          yaw,
+          count: s.count,
+          squad: s,
+        });
+      }
+
+      const groups = [];
+      const byAnchor = new Map();
+      for (let i = 0; i < pending.length; i++) {
+        const item = pending[i];
+        const key = `${item.owner}@${item.x.toFixed(2)},${item.z.toFixed(2)}`;
+        let group = byAnchor.get(key);
+        if (!group) {
+          group = {
+            owner: item.owner,
+            x: item.x,
+            z: item.z,
+            yaw: item.yaw,
+            raw: 0,
+            lead: null,
+          };
+          byAnchor.set(key, group);
+          groups.push(group);
+        }
+        group.raw += item.count;
+        if (!group.lead && item.squad && item.squad.mode === 'march') group.lead = item.squad;
+      }
+
+      for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        const wantTrack = !tracked && group.lead;
+        formation(group.owner, group.x, group.z, group.yaw, blockDrawCount(group.owner, group.raw), wantTrack);
+        if (!wantTrack) continue;
+        tracked = true;
+        const squad = group.lead;
+        const prev = prevPos.get(squad.id);
+        if (prev && noseMesh) {
+          const vx = squad.x - prev.x;
+          const vz = squad.z - prev.z;
+          const vlen = Math.hypot(vx, vz);
+          if (vlen > 0.004) {
+            _vel.set(vx / vlen, 0, vz / vlen);
+            lastDot = _nose.dot(_vel);
           }
-          let slot = prevPos.get(s.id);
-          if (!slot) {
-            slot = { x: s.x, z: s.z };
-            prevPos.set(s.id, slot);
-          } else {
-            slot.x = s.x;
-            slot.z = s.z;
-          }
+        }
+        let slot = prevPos.get(squad.id);
+        if (!slot) {
+          slot = { x: squad.x, z: squad.z };
+          prevPos.set(squad.id, slot);
+        } else {
+          slot.x = squad.x;
+          slot.z = squad.z;
         }
       }
 

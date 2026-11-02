@@ -205,3 +205,8 @@
 - Soldier cloth is khaki. Team colour stays on the helmet and one armband. Building walls are olive-grey. Team colour stays on the roof trim and the flag.
 - A match shows one hint, 「點自己建築出兵」.
 - 67 tests passed. Rebuilt `static/app.js` (561983 bytes) and `static/style.css` (10056 bytes).
+
+## Round 31 fixes
+
+- The round 31 review found no CRITICAL, MAJOR, or MINOR issues. The eight loop-r30 art items stay closed on the 390×844 home and combat shots. The home card top is at y=560. Home pills show emblems and hide empty counts. Map thumbs are olive terrain with a bent blue river. The island mixes olive, khaki, and dirt. The stream is a blue ribbon with sand banks. Soldier cloth is khaki, with team colour on the helmet and one armband. Building walls are olive-grey, with team colour on the roof trim and the flag. A match shows one hint, 「點自己建築出兵」.
+- 67 tests passed. No source or bundle change. `static/app.js` stays 561983 bytes and `static/style.css` stays 10056 bytes.

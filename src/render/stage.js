@@ -79,11 +79,11 @@ export function createStage(canvas) {
   const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xfff6e8, 0x8fb06a, 1.05));
-  scene.add(new THREE.AmbientLight(0xfff6ee, 0.46));
+  scene.add(new THREE.HemisphereLight(0xfff6e4, 0x8aaf62, 1.12));
+  scene.add(new THREE.AmbientLight(0xfff8ee, 0.46));
 
-  const sun = new THREE.DirectionalLight(0xffe7c2, 2.6);
-  sun.position.set(-11, 11.5, 6);
+  const sun = new THREE.DirectionalLight(0xffc070, 3.5);
+  sun.position.set(-16, 6.4, 7.5);
   sun.target.position.set(0, 0, 0);
   scene.add(sun);
   scene.add(sun.target);

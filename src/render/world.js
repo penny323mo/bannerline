@@ -67,6 +67,42 @@ const _stainDeep = new THREE.Color(0x3a4a2c);
 const _stainTone = new THREE.Color();
 
 /** Break a flat owner disc into dirt and deep-grass patches. */
+/** Unit disc in the XZ plane, several rings, so territory colour can mottle. */
+function zoneDiscGeometry() {
+  const rings = 5;
+  const segs = 20;
+  const count = 1 + rings * segs;
+  const positions = new Float32Array(count * 3);
+  let vi = 1;
+  for (let r = 1; r <= rings; r++) {
+    const u = r / rings;
+    for (let s = 0; s < segs; s++) {
+      const a = (s / segs) * Math.PI * 2;
+      const o = vi * 3;
+      positions[o] = Math.cos(a) * u;
+      positions[o + 1] = 0;
+      positions[o + 2] = Math.sin(a) * u;
+      vi += 1;
+    }
+  }
+  const indices = [];
+  for (let s = 0; s < segs; s++) indices.push(0, 1 + s, 1 + ((s + 1) % segs));
+  for (let r = 0; r < rings - 1; r++) {
+    for (let s = 0; s < segs; s++) {
+      const a = 1 + r * segs + s;
+      const b = 1 + r * segs + ((s + 1) % segs);
+      const c = a + segs;
+      const d = b + segs;
+      indices.push(a, b, d, a, d, c);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function tintZone(mesh, hex) {
   const geo = mesh.geometry;
   const pos = geo.attributes.position;
@@ -80,16 +116,19 @@ function tintZone(mesh, hex) {
   const oz = mesh.position.z;
   const sx = mesh.scale.x || 1;
   const sz = mesh.scale.z || 1;
-  const flankDirt = new THREE.Color(0x8d7348);
+  const patchDirt = new THREE.Color(0x5a3418);
+  const moss = new THREE.Color(0x314422);
+  const pale = new THREE.Color(0x8eae58);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i) * sx + ox;
     const z = pos.getZ(i) * sz + oz;
-    const n = Math.sin(x * 1.55) + Math.cos(z * 1.25);
-    const beside = Math.abs(x) > 0.85 && Math.abs(x) < 3.2 && Math.abs(z) > 0.85;
+    const patch = Math.sin(x * 0.72 + 0.8) * Math.cos(z * 0.58 - 0.3);
+    const fine = Math.sin(x * 1.8 + z * 0.6);
     _stainTone.copy(_stainBase);
-    if (beside && Math.sin(x * 2.1 + z * 1.6) > -0.05) _stainTone.lerp(flankDirt, 0.4);
-    else if (n > 0.1) _stainTone.lerp(_stainDirt, 0.35);
-    else if (n < -0.25) _stainTone.lerp(_stainDeep, 0.28);
+    if (patch > 0.5) _stainTone.lerp(patchDirt, 0.82);
+    else if (patch < -0.4) _stainTone.lerp(moss, 0.55);
+    else if (fine > 0.4) _stainTone.lerp(pale, 0.35);
+    else _stainTone.lerp(moss, 0.12);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
   colors.needsUpdate = true;
@@ -509,32 +548,42 @@ function frontLineGeometry() {
 }
 
 /**
- * One ground line. Local −Y becomes world +Z (player green) after rotateX(−π/2).
- * Local +Y becomes world −Z (enemy red). The half-width stays small so this
- * reads as a glow, not a second stripe.
+ * One ground stroke. Local −Y becomes world +Z (our side) after rotateX(−π/2).
+ * Width stays under 0.06 so the green-to-red fade is a single line, not two bars.
  */
 function thinFrontGeometry() {
-  const half = 0.12;
-  const positions = new Float32Array([
-    -0.5, -half, 0, 0.5, -half, 0, 0.5, half, 0, -0.5, half, 0,
-  ]);
-  const colors = new Float32Array(4 * 3);
+  const half = 0.025;
+  const steps = 8;
+  const positions = new Float32Array((steps + 1) * 2 * 3);
+  const colors = new Float32Array((steps + 1) * 2 * 3);
   const green = new THREE.Color(0x3ecf72);
   const red = new THREE.Color(0xe04538);
-  for (let i = 0; i < 2; i++) {
-    colors[i * 3] = green.r;
-    colors[i * 3 + 1] = green.g;
-    colors[i * 3 + 2] = green.b;
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const x = -0.5 + u;
+    const o = i * 6;
+    positions[o] = x;
+    positions[o + 1] = -half;
+    positions[o + 2] = 0;
+    positions[o + 3] = x;
+    positions[o + 4] = half;
+    positions[o + 5] = 0;
+    colors[o] = green.r;
+    colors[o + 1] = green.g;
+    colors[o + 2] = green.b;
+    colors[o + 3] = red.r;
+    colors[o + 4] = red.g;
+    colors[o + 5] = red.b;
   }
-  for (let i = 2; i < 4; i++) {
-    colors[i * 3] = red.r;
-    colors[i * 3 + 1] = red.g;
-    colors[i * 3 + 2] = red.b;
+  const indices = [];
+  for (let i = 0; i < steps; i++) {
+    const a = i * 2;
+    indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  geo.setIndex([0, 1, 2, 0, 2, 3]);
+  geo.setIndex(indices);
   geo.rotateX(-Math.PI / 2);
   geo.computeVertexNormals();
   return geo;
@@ -627,7 +676,6 @@ function islandCapGeometry(spanX, spanZ) {
   const meadow = new THREE.Color(PALETTE.meadow);
   const deep = new THREE.Color(PALETTE.meadowDeep);
   const khaki = new THREE.Color(0x6a6244);
-  const sand = new THREE.Color(PALETTE.sand);
   const dirt = new THREE.Color(0x6e5c42);
   const deepEdge = new THREE.Color(PALETTE.meadowDeep);
   const moss = new THREE.Color(0x314228);
@@ -648,17 +696,14 @@ function islandCapGeometry(spanX, spanZ) {
     const x = positions[i * 3];
     const z = positions[i * 3 + 2];
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
-    const n = Math.sin(x * 0.42 + z * 0.28) + Math.sin(x * 1.15 - z * 0.7) * 0.7;
+    const patch = Math.sin(x * 0.7 + 0.4) * Math.cos(z * 0.55);
+    const speckle = Math.sin(x * 1.6 + z * 1.1);
     tone.copy(meadow);
-    if (n > 0.55) tone.lerp(khaki, 0.34);
-    else if (n < -0.35) tone.lerp(moss, 0.62);
-    else tone.lerp(deep, 0.42);
-    const blot = Math.sin(x * 2.6 + z * 1.15) * Math.cos(z * 2.4 - x * 0.7);
-    if (blot > 0.35 && Math.abs(z) > 0.7) tone.lerp(dirt, 0.55);
-    else if (blot < -0.45) tone.lerp(moss, 0.28);
-    if (Math.abs(x) < 2.6 && Math.abs(z) > 1.15) tone.lerp(dirt, 0.42 * (1 - Math.min(1, Math.abs(x) / 2.6)));
-    if (Math.sin(x * 0.9 + 0.4) * Math.sin(z * 0.55) > 0.35 && Math.abs(z) > 1.4) tone.lerp(sand, 0.12);
-    if (u > 0.9) tone.lerp(deepEdge, 0.12);
+    if (patch > 0.45) tone.lerp(new THREE.Color(0x6a3e1e), 0.85);
+    else if (speckle > 0.12) tone.lerp(new THREE.Color(0x86a84a), 0.5);
+    else if (speckle < -0.12) tone.lerp(moss, 0.58);
+    else tone.lerp(deep, 0.22);
+    if (u > 0.9) tone.lerp(deepEdge, 0.2);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -1069,7 +1114,7 @@ function buildIsland(map, reduceMotion) {
     const owner = ownerById[z.buildingId];
     const slab = owner ? stain(ownerPaint(owner).slab) : PALETTE.meadow;
     const mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(1, 1.02, 0.045, 24),
+      zoneDiscGeometry(),
       mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }),
     );
     if (owner) mesh.userData.owner = owner;
@@ -1085,16 +1130,12 @@ function buildIsland(map, reduceMotion) {
 
   // Dark worn patches sit in the open meadow beside the tan road.
   const dirtSpots = [
-    [-1.65, 4.4, 0.9, 1.35, 0x9a7c52],
-    [1.75, 5.05, 0.75, 1.05, 0xa88858],
-    [-1.9, 1.65, 1.0, 1.2, 0x8f7348],
-    [1.6, 1.4, 0.85, 1.0, 0xb08e5c],
-    [-1.75, -1.9, 0.95, 1.25, 0x96764c],
-    [1.8, -1.5, 0.8, 1.05, 0xa48050],
-    [1.85, -4.55, 0.75, 1.15, 0x8c7044],
-    [-1.5, -4.4, 0.9, 1.3, 0x9c7a50],
-    [2.35, 2.55, 0.7, 0.85, 0xb49460],
-    [-2.45, -2.65, 0.7, 0.9, 0x8e744a],
+    [-3.6, 3.4, 1.7, 1.2, 0x5a3418],
+    [3.8, 1.6, 1.45, 1.05, 0x6b4524],
+    [-3.3, -2.6, 1.55, 1.15, 0x4e3018],
+    [3.5, -3.8, 1.4, 1.0, 0x62381c],
+    [-2.4, 6.1, 1.25, 0.9, 0x6a4020],
+    [2.6, -6.2, 1.3, 0.95, 0x553218],
   ];
   const dirtParts = [];
   const dirtTone = new THREE.Color();
@@ -1111,7 +1152,7 @@ function buildIsland(map, reduceMotion) {
     for (let v = 0; v < pos.count; v++) {
       const edge = Math.min(1, Math.hypot((pos.getX(v) - spot[0]) / spot[2], (pos.getZ(v) - spot[1]) / spot[3]));
       const tone = dirtTone.clone();
-      if (edge > 0.78) tone.lerp(dirtMeadow, (edge - 0.78) / 0.22);
+      if (edge > 0.86) tone.lerp(dirtMeadow, ((edge - 0.86) / 0.14) * 0.55);
       colors[v * 3] = tone.r;
       colors[v * 3 + 1] = tone.g;
       colors[v * 3 + 2] = tone.b;
@@ -1659,7 +1700,7 @@ function skyDome() {
   const colors = new Float32Array(pos.count * 3);
   const top = new THREE.Color(0xe4eef6);
   const mid = new THREE.Color(PALETTE.sky);
-  const horizon = new THREE.Color(0xd7e4c8);
+  const horizon = new THREE.Color(0xe4d4ae);
   const tone = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i) / 46;
@@ -1698,14 +1739,13 @@ export function createWorld(scene) {
   for (let i = 0; i < fieldPos.count; i++) {
     const x = fieldPos.getX(i);
     const y = fieldPos.getY(i);
-    const n = Math.sin(x * 0.18) * Math.cos(y * 0.14) + Math.sin(x * 0.55 + y * 0.4) * 0.65;
-    const blot = Math.sin(x * 0.37 + 1.2) * Math.cos(y * 0.31) + Math.sin(x * 1.15 - y * 0.72) * 0.55;
+    const n = Math.sin(x * 0.07) * Math.cos(y * 0.055) + Math.sin(x * 0.16 + y * 0.11) * 0.4;
+    const blot = Math.sin(x * 0.09 + 1.7) * Math.cos(y * 0.075);
     meadowTone.copy(meadowA);
-    if (blot > 0.62) meadowTone.lerp(dirtPatch, 0.58);
-    else if (blot < -0.55) meadowTone.lerp(dirtDeep, 0.4);
-    else if (n > 0.35) meadowTone.lerp(meadowC, 0.48);
-    else if (n < -0.25) meadowTone.lerp(meadowB, 0.4);
-    else meadowTone.lerp(meadowC, 0.22);
+    if (blot > 0.45) meadowTone.lerp(new THREE.Color(0x6a3e1e), 0.85);
+    else if (blot < -0.4) meadowTone.lerp(meadowB, 0.55);
+    else if (n > 0.2) meadowTone.lerp(meadowC, 0.45);
+    else meadowTone.lerp(meadowB, 0.22);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;

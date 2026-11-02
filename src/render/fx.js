@@ -72,7 +72,7 @@ export function createFx(scene) {
   });
   const rankPuffs = [0, 1].map(() => {
     const sprite = new THREE.Sprite(puffMat);
-    sprite.scale.set(0.42, 0.42, 1);
+    sprite.scale.set(0.16, 0.16, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -89,7 +89,7 @@ export function createFx(scene) {
   });
   const streaks = [0, 1].map(() => {
     const sprite = new THREE.Sprite(streakMat);
-    sprite.scale.set(1.15, 0.16, 1);
+    sprite.scale.set(0.42, 0.032, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -106,7 +106,7 @@ export function createFx(scene) {
   });
   const muzzles = [0, 1, 2, 3, 4].map(() => {
     const sprite = new THREE.Sprite(muzzleMat);
-    sprite.scale.set(0.28, 0.16, 1);
+    sprite.scale.set(0.32, 0.16, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -114,16 +114,16 @@ export function createFx(scene) {
     return sprite;
   });
   const dustMat = new THREE.SpriteMaterial({
-    color: 0xc4a574,
+    color: 0xe2c89a,
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.78,
     depthWrite: false,
     depthTest: false,
     toneMapped: false,
   });
   const dustPuffs = [0, 1, 2, 3].map(() => {
     const sprite = new THREE.Sprite(dustMat);
-    sprite.scale.set(0.36, 0.2, 1);
+    sprite.scale.set(0.92, 0.46, 1);
     sprite.visible = false;
     sprite.renderOrder = 5;
     sprite.frustumCulled = false;
@@ -151,7 +151,7 @@ export function createFx(scene) {
   const driftSpots = [
     [0.6, 1.6, 6.0],
     [1.5, 2.5, -4.8],
-    [0.15, 3.05, -6.2],
+    [1.25, 2.35, -5.15],
     [6.6, 2.3, 2.4],
     [-6.8, 2.5, -2.2],
   ];
@@ -242,31 +242,14 @@ export function createFx(scene) {
           if (muzzleIndex < muzzles.length - 1) {
             const flashSprite = muzzles[muzzleIndex];
             muzzleIndex += 1;
-            flashSprite.position.set(spot.x + side * 0.2, 0.36, spot.z);
+            flashSprite.position.set(spot.x + side * 0.16, 0.5, spot.z);
             flashSprite.visible = enabled;
           }
           if (dustIndex < dustPuffs.length) {
             const puffSprite = dustPuffs[dustIndex];
             dustIndex += 1;
-            puffSprite.position.set(spot.x + side * 0.12, 0.12, spot.z + 0.06);
+            puffSprite.position.set(spot.x + side * 0.22, 0.22, spot.z + 0.1);
             puffSprite.visible = enabled;
-          }
-          if (budget > 0) {
-            spawn(q.x, 0.45, q.z, smoke, 1.2, s % 2 ? 0.6 : -0.6, 1.1, 0);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(q.x + 0.12, 0.62, q.z, q.mode === 'siege' ? fire : flash, 0.4, 0, 0.4, 0);
-            budget -= 1;
-          }
-          const shot = q.owner === 'player' ? -2.8 : 2.8;
-          if (budget > 0) {
-            spawn(q.x, 0.7, q.z, flash, 0.22, 0, 0.15, shot);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(q.x + 0.08, 0.58, q.z, flash, 0.18, 0, 0.1, shot * 0.75);
-            budget -= 1;
           }
           if (q.mode === 'siege' && budget > 0) {
             spawn(q.x - 0.2, 0.85, q.z + 0.1, fire, 0.55, 0.35, 1.1, -0.2);
@@ -290,7 +273,8 @@ export function createFx(scene) {
       }
       if (playerFighting) {
         const barrel = muzzles[muzzles.length - 1];
-        barrel.position.set(1.7, 0.46, 3.75);
+        barrel.position.set(1.7, 0.4, 3.5);
+        barrel.scale.set(0.18, 0.1, 1);
         barrel.visible = enabled;
       }
       const nodes = state.nodes;
@@ -349,7 +333,7 @@ export function createFx(scene) {
           const dz = qb.z - qa.z;
           const dist = Math.hypot(dx, dz);
           if (dist > 4.4 || dist < 0.12 || lines >= MAX_LINES) continue;
-          const halfW = Math.min(0.18, dist * 0.08);
+          const halfW = Math.min(0.04, dist * 0.015);
           const inv = 1 / dist;
           const hx = -dz * inv * halfW;
           const hz = dx * inv * halfW;
@@ -380,65 +364,15 @@ export function createFx(scene) {
             lineCol[co + 2] = c.b;
           }
           lines += 1;
-          const mx = (qa.x + qb.x) * 0.5;
-          const mz = (qa.z + qb.z) * 0.5;
           if (lines === 1) {
             rankPuffs[0].position.set(ax, 0.62, az);
             rankPuffs[1].position.set(bx, 0.62, bz);
             rankPuffs[0].visible = enabled;
             rankPuffs[1].visible = enabled;
-            streaks[0].position.set(ax + dx * inv * 0.35, 0.72, az + dz * inv * 0.35);
-            streaks[1].position.set(mx, 0.78, mz);
+            streaks[0].position.set(ax, 0.48, az);
+            streaks[1].position.set(bx, 0.48, bz);
             streaks[0].visible = enabled;
             streaks[1].visible = enabled;
-            for (let e = 0; e < 3 && budget > 0; e++) {
-              const along = 0.18 + e * 0.16;
-              spawn(
-                ax + (bx - ax) * along + (e % 2 ? 0.16 : -0.12),
-                0.32 + (e % 3) * 0.14,
-                az + (bz - az) * along,
-                fire,
-                0.85,
-                (e - 2) * 0.2,
-                0.45,
-                e % 2 ? 0.15 : -0.1,
-              );
-              budget -= 1;
-            }
-          }
-          if (budget > 0) {
-            spawn(mx, 0.28, mz, smoke, 0.7, 0, 0.55, 0);
-            budget -= 1;
-          }
-          // Stays up through the clash frame. Sits on the midpoint at soldier height.
-          if (budget > 0) {
-            spawn(mx, 0.55, mz, puff, 1.2, 0, 0.15, 0);
-            budget -= 1;
-          }
-          // A flash and a puff on each squad. The bridge rank is one of these ends.
-          if (budget > 0) {
-            spawn(qa.x, 0.55, qa.z, puff, 1.2, 0, 0.12, 0);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(qb.x, 0.55, qb.z, puff, 1.2, 0, 0.12, 0);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(qa.x, 0.62, qa.z, flash, 0.9, 0, 0.08, 0);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(qb.x, 0.62, qb.z, flash, 0.9, 0, 0.08, 0);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(qa.x, 0.5, qa.z, flash, 0.16, (dx / dist) * 3.2, 0.25, (dz / dist) * 3.2);
-            budget -= 1;
-          }
-          if (budget > 0) {
-            spawn(qb.x, 0.5, qb.z, flash, 0.16, (-dx / dist) * 3.2, 0.25, (-dz / dist) * 3.2);
-            budget -= 1;
           }
         }
       }

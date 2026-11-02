@@ -253,9 +253,9 @@ export function createCrowds(scene) {
   for (let v = 0; v < POSES; v++) {
     const gMesh = new THREE.InstancedMesh(troopGeometry(0x3a4030, HELMET_PLAYER, v), troopMat, MAX);
     const rMesh = new THREE.InstancedMesh(troopGeometry(0x403830, HELMET_ENEMY, v), troopMat, MAX);
-    // Soldiers do not cast. A few hundred casters blow the 1024 shadow map.
-    gMesh.castShadow = false;
-    rMesh.castShadow = false;
+    // Side sun. The contact pad still marks the foot when the shadow map is off.
+    gMesh.castShadow = true;
+    rMesh.castShadow = true;
     gMesh.receiveShadow = false;
     rMesh.receiveShadow = false;
     gMesh.frustumCulled = false;

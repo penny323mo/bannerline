@@ -288,12 +288,12 @@ function hidePrimitives(group) {
   });
 }
 
-function scatter(parent, geometry, spots, material, yaw) {
+function scatter(parent, geometry, spots, material, yaw, cast = false) {
   if (!geometry || !spots.length) return;
   const geo = geometry.clone();
   const matCopy = material.clone();
   const mesh = new THREE.InstancedMesh(geo, matCopy, spots.length);
-  mesh.castShadow = false;
+  mesh.castShadow = cast;
   mesh.receiveShadow = true;
   mesh.frustumCulled = false;
   const dummy = new THREE.Object3D();
@@ -461,20 +461,21 @@ function dressBuilding(group, kit) {
       // Parent local −Z is the building forward (yawForFacing). The gap faces the road.
       const wallCount = 20;
       const radius = 1.62 / sx;
-      const wallMat = concreteMaterial(0x9a948c);
+      const gate = 0.48;
+      const wallMat = concreteMaterial(0x5e5a54);
       const trimMat = new THREE.MeshStandardMaterial({
         color: 0x8e1c1c,
-        emissive: 0x5a1010,
-        emissiveIntensity: 0.3,
-        roughness: 0.58,
-        metalness: 0.04,
+        emissive: 0x3a1010,
+        emissiveIntensity: 0.12,
+        roughness: 0.7,
+        metalness: 0.02,
       });
       for (let i = 0; i < wallCount; i++) {
         const a = -Math.PI / 2 + (i / wallCount) * Math.PI * 2;
         const gap = Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)));
-        if (gap < 0.18) continue;
+        if (gap < gate) continue;
         const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(0.7 / sx, 0.58 / sx, 0.18 / sx),
+          new THREE.BoxGeometry(1.05 / sx, 0.58 / sx, 0.22 / sx),
           wallMat,
         );
         wall.position.set(Math.cos(a) * radius, 0.29 / sx, Math.sin(a) * radius);
@@ -483,46 +484,46 @@ function dressBuilding(group, kit) {
         wall.receiveShadow = true;
         group.add(wall);
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(0.72 / sx, 0.08 / sx, 0.2 / sx),
+          new THREE.BoxGeometry(1.05 / sx, 0.035 / sx, 0.16 / sx),
           trimMat,
         );
-        trim.position.set(wall.position.x, wall.position.y + 0.32 / sx, wall.position.z);
+        trim.position.set(wall.position.x, wall.position.y + 0.27 / sx, wall.position.z);
         trim.rotation.y = wall.rotation.y;
         trim.castShadow = true;
         trim.receiveShadow = true;
         group.add(trim);
       }
       for (const side of [-1, 1]) {
-        const a = -Math.PI / 2 + side * 0.28;
+        const a = -Math.PI / 2 + side * gate;
         const post = new THREE.Mesh(
-          new THREE.BoxGeometry(0.18 / sx, 0.72 / sx, 0.18 / sx),
+          new THREE.BoxGeometry(0.16 / sx, 0.7 / sx, 0.16 / sx),
           wallMat,
         );
-        post.position.set(Math.cos(a) * radius, 0.36 / sx, Math.sin(a) * radius);
+        post.position.set(Math.cos(a) * radius, 0.35 / sx, Math.sin(a) * radius);
         post.castShadow = true;
         post.receiveShadow = true;
         group.add(post);
       }
       const gateZ = -radius;
       const pole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.02 / sx, 0.02 / sx, 0.62 / sx, 6),
+        new THREE.CylinderGeometry(0.025 / sx, 0.025 / sx, 0.95 / sx, 6),
         concreteMaterial(0x3e3a34),
       );
-      pole.position.set(0.22 / sx, 0.31 / sx, gateZ);
+      pole.position.set(-0.15 / sx, 0.48 / sx, gateZ - 0.08 / sx);
       pole.castShadow = true;
       group.add(pole);
       const cloth = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.55 / sx, 0.32 / sx),
+        new THREE.PlaneGeometry(0.95 / sx, 0.55 / sx),
         new THREE.MeshStandardMaterial({
           color: 0x8e1c1c,
-          emissive: 0x6a1010,
-          emissiveIntensity: 0.28,
+          emissive: 0x4a1010,
+          emissiveIntensity: 0.18,
           side: THREE.DoubleSide,
-          roughness: 0.62,
+          roughness: 0.7,
         }),
       );
-      cloth.position.set(0.46 / sx, 0.52 / sx, gateZ);
-      cloth.rotation.y = 0.65;
+      cloth.position.set(0.28 / sx, 0.72 / sx, gateZ - 0.08 / sx);
+      cloth.rotation.y = Math.PI - 0.55;
       cloth.castShadow = true;
       group.add(cloth);
     }
@@ -575,14 +576,7 @@ function dressIsland(group, kit) {
   group.userData.assetDress = true;
   const flora = group.userData.flora || [];
   for (let i = 0; i < flora.length; i++) flora[i].visible = false;
-  const baseTrees = (group.userData.treeSpots || []).filter((spot) => Math.abs(spot.x) > 3.6 || Math.abs(spot.z) > 4.6);
-  const trees = baseTrees.slice();
-  for (let i = 0; i < baseTrees.length; i++) {
-    const spot = baseTrees[i];
-    if (Math.abs(spot.x) < 6 && Math.abs(spot.z) < 6.5) continue;
-    trees.push({ x: spot.x + 0.62, z: spot.z - 0.4, s: spot.s * 0.82 });
-    trees.push({ x: spot.x - 0.48, z: spot.z + 0.55, s: spot.s * 0.74 });
-  }
+  const trees = [];
   const corners = [
     [-8.6, 6.4, 1.2], [-7.7, 7.2, 1.05], [-8.9, 5.1, 0.95],
     [8.5, 6.6, 1.15], [7.6, 7.3, 1.0], [9.0, 5.2, 0.9],
@@ -597,9 +591,9 @@ function dressIsland(group, kit) {
   const pineMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0 });
   const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
   const fenceMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84, metalness: 0 });
-  scatter(group, kit.pineA, trees.filter((_, i) => i % 2 === 0).map((spot) => ({ x: spot.x, z: spot.z, s: 1.15 + spot.s * 0.18 })), pineMat, (i) => i * 0.7);
-  scatter(group, kit.pineB, trees.filter((_, i) => i % 2 === 1).map((spot) => ({ x: spot.x, z: spot.z, s: 1.05 + spot.s * 0.16 })), pineMat, (i) => i * 0.9);
-  const rocks = group.userData.rockSpots || [];
+  scatter(group, kit.pineA, trees.filter((_, i) => i % 2 === 0).map((spot) => ({ x: spot.x, z: spot.z, s: 1.15 + spot.s * 0.18 })), pineMat, (i) => i * 0.7, true);
+  scatter(group, kit.pineB, trees.filter((_, i) => i % 2 === 1).map((spot) => ({ x: spot.x, z: spot.z, s: 1.05 + spot.s * 0.16 })), pineMat, (i) => i * 0.9, true);
+  const rocks = (group.userData.rockSpots || []).filter((spot) => Math.abs(spot.x) > 6.2 || Math.abs(spot.z) > 6.5);
   scatter(group, kit.rockA, rocks.filter((_, i) => i % 2 === 0).map((spot) => ({ x: spot.x, z: spot.z, s: 0.28 + spot.s * 0.12 })), rockMat);
   scatter(group, kit.rockB, rocks.filter((_, i) => i % 2 === 1).map((spot) => ({ x: spot.x, z: spot.z, s: 0.32 + spot.s * 0.1 })), rockMat);
   const nest = corners.map((c, i) => ({
@@ -663,8 +657,8 @@ export function loadBattlefield(world, crowds) {
       bags: gltf.bags.scene,
       tank: gltf.tank.scene,
       radar: gltf.radar ? gltf.radar.scene : null,
-      pineA: preparedGeometry(gltf.pineA.scene, 0x243628, 0.82),
-      pineB: preparedGeometry(gltf.pineB.scene, 0x1c3024, 0.84),
+      pineA: preparedGeometry(gltf.pineA.scene, 0x142016, 0.94),
+      pineB: preparedGeometry(gltf.pineB.scene, 0x101810, 0.96),
       rockA: preparedGeometry(gltf.rockA.scene, 0x6a6560),
       rockB: preparedGeometry(gltf.rockB.scene, 0x746e68),
       fence: preparedGeometry(gltf.fence.scene, 0x6a5340),

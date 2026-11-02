@@ -71,8 +71,25 @@ const _paleTuft = new THREE.Color(0xdff3b0);
 const _shadeTuft = new THREE.Color(0x3c6834);
 const _farLight = new THREE.Color(0xa6d25e);
 const _farDark = new THREE.Color(0x3d7a36);
+const _lawnLight = new THREE.Color(0x9bc85a);
+const _lawnDark = new THREE.Color(0x4e8a3c);
 
-/** Dark grass left of the red block. Flat tan right of the tank. Two tufts in the open middle. Two tones above the far pines. */
+/** Rim offset in world units. Three and seven lobes, so the outline is not an ellipse. */
+function grassNudge(theta) {
+  return Math.sin(theta * 3) * 0.55 + Math.sin(theta * 7 + 0.8) * 0.45;
+}
+
+function blobU(x, z, cx, cz, rx, rz, wobble) {
+  const dx = x - cx;
+  const dz = z - cz;
+  const u = Math.hypot(dx / rx, dz / rz);
+  if (!wobble) return u;
+  const theta = Math.atan2(dz / rz, dx / rx);
+  const er = Math.hypot(rx * Math.cos(theta), rz * Math.sin(theta)) || 1;
+  return u / (1 + (wobble * grassNudge(theta)) / er);
+}
+
+/** Dark grass left of the red block. Flat tan right of the tank. Two tufts in the open middle. Irregular tones above the pines and on the lawn. */
 function applyMeadowMarks(tone, x, z) {
   const tuft = Math.hypot((x + 4.9) / 1.05, (z + 3.15) / 0.85);
   if (tuft < 1) tone.lerp(_tuft, 1 - tuft * 0.1);
@@ -82,13 +99,17 @@ function applyMeadowMarks(tone, x, z) {
   if (pale < 1) tone.lerp(_paleTuft, 1 - pale * 0.12);
   const shade = Math.hypot((x - 1.45) / 0.7, (z + 0.7) / 0.5);
   if (shade < 1) tone.lerp(_shadeTuft, 1 - shade * 0.12);
-  const farLight = Math.hypot((x + 6.6) / 1.55, (z + 13.4) / 1.1);
+  const farLight = blobU(x, z, -6.6, -13.4, 1.55, 1.1, 0.28);
   if (farLight < 1) tone.lerp(_farLight, 1 - farLight * 0.1);
-  const farDark = Math.hypot((x + 0.05) / 1.32, (z + 14.2) / 1.0);
+  const farDark = blobU(x, z, -0.05, -14.2, 1.32, 1.0, 0.28);
   if (farDark < 1) tone.lerp(_farDark, 1 - farDark * 0.1);
+  const lawnLight = blobU(x, z, -4.1, -6.95, 1.35, 0.9, 0.28);
+  if (lawnLight < 1) tone.lerp(_lawnLight, 1 - lawnLight * 0.1);
+  const lawnDark = blobU(x, z, 1.85, -5.4, 0.9, 0.6, 0.28);
+  if (lawnDark < 1) tone.lerp(_lawnDark, 1 - lawnDark * 0.1);
 }
 
-function meadowMarkGeometry(x, z, rx, rz, hex, lift = 0.07) {
+function meadowMarkGeometry(x, z, rx, rz, hex, lift = 0.07, wobble = 0) {
   const geo = new THREE.CircleGeometry(1, 24);
   geo.rotateX(-Math.PI / 2);
   geo.scale(rx, 1, rz);
@@ -98,13 +119,23 @@ function meadowMarkGeometry(x, z, rx, rz, hex, lift = 0.07) {
   const edge = new THREE.Color(0x8ed45c);
   const tone = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
-    const u = Math.min(1, Math.hypot(pos.getX(i) / rx, pos.getZ(i) / rz));
+    const px = pos.getX(i);
+    const pz = pos.getZ(i);
+    const u = Math.min(1, Math.hypot(px / rx, pz / rz));
     tone.copy(core);
     // Flat interior. A hot centre reads as a glow, so only the rim meets the meadow.
     if (u > 0.78) tone.lerp(edge, (u - 0.78) / 0.22);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
+    // Push the rim in and out so the disc is not a stamp oval.
+    if (wobble && (px !== 0 || pz !== 0)) {
+      const len = Math.hypot(px, pz);
+      const theta = Math.atan2(pz / rz, px / rx);
+      const push = wobble * grassNudge(theta);
+      pos.setX(i, px + (px / len) * push);
+      pos.setZ(i, pz + (pz / len) * push);
+    }
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.translate(x, lift, z);
@@ -1199,8 +1230,10 @@ function buildIsland(map, reduceMotion) {
     meadowMarkGeometry(3.2, 4.65, 1.55, 1.25, 0xd2ae74),
     meadowMarkGeometry(-2.15, -1.05, 0.95, 0.65, 0xdff3b0),
     meadowMarkGeometry(1.45, -0.7, 0.7, 0.5, 0x3c6834),
-    meadowMarkGeometry(-6.6, -13.4, 1.55, 1.1, 0xa6d25e),
-    meadowMarkGeometry(-0.05, -14.2, 1.32, 1.0, 0x3d7a36, 0.082),
+    meadowMarkGeometry(-6.6, -13.4, 1.55, 1.1, 0xa6d25e, 0.07, 0.28),
+    meadowMarkGeometry(-0.05, -14.2, 1.32, 1.0, 0x3d7a36, 0.082, 0.28),
+    meadowMarkGeometry(-4.1, -6.95, 1.35, 0.9, 0x9bc85a, 0.074, 0.28),
+    meadowMarkGeometry(1.85, -5.4, 0.9, 0.6, 0x4e8a3c, 0.086, 0.28),
   ], mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 
   const ownerById = {};

@@ -152,6 +152,8 @@ export function createFx(scene) {
     blending: THREE.AdditiveBlending,
     toneMapped: false,
   });
+  // Long axis is screen-up, tilted onto the line of fire. 0.22 by 0.07, not a round lamp.
+  rankMat.rotation = -0.35;
   const muzzles = [0, 1, 2, 3, 4].map(() => {
     const sprite = new THREE.Sprite(muzzleMat);
     sprite.scale.set(0.16, 0.16, 1);
@@ -228,7 +230,7 @@ export function createFx(scene) {
   ];
   const rankSparks = rankSpots.map((spot) => {
     const sprite = new THREE.Sprite(rankMat);
-    sprite.scale.set(0.4, 0.4, 1);
+    sprite.scale.set(0.07, 0.22, 1);
     sprite.position.set(spot[0], spot[1], spot[2]);
     sprite.visible = false;
     sprite.renderOrder = 6;
@@ -482,7 +484,7 @@ export function createFx(scene) {
       for (let i = 0; i < rankSparks.length; i++) {
         const spot = rankSpots[i];
         rankSparks[i].position.set(spot[0], spot[1], spot[2]);
-        rankSparks[i].scale.set(0.4 * sparkPulse, 0.4 * sparkPulse, 1);
+        rankSparks[i].scale.set(0.07 * sparkPulse, 0.22 * sparkPulse, 1);
         rankSparks[i].visible = enabled;
       }
       for (let a = 0; a < squads.length; a++) {

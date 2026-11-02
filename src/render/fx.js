@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
+import { SOLDIER_SCALE } from './crowds.js';
 
 const POOL = 640;
 
@@ -152,32 +154,36 @@ export function createFx(scene) {
   plumeCanvas.width = 64;
   plumeCanvas.height = 64;
   const plumeCtx = plumeCanvas.getContext('2d');
-  const plumeGrad = plumeCtx.createRadialGradient(32, 32, 2, 32, 32, 30);
-  plumeGrad.addColorStop(0, 'rgba(186, 188, 180, 0.96)');
-  plumeGrad.addColorStop(0.45, 'rgba(140, 142, 134, 0.78)');
-  plumeGrad.addColorStop(1, 'rgba(120, 122, 114, 0)');
+  const plumeGrad = plumeCtx.createRadialGradient(32, 30, 4, 32, 30, 31);
+  plumeGrad.addColorStop(0, 'rgba(90, 92, 86, 1)');
+  plumeGrad.addColorStop(0.72, 'rgba(90, 92, 86, 1)');
+  plumeGrad.addColorStop(0.9, 'rgba(90, 92, 86, 0.65)');
+  plumeGrad.addColorStop(1, 'rgba(90, 92, 86, 0)');
   plumeCtx.fillStyle = plumeGrad;
   plumeCtx.fillRect(0, 0, 64, 64);
+  const plumeMap = new THREE.CanvasTexture(plumeCanvas);
+  // Canvas bytes are sRGB. The default NoColorSpace path encodes them again and the puff reads pale.
+  plumeMap.colorSpace = THREE.SRGBColorSpace;
   const plumeMat = new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(plumeCanvas),
+    map: plumeMap,
     transparent: true,
     depthWrite: false,
     depthTest: false,
-    opacity: 0.94,
+    opacity: 1,
     toneMapped: false,
   });
   const driftSpots = [
     [0.6, 1.6, 6.0],
     [1.5, 2.5, -4.8],
-    // Enemy tower. The old (1.25, −5.15) spot projected past x=390.
-    [-0.2, 3.25, -6.4],
+    // Under the enemy flag, left of the shaft, above the 司令部 badge.
+    [-0.88, 2.62, -6.22],
     [6.6, 2.3, 2.4],
     [-6.8, 2.5, -2.2],
   ];
   const driftSize = [
     [0.85, 1.05],
     [0.7, 0.9],
-    [2.15, 2.9],
+    [0.55, 0.78],
     [0.7, 0.85],
     [0.7, 0.85],
   ];
@@ -190,6 +196,9 @@ export function createFx(scene) {
     scene.add(sprite);
     return sprite;
   });
+  // Baked shotgun tip in the unit-height soldier. crowds modelMul is 1.14.
+  const MUZZLE = { x: -0.024, y: 0.6, z: -0.397 };
+  const FIGURE = SOLDIER_SCALE * 1.14;
   const traceGreen = new THREE.Color(0xff9a3c);
   const traceRed = new THREE.Color(0xff6a28);
 
@@ -203,6 +212,66 @@ export function createFx(scene) {
   const puff = new THREE.Color(0xf4f0e6);
   const flash = new THREE.Color(0xffe08a);
   const fire = new THREE.Color(0xff7a32);
+
+  const slot = { x: 0, z: 0 };
+  const face = { x: 0, z: 0 };
+
+  function yawOf(q, nodes) {
+    let dx = 0;
+    let dz = q.owner === 'player' ? -1 : 1;
+    if (q.path && q.path.length > 1 && nodes) {
+      const prev = nodes[q.path[Math.max(0, (q.seg || 1) - 1)]];
+      if (prev) {
+        dx = q.x - prev.x;
+        dz = q.z - prev.z;
+      }
+    }
+    return yawForFacing(dx, dz);
+  }
+
+  function flashOn(sprite, x, z, yaw) {
+    rotateXZ(MUZZLE.x, MUZZLE.z, yaw, slot);
+    sprite.position.set(x + slot.x * FIGURE, 0.02 + MUZZLE.y * FIGURE, z + slot.z * FIGURE);
+    sprite.scale.set(0.26, 0.13, 1);
+    sprite.visible = enabled;
+  }
+
+  function frontFigures(owner, count, anchorX, anchorZ, yaw) {
+    const raw = Math.max(1, Math.floor(count));
+    const n = raw <= 8 ? raw : Math.min(owner === 'enemy' ? 44 : 48, raw);
+    const placed = [];
+    rotateXZ(0, -1, yaw, face);
+    if (owner === 'enemy') {
+      const cols = Math.min(8, n);
+      const spacing = 0.27;
+      const rowCount = Math.min(cols, n);
+      for (let col = 0; col < rowCount; col++) {
+        const lx = (col - (rowCount - 1) / 2) * spacing;
+        rotateXZ(lx, 0, yaw, slot);
+        placed.push({ x: anchorX + slot.x, z: anchorZ + slot.z });
+      }
+    } else {
+      const gap = 0.42;
+      for (let i = 0; i < n; i++) {
+        let lx = 0;
+        let lz = 0;
+        if (i > 0) {
+          const ang = i * 2.399963;
+          const rad = gap * 0.55 * Math.sqrt(i);
+          lx = Math.cos(ang) * rad * 1.15;
+          lz = Math.sin(ang) * rad * 0.72;
+        }
+        rotateXZ(lx, lz, yaw, slot);
+        const along = slot.x * face.x + slot.z * face.z;
+        placed.push({ x: anchorX + slot.x, z: anchorZ + slot.z, along });
+      }
+      placed.sort((a, b) => b.along - a.along);
+      return placed.slice(0, 2);
+    }
+    if (placed.length <= 2) return placed;
+    const mid = Math.floor(placed.length / 2);
+    return [placed[Math.max(0, mid - 1)], placed[Math.min(placed.length - 1, mid + 1)]];
+  }
 
   function spawn(x, y, z, color, ttl, vx, vy, vz) {
     const i = cursor;
@@ -247,6 +316,7 @@ export function createFx(scene) {
       let playerFighting = false;
       let muzzleIndex = 0;
       let dustIndex = 0;
+      const nodesNow = state.nodes;
       for (let i = 0; i < muzzles.length; i++) muzzles[i].visible = false;
       for (let i = 0; i < dustPuffs.length; i++) dustPuffs[i].visible = false;
       for (let s = 0; s < squads.length && budget > 0; s++) {
@@ -267,14 +337,11 @@ export function createFx(scene) {
           if (q.owner === 'player') playerFighting = true;
           const spot = q.owner === 'enemy' && q.z > -3.6 ? { x: 0.4, z: -4.4 } : { x: q.x, z: q.z };
           const side = ((s + tick) % 3) - 1;
-          // Player local forward is −Z. Enemy ranks face +Z, back toward their bank.
-          const facing = q.owner === 'player' ? -1 : 1;
-          if (muzzleIndex < muzzles.length - 1) {
-            const flashSprite = muzzles[muzzleIndex];
+          const yaw = yawOf(q, nodesNow);
+          const tips = frontFigures(q.owner, q.count, spot.x, spot.z, yaw);
+          for (let t = 0; t < tips.length && muzzleIndex < muzzles.length - 1; t++) {
+            flashOn(muzzles[muzzleIndex], tips[t].x, tips[t].z, yaw);
             muzzleIndex += 1;
-            flashSprite.position.set(spot.x + side * 0.1, 0.42, spot.z + facing * 0.34);
-            flashSprite.scale.set(0.16, 0.08, 1);
-            flashSprite.visible = enabled;
           }
           if (dustIndex < dustPuffs.length) {
             const puffSprite = dustPuffs[dustIndex];
@@ -308,9 +375,9 @@ export function createFx(scene) {
       }
       if (playerFighting) {
         const barrel = muzzles[muzzles.length - 1];
-        // Baked tank sits near (1.7, 0, 4.35) and the gun points −Z, toward the bridge.
-        barrel.position.set(1.7, 0.58, 3.05);
-        barrel.scale.set(0.24, 0.12, 1);
+        // Visible barrel points up-screen (world −Z). Mesh max-Z is the rear.
+        barrel.position.set(1.8, 0.62, 3.2);
+        barrel.scale.set(0.18, 0.09, 1);
         barrel.visible = enabled;
       }
       const nodes = state.nodes;
@@ -356,7 +423,8 @@ export function createFx(scene) {
       const driftT = (typeof performance !== 'undefined' ? performance.now() : 0) * 0.001;
       for (let i = 0; i < drifts.length; i++) {
         const spot = driftSpots[i];
-        drifts[i].position.y = spot[1] + Math.sin(driftT * 0.35 + i) * 0.18;
+        const amp = i === 2 ? 0.06 : 0.18;
+        drifts[i].position.y = spot[1] + Math.sin(driftT * 0.35 + i) * amp;
         drifts[i].visible = enabled;
       }
       for (let a = 0; a < squads.length; a++) {

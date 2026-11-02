@@ -163,24 +163,6 @@ export function createFx(scene) {
     scene.add(sprite);
     return sprite;
   });
-  const smokeCanvas = document.createElement('canvas');
-  smokeCanvas.width = 64;
-  smokeCanvas.height = 64;
-  const smokeCtx = smokeCanvas.getContext('2d');
-  const smokeGrad = smokeCtx.createRadialGradient(32, 32, 4, 32, 32, 30);
-  smokeGrad.addColorStop(0, 'rgba(70, 72, 68, 0.92)');
-  smokeGrad.addColorStop(0.4, 'rgba(70, 72, 68, 0.62)');
-  smokeGrad.addColorStop(1, 'rgba(70, 72, 68, 0)');
-  smokeCtx.fillStyle = smokeGrad;
-  smokeCtx.fillRect(0, 0, 64, 64);
-  const driftMat = new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(smokeCanvas),
-    transparent: true,
-    depthWrite: false,
-    depthTest: false,
-    opacity: 0.85,
-    toneMapped: false,
-  });
   const plumeCanvas = document.createElement('canvas');
   plumeCanvas.width = 64;
   plumeCanvas.height = 64;
@@ -203,30 +185,13 @@ export function createFx(scene) {
     opacity: 1,
     toneMapped: false,
   });
-  const driftSpots = [
-    [0.6, 1.6, 6.0],
-    [1.5, 2.5, -4.8],
-    // Under the enemy flag, left of the shaft, above the 司令部 badge.
-    [-0.88, 2.62, -6.22],
-    [6.6, 2.3, 2.4],
-    [-6.8, 2.5, -2.2],
-  ];
-  const driftSize = [
-    [0.85, 1.05],
-    [0.7, 0.9],
-    [0.55, 0.78],
-    [0.7, 0.85],
-    [0.7, 0.85],
-  ];
-  const drifts = driftSpots.map((spot, i) => {
-    const sprite = new THREE.Sprite(i === 2 ? plumeMat : driftMat);
-    sprite.scale.set(driftSize[i][0], driftSize[i][1], 1);
-    sprite.position.set(spot[0], spot[1], spot[2]);
-    sprite.renderOrder = 3;
-    sprite.frustumCulled = false;
-    scene.add(sprite);
-    return sprite;
-  });
+  // One small grey puff on the enemy roof. Parked discs used to float in the grass.
+  const roofSmoke = new THREE.Sprite(plumeMat);
+  roofSmoke.scale.set(0.28, 0.2, 1);
+  roofSmoke.position.set(0.32, 1.78, -6.42);
+  roofSmoke.renderOrder = 3;
+  roofSmoke.frustumCulled = false;
+  scene.add(roofSmoke);
   // Baked shotgun tip in the unit-height soldier. crowds modelMul is 1.4.
   const MUZZLE = { x: -0.024, y: 0.6, z: -0.397 };
   const FIGURE = SOLDIER_SCALE * 1.4;
@@ -336,7 +301,7 @@ export function createFx(scene) {
       enabled = !!on;
       points.visible = enabled;
       tracers.visible = enabled;
-      for (let i = 0; i < drifts.length; i++) drifts[i].visible = enabled;
+      roofSmoke.visible = enabled;
       if (!enabled) {
         rankPuffs[0].visible = false;
         rankPuffs[1].visible = false;
@@ -412,13 +377,14 @@ export function createFx(scene) {
       const barrel = muzzles[muzzles.length - 1];
       // Baked Tank_Gun runs toward the camera. The visible tip is just short of the mesh max-Z.
       const pulse = 0.86 + 0.14 * Math.sin((state.t || 0) * 16);
-      barrel.position.set(1.69, 0.7, 5.05);
-      barrel.scale.set(0.85 * pulse, 0.85 * pulse, 1);
+      barrel.position.set(1.69, 0.66, 5.05);
+      barrel.scale.set(0.18 * pulse, 0.18 * pulse, 1);
       barrel.visible = enabled;
       if (muzzleIndex < muzzles.length - 1) {
         const hqFlash = muzzles[muzzleIndex];
-        hqFlash.position.set(0.15, 1.25, -4.7);
-        hqFlash.scale.set(0.7 * pulse, 0.7 * pulse, 1);
+        // Red gate faces the road. A short spark, not a beam up the screen.
+        hqFlash.position.set(0, 0.48, -5.45);
+        hqFlash.scale.set(0.18 * pulse, 0.18 * pulse, 1);
         hqFlash.visible = enabled;
       }
       if (dustIndex < dustPuffs.length) {
@@ -468,12 +434,8 @@ export function createFx(scene) {
       streaks[0].visible = false;
       streaks[1].visible = false;
       const driftT = (typeof performance !== 'undefined' ? performance.now() : 0) * 0.001;
-      for (let i = 0; i < drifts.length; i++) {
-        const spot = driftSpots[i];
-        const amp = i === 2 ? 0.06 : 0.18;
-        drifts[i].position.y = spot[1] + Math.sin(driftT * 0.35 + i) * amp;
-        drifts[i].visible = enabled;
-      }
+      roofSmoke.position.y = 1.78 + Math.sin(driftT * 0.35) * 0.03;
+      roofSmoke.visible = enabled;
       for (let a = 0; a < squads.length; a++) {
         const qa = squads[a];
         if (!qa || qa.count <= 0) continue;
@@ -557,14 +519,14 @@ export function createFx(scene) {
           }
         }
       }
-      // Opening volley. Short yellow-white streaks from the tank and the fort, not a needle across the map.
-      pushStreak(1.69, 0.7, 5.05, 1.35, 0.5, 3.35, traceGreen);
-      pushStreak(0.15, 1.25, -4.7, 0.45, 0.55, -3.15, traceRed);
-      streaks[0].position.set(1.55, 0.72, 4.4);
-      streaks[0].scale.set(0.7, 0.7, 1);
+      // Opening volley. Short sparks on the tank muzzle and the red gate.
+      pushStreak(1.69, 0.66, 5.05, 1.58, 0.58, 4.72, traceGreen);
+      pushStreak(0, 0.48, -5.45, 0.06, 0.42, -5.18, traceRed);
+      streaks[0].position.set(1.64, 0.62, 4.88);
+      streaks[0].scale.set(0.16, 0.16, 1);
       streaks[0].visible = enabled;
-      streaks[1].position.set(0.2, 1.28, -4.3);
-      streaks[1].scale.set(0.62, 0.62, 1);
+      streaks[1].position.set(0.03, 0.46, -5.32);
+      streaks[1].scale.set(0.16, 0.16, 1);
       streaks[1].visible = enabled;
       lineGeo.setDrawRange(0, lines * 6);
       lineGeo.attributes.position.needsUpdate = true;

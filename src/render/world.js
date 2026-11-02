@@ -65,6 +65,16 @@ const _stainBase = new THREE.Color();
 const _stainDirt = new THREE.Color(0x8d6840);
 const _stainDeep = new THREE.Color(0x3a4a2c);
 const _stainTone = new THREE.Color();
+const _tuft = new THREE.Color(0x1f5c32);
+const _wornTan = new THREE.Color(0xd2ae74);
+
+/** A dark grass tuft and a tan worn patch, far enough apart to both show at 390. */
+function applyMeadowMarks(tone, x, z) {
+  const tuft = Math.hypot((x + 3.4) / 2.4, (z + 8.0) / 2.0);
+  if (tuft < 1) tone.lerp(_tuft, (1 - tuft) * 0.96);
+  const worn = Math.hypot((x - 3.0) / 1.9, (z - 2.6) / 1.7);
+  if (worn < 1) tone.lerp(_wornTan, (1 - worn) * 0.94);
+}
 
 /** Break a flat owner disc into dirt and deep-grass patches. */
 /** Unit disc in the XZ plane, several rings, so territory colour can mottle. */
@@ -133,6 +143,7 @@ function tintZone(mesh, hex) {
     const onRoad = Math.abs(x) < 0.95 && Math.abs(z) > 0.9;
     if (onRoad && patch > 0.55) _stainTone.lerp(worn, 0.2);
     _stainTone.lerp(_stainBase, 0.08);
+    applyMeadowMarks(_stainTone, x, z);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
   colors.needsUpdate = true;
@@ -749,6 +760,7 @@ function islandCapGeometry(spanX, spanZ) {
     const onRoad = Math.abs(x) < 0.95 && Math.abs(z) > 0.9;
     if (onRoad && patch > 0.55) tone.lerp(worn, 0.18);
     if (u > 0.92) tone.lerp(deep, 0.18);
+    applyMeadowMarks(tone, x, z);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -1832,6 +1844,8 @@ export function createWorld(scene) {
     else if (blot < -0.35) meadowTone.lerp(meadowB, 0.32);
     else meadowTone.lerp(meadowB, 0.12);
     if (Math.abs(x) < 1.1 && blot > 0.7) meadowTone.lerp(worn, 0.18);
+    // Plane +Y is world −Z after the ground rotation.
+    applyMeadowMarks(meadowTone, x, -y);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;

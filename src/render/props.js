@@ -692,6 +692,25 @@ function forestSpots(box) {
     if (Math.abs(z) < 0.55) continue;
     spots.push({ x, z, s: 1.32 + (i % 3) * 0.1 });
   }
+  // Second ring, just outside the first, so each edge is a dark green band.
+  for (let i = 0; i < 11; i++) {
+    const t = i / 10;
+    const z = box.minZ + 0.35 + t * (box.maxZ - box.minZ) * 0.9;
+    if (Math.abs(z) < 0.7) continue;
+    const x = box.minX - 2.05 - (i % 2) * 0.55;
+    if (Math.hypot(x, z - 6.5) < 1.9) continue;
+    spots.push({ x, z: z + (i % 2) * 0.28, s: 1.52 + (i % 3) * 0.14 });
+  }
+  for (let i = 0; i < 11; i++) {
+    const t = i / 10;
+    const z = box.minZ + 0.55 + t * (box.maxZ - box.minZ) * 0.86;
+    if (Math.abs(z) < 0.7) continue;
+    const x = box.maxX - 0.05 + (i % 2) * 0.45;
+    if (Math.hypot(x, z - 6.5) < 1.9) continue;
+    // Keep the open tan patch on the lower right free of trunks.
+    if (Math.hypot(x - 3.0, z - 2.6) < 2.2) continue;
+    spots.push({ x, z: z - (i % 2) * 0.32, s: 1.46 + (i % 3) * 0.16 });
+  }
   return spots;
 }
 

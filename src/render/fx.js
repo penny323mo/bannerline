@@ -101,8 +101,9 @@ export function createFx(scene) {
   smokeCanvas.height = 64;
   const smokeCtx = smokeCanvas.getContext('2d');
   const smokeGrad = smokeCtx.createRadialGradient(32, 32, 4, 32, 32, 30);
-  smokeGrad.addColorStop(0, 'rgba(90, 92, 88, 0.55)');
-  smokeGrad.addColorStop(1, 'rgba(90, 92, 88, 0)');
+  smokeGrad.addColorStop(0, 'rgba(70, 72, 68, 0.92)');
+  smokeGrad.addColorStop(0.4, 'rgba(70, 72, 68, 0.62)');
+  smokeGrad.addColorStop(1, 'rgba(70, 72, 68, 0)');
   smokeCtx.fillStyle = smokeGrad;
   smokeCtx.fillRect(0, 0, 64, 64);
   const driftMat = new THREE.SpriteMaterial({
@@ -114,14 +115,15 @@ export function createFx(scene) {
     toneMapped: false,
   });
   const driftSpots = [
-    [5.4, 1.8, 4.6],
-    [-5.8, 2.1, -5.2],
-    [0.3, 2.6, -6.2],
-    [-0.4, 1.7, 5.6],
+    [0.6, 1.6, 6.0],
+    [-0.6, 2.2, -5.2],
+    [6.6, 2.3, 2.4],
+    [-6.8, 2.5, -2.2],
   ];
   const drifts = driftSpots.map((spot, i) => {
     const sprite = new THREE.Sprite(driftMat);
-    sprite.scale.set(2.8 + (i % 2) * 0.6, 3.2, 1);
+    const wide = i < 2 ? 4.4 : 2.6;
+    sprite.scale.set(wide, i < 2 ? 4.6 : 2.8, 1);
     sprite.position.set(spot[0], spot[1], spot[2]);
     sprite.renderOrder = 3;
     sprite.frustumCulled = false;
@@ -325,6 +327,20 @@ export function createFx(scene) {
             streaks[1].position.set(mx, 0.78, mz);
             streaks[0].visible = enabled;
             streaks[1].visible = enabled;
+            for (let e = 0; e < 3 && budget > 0; e++) {
+              const along = 0.18 + e * 0.16;
+              spawn(
+                ax + (bx - ax) * along + (e % 2 ? 0.16 : -0.12),
+                0.32 + (e % 3) * 0.14,
+                az + (bz - az) * along,
+                fire,
+                0.85,
+                (e - 2) * 0.2,
+                0.45,
+                e % 2 ? 0.15 : -0.1,
+              );
+              budget -= 1;
+            }
           }
           if (budget > 0) {
             spawn(mx, 0.28, mz, smoke, 0.7, 0, 0.55, 0);

@@ -22,6 +22,15 @@ export function visualCount(count) {
   return 16;
 }
 
+/**
+ * The close camera piles an enemy rank near the stream onto the green clash.
+ * Step that rank back onto the enemy field so it reads as its own block.
+ */
+function enemyBank(x, z) {
+  if (z > -3.6) return { x: 0.4, z: -4.4 };
+  return { x, z };
+}
+
 /** Short loose ranks. A few larger figures read as a squad, not a dot grid. */
 export function colsFor(n) {
   if (n > 8) return 4;
@@ -303,7 +312,7 @@ export function createCrowds(scene) {
     const n = raw <= 8 ? raw : (owner === 'enemy' ? Math.min(24, raw) : Math.min(32, raw));
     if (n <= 0) return;
     const cols = owner === 'enemy' ? Math.min(5, Math.max(1, n)) : Math.min(6, Math.max(1, n));
-    const spacing = owner === 'enemy' ? 0.15 : 0.26;
+    const spacing = owner === 'enemy' ? 0.15 : 0.4;
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
       const row = Math.floor(i / cols);
@@ -348,7 +357,8 @@ export function createCrowds(scene) {
         if (!p) continue;
         // Face the enemy, and stand beside the mesh so the rank does not cover the badge.
         const spot = garrisonAnchor(b.owner, b.kind, p.x, p.z, b.count);
-        formation(b.owner, spot.x, spot.z, spot.yaw, b.count, false);
+        const parked = b.owner === 'enemy' ? enemyBank(spot.x, spot.z) : spot;
+        formation(b.owner, parked.x, parked.z, spot.yaw, b.count, false);
       }
 
       for (let i = 0; i < state.squads.length; i++) {
@@ -370,8 +380,15 @@ export function createCrowds(scene) {
           }
         }
         const yaw = rememberYaw(s.id, dx, dz);
+        let drawX = s.x;
+        let drawZ = s.z;
+        if (s.owner === 'enemy') {
+          const parked = enemyBank(s.x, s.z);
+          drawX = parked.x;
+          drawZ = parked.z;
+        }
         const wantTrack = !tracked && s.mode === 'march';
-        formation(s.owner, s.x, s.z, yaw, s.count, wantTrack);
+        formation(s.owner, drawX, drawZ, yaw, s.count, wantTrack);
         if (wantTrack) {
           tracked = true;
           const prev = prevPos.get(s.id);

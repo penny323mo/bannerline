@@ -25,6 +25,28 @@ function mat(color, extra = {}) {
   });
 }
 
+/** About 8% lighter and darker vertices so a face is not one flat fill. */
+function jitterColors(geo, amount = 0.08) {
+  const pos = geo.getAttribute('position');
+  if (!pos) return geo;
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const wobble = Math.sin(pos.getX(i) * 19.7 + pos.getY(i) * 11.3 + pos.getZ(i) * 7.9);
+    const f = 1 + wobble * amount;
+    colors[i * 3] = f;
+    colors[i * 3 + 1] = f;
+    colors[i * 3 + 2] = f;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+function weathered(source) {
+  const next = source.clone();
+  next.vertexColors = true;
+  return next;
+}
+
 /** A short step toward the wall, so a roof stays a clear team colour. */
 function muteTeam(hex) {
   const color = new THREE.Color(hex);
@@ -164,7 +186,7 @@ function roundMesh(w, h, d, segs, radius, x, y, z, material) {
  */
 function makeHq(paint) {
   const g = new THREE.Group();
-  const concreteMat = mat(PALETTE.concrete, { roughness: 0.88, metalness: 0.02 });
+  const concreteMat = mat(PALETTE.concrete, { roughness: 0.92, metalness: 0 });
   const apron = roundMesh(2.85, 0.4, 2.15, 4, 0.18, 0, 0.16, 0.05, concreteMat);
   const wingL = roundMesh(0.36, 0.66, 1.12, 3, 0.14, -1.28, 0.48, -0.02, concreteMat);
   const wingR = roundMesh(0.36, 0.66, 1.12, 3, 0.14, 1.28, 0.48, -0.02, concreteMat);
@@ -191,7 +213,7 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), -0.42, 3.48, 0.32),
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), 0.42, 3.48, 0.32),
   ], concreteMat);
-  const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
+  const sandMat = mat(PALETTE.sand, { roughness: 0.92, metalness: 0 });
   const sandPad = roundMesh(2.45, 0.32, 1.75, 4, 0.14, 0, 0.14, 0.05, sandMat);
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(0.34, 0.14, 0.18), -0.7, 0.28, -1.02),
@@ -210,7 +232,7 @@ function makeHq(paint) {
   ], bodyMat);
   body.userData.slot = 'body';
   const plinth = roundMesh(1.92, 0.58, 1.2, 5, 0.26, 0, 0.42, 0, bodyMat);
-  const tower = roundMesh(1.22, 2.15, 0.96, 6, 0.36, 0, 1.85, 0.02, roofMat);
+  const tower = roundMesh(1.22, 2.15, 0.96, 4, 0.36, 0, 1.85, 0.02, roofMat);
   tower.userData.slot = 'roof';
   capNear.material = roofMat;
   capTop.material = roofMat;
@@ -271,13 +293,20 @@ function makeHq(paint) {
       baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), 1.15, 0.32, 0.95),
       baked(new THREE.BoxGeometry(0.5, 0.26, 0.36), 0.2, 0.3, 1.15),
       baked(new THREE.BoxGeometry(0.5, 0.26, 0.36), -0.45, 0.3, 1.15),
-    ], sandMat);
+    ], weathered(sandMat));
+    jitterColors(bags.geometry, 0.08);
     g.add(lowRoof, lip, bags);
   } else {
-    tower.material = concreteMat;
+    tower.material = weathered(concreteMat);
+    jitterColors(tower.geometry, 0.08);
     tower.userData.slot = '';
-    const bandA = roundMesh(1.34, 0.16, 1.08, 3, 0.04, 0, 1.42, 0.02, roofMat);
-    const bandB = roundMesh(1.3, 0.14, 1.04, 3, 0.04, 0, 2.32, 0.02, roofMat);
+    roof.visible = false;
+    capNear.material = concreteMat;
+    capTop.material = concreteMat;
+    capNear.userData.slot = '';
+    capTop.userData.slot = '';
+    const bandA = roundMesh(1.08, 0.12, 0.84, 3, 0.03, 0, 1.08, 0.02, roofMat);
+    const bandB = roundMesh(1.02, 0.11, 0.78, 3, 0.03, 0, 2.62, 0.02, roofMat);
     bandA.userData.slot = 'roof';
     bandB.userData.slot = 'roof';
     g.add(bandA, bandB);
@@ -288,7 +317,7 @@ function makeHq(paint) {
 /** Lower hangar: roll door, vents, spawn pad. No dish. Roof center is world y 0.78. */
 function makeBarracks(paint) {
   const g = new THREE.Group();
-  const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
+  const sandMat = mat(PALETTE.sand, { roughness: 0.92, metalness: 0 });
   const sandPad = roundMesh(1.95, 0.32, 1.28, 4, 0.14, 0, 0.14, 0.05, sandMat);
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), -0.98, 0.26, -0.58),
@@ -301,9 +330,11 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), 0.55, 0.26, 0.86),
     baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), -0.18, 0.26, -0.82),
     baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), 0.38, 0.26, -0.82),
-  ], sandMat);
-  const wallMat = mat(PALETTE.concrete, { roughness: 0.94, metalness: 0.02 });
-  const body = roundMesh(1.74, 0.58, 1.02, 6, 0.16, 0, 0.38, 0, wallMat);
+  ], weathered(sandMat));
+  jitterColors(sand.geometry, 0.08);
+  const wallMat = mat(PALETTE.concrete, { roughness: 0.92, metalness: 0 });
+  const body = roundMesh(1.74, 0.58, 1.02, 6, 0.16, 0, 0.38, 0, weathered(wallMat));
+  jitterColors(body.geometry, 0.08);
   const shellMat = mat(WALL, { roughness: 0.9, metalness: 0.04 });
   const roofMat = mat(muteTeam(paint.main), { roughness: 0.84, metalness: 0.04 });
   const slopeNear = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, -0.22, roofMat);
@@ -514,7 +545,7 @@ export function bridgeDeckGeometries(crossings) {
 }
 
 function pushTree(trunks, crowns, x, z, scale, color) {
-  scale *= 0.62;
+  scale *= 1;
   const wave = Math.sin(x * 12.7 + z * 4.3);
   const tall = 0.48 + Math.abs(Math.sin(z * 2.15 + x * 0.37)) * 1.35;
   const fat = 0.4 + Math.abs(Math.cos(x * 1.85 - z * 0.62)) * 0.95;
@@ -586,11 +617,11 @@ function islandCapGeometry(spanX, spanZ) {
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
     const n = Math.sin(x * 0.42 + z * 0.28) + Math.sin(x * 1.15 - z * 0.7) * 0.7;
     tone.copy(meadow);
-    if (n > 0.55) tone.lerp(khaki, 0.55);
-    else if (n < -0.35) tone.lerp(moss, 0.55);
-    else tone.lerp(deep, 0.22);
+    if (n > 0.55) tone.lerp(khaki, 0.28);
+    else if (n < -0.35) tone.lerp(moss, 0.72);
+    else tone.lerp(deep, 0.38);
     if (Math.abs(x) < 2.6 && Math.abs(z) > 1.15) tone.lerp(dirt, 0.48 * (1 - Math.min(1, Math.abs(x) / 2.6)));
-    if (Math.sin(x * 0.9 + 0.4) * Math.sin(z * 0.55) > 0.2) tone.lerp(sand, 0.62);
+    if (Math.sin(x * 0.9 + 0.4) * Math.sin(z * 0.55) > 0.2) tone.lerp(sand, 0.22);
     if (u > 0.9) tone.lerp(deepEdge, 0.12);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
@@ -857,9 +888,12 @@ function paintDirt(geo) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
     const n = Math.sin(x * 6.5 + z * 3.1) * Math.cos(z * 5.2 - x * 2.4);
-    if (n > 0.35) tone.copy(light);
-    else if (n < -0.25) tone.copy(dark);
-    else tone.copy(base);
+    if (n > 0.45) tone.copy(light);
+    else if (n < 0.12) tone.copy(dark);
+    else {
+      tone.copy(base);
+      tone.lerp(dark, 0.55);
+    }
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -1068,11 +1102,11 @@ function buildIsland(map, reduceMotion) {
     rocks.push({
       x: Math.cos(a) * rad * 1.15,
       z: Math.sin(a) * rad * 0.9,
-      s: 0.7 + (i % 3) * 0.28,
+      s: 1.35 + (i % 3) * 0.45,
     });
   }
   if (rocks.length) {
-    const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
+    const rockGeo = new THREE.DodecahedronGeometry(0.36, 0);
     const rockParts = [];
     for (let i = 0; i < rocks.length; i++) {
       const rock = rocks[i];

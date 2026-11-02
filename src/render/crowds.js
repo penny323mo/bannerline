@@ -23,45 +23,43 @@ export function visualCount(count) {
 }
 
 /**
- * Two readable enemy blocks. The headquarters rank stands inside the wall, so
- * it steps out in front of the gate. A squad near the stream keeps its lane
- * and stands on the enemy bank instead of in the water.
+ * Two enemy blocks. The headquarters rank steps out in front of the gate.
+ * Every other enemy squad on this half joins the field block, including the
+ * badges of a few men, so they do not stand as extra short groups.
  */
-function enemyBank(x, z, count) {
-  const n = Math.max(0, Math.floor(count || 0));
-  if (z < -5.2) return { x: x >= 0 ? 1.22 : x, z: -4.25 };
+function enemyBank(x, z) {
+  // Headquarters rank stands on the road in front of the gate, clear of the curb.
+  if (z < -5.2) return { x: 1.75, z: -3.85 };
   if (z > -3.6) {
     const lane = x > 0.4 ? 1 : -1;
-    if (n > 8) return { x: lane < 0 ? -3.4 : 1.85, z: -4.25 };
-    return { x: lane < 0 ? -3.35 : 2.7, z: z < -1.6 ? -0.7 : -0.45 };
+    return { x: lane < 0 ? -2.7 : 1.9, z: -3.55 };
   }
   return { x, z };
 }
 
 /**
- * Where a squad is drawn. Enemy ranks split into a gate block and a field
- * block. A player squad on the water steps onto the grass below the front.
+ * Where a squad is drawn. Enemy ranks are the gate block and the field block.
+ * A player squad short of the bunker joins the advancing crowd.
  */
 export function drawAnchor(owner, x, z, count = 0) {
   if (owner === 'enemy') return enemyBank(x, z, count);
-  if (z < 1.8 && z > -0.5) return { x: x - 0.4, z: z + 1.55 };
+  if (z < 4.2 && z > -0.5) return { x: -0.85, z: 1.85 };
   return { x, z };
 }
 
 /**
- * Local XZ slot before yaw. Wide ranks keep a body-sized gap so the oblique
- * camera does not stack thirty figures into one blot. A short player garrison
- * grows up-screen so it stays above the bottom bar.
+ * Local XZ slot before yaw. A mass is a tight rank, about six to eight across,
+ * so thirty figures read as one block. A short player garrison grows up-screen.
  */
 export function formationLocal(owner, index, n) {
   const count = Math.max(1, n);
   const enemy = owner === 'enemy';
   const mass = enemy || count > 22;
   const cols = mass
-    ? (enemy ? (count >= 20 ? 7 : Math.min(count, 6)) : (count >= 24 ? 8 : 6))
+    ? (enemy ? (count >= 20 ? 6 : Math.min(count, 4)) : (count >= 24 ? 6 : 5))
     : Math.min(4, count);
-  const colGap = mass ? (enemy ? 0.56 : 0.62) : 0.46;
-  const rowGap = mass ? (enemy ? 0.86 : 0.74) : 0.4;
+  const colGap = mass ? 0.38 : 0.42;
+  const rowGap = mass ? (enemy ? 0.42 : 0.4) : 0.36;
   const row = Math.floor(index / cols);
   const col = index % cols;
   const rowCount = Math.min(cols, count - row * cols);

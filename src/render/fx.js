@@ -96,9 +96,10 @@ export function createFx(scene) {
     return map;
   }
   const flashMap = radialMap([
-    [0, 'rgba(255, 252, 236, 1)'],
-    [0.16, 'rgba(255, 244, 190, 0.95)'],
-    [0.42, 'rgba(255, 186, 70, 0.45)'],
+    [0, 'rgba(255, 252, 240, 1)'],
+    [0.06, 'rgba(255, 248, 210, 0.95)'],
+    [0.16, 'rgba(255, 210, 90, 0.35)'],
+    [0.36, 'rgba(255, 150, 40, 0)'],
     [1, 'rgba(255, 140, 40, 0)'],
   ]);
   const dustMap = radialMap([
@@ -137,7 +138,7 @@ export function createFx(scene) {
   });
   const muzzles = [0, 1, 2, 3, 4].map(() => {
     const sprite = new THREE.Sprite(muzzleMat);
-    sprite.scale.set(0.34, 0.34, 1);
+    sprite.scale.set(0.16, 0.16, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -262,7 +263,7 @@ export function createFx(scene) {
   function flashOn(sprite, x, z, yaw) {
     rotateXZ(MUZZLE.x, MUZZLE.z, yaw, slot);
     sprite.position.set(x + slot.x * FIGURE, 0.02 + MUZZLE.y * FIGURE, z + slot.z * FIGURE);
-    sprite.scale.set(0.36, 0.36, 1);
+    sprite.scale.set(0.16, 0.16, 1);
     sprite.visible = enabled;
   }
 
@@ -358,7 +359,7 @@ export function createFx(scene) {
             const dustX = onDeck ? q.x : spot.x;
             const dustZ = onDeck ? 1.35 : spot.z;
             puffSprite.position.set(dustX + side * 0.1, 0.08, dustZ);
-            puffSprite.scale.set(0.42, 0.28, 1);
+            puffSprite.scale.set(0.26, 0.16, 1);
             puffSprite.visible = enabled;
           }
           if (q.mode === 'siege' && budget > 0) {
@@ -385,7 +386,7 @@ export function createFx(scene) {
         const barrel = muzzles[muzzles.length - 1];
         // Baked Tank_Gun runs toward the camera. The visible tip is just short of the mesh max-Z.
         barrel.position.set(1.69, 0.5, 5.14);
-        barrel.scale.set(0.4, 0.4, 1);
+        barrel.scale.set(0.18, 0.18, 1);
         barrel.visible = enabled;
       }
       const nodes = state.nodes;

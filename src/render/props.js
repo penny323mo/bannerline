@@ -461,35 +461,46 @@ function dressBuilding(group, kit) {
     const wallSrc = kit.wall || kit.fort;
     if (wallSrc) {
       // Parent local −Z is the building forward (yawForFacing). The gap faces the road.
-      const wallCount = 20;
+      // Short bricks, not long fins. A 0.7 slab's long axis points up the screen
+      // on the sides of the ring and reads as a spiked fan. Overlapping bricks
+      // keep a low curb. The missing arc is the road gate.
+      const wallCount = 36;
       const radius = 1.62 / sx;
-      const gate = 0.48;
+      const gate = 1.28;
       const wallMat = concreteMaterial(0xc4bfb6);
       const trimMat = new THREE.MeshStandardMaterial({
         color: 0xd01818,
         emissive: 0xff241c,
-        emissiveIntensity: 0.45,
+        emissiveIntensity: 0.08,
         roughness: 0.5,
         metalness: 0.02,
       });
+      const wallH = 0.14 / sx;
+      const trimH = 0.02 / sx;
+      const brick = 0.3 / sx;
+      const lip = 0.04 / sx;
       for (let i = 0; i < wallCount; i++) {
         const a = -Math.PI / 2 + (i / wallCount) * Math.PI * 2;
         const gap = Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)));
         if (gap < gate) continue;
         const wall = new THREE.Mesh(
-          new THREE.BoxGeometry(1.05 / sx, 0.58 / sx, 0.22 / sx),
+          new THREE.BoxGeometry(brick, wallH, 0.16 / sx),
           wallMat,
         );
-        wall.position.set(Math.cos(a) * radius, 0.29 / sx, Math.sin(a) * radius);
+        wall.position.set(Math.cos(a) * radius, wallH * 0.5, Math.sin(a) * radius);
         wall.rotation.y = a + Math.PI / 2;
         wall.castShadow = true;
         wall.receiveShadow = true;
         group.add(wall);
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(1.05 / sx, 0.09 / sx, 0.2 / sx),
+          new THREE.BoxGeometry(brick, trimH, lip),
           trimMat,
         );
-        trim.position.set(wall.position.x, wall.position.y + 0.27 / sx, wall.position.z);
+        trim.position.set(
+          Math.cos(a) * (radius + 0.06 / sx),
+          wallH + trimH * 0.5,
+          Math.sin(a) * (radius + 0.06 / sx),
+        );
         trim.rotation.y = wall.rotation.y;
         trim.castShadow = true;
         trim.receiveShadow = true;
@@ -498,24 +509,27 @@ function dressBuilding(group, kit) {
       for (const side of [-1, 1]) {
         const a = -Math.PI / 2 + side * gate;
         const post = new THREE.Mesh(
-          new THREE.BoxGeometry(0.16 / sx, 0.7 / sx, 0.16 / sx),
+          new THREE.BoxGeometry(0.1 / sx, 0.22 / sx, 0.1 / sx),
           wallMat,
         );
-        post.position.set(Math.cos(a) * radius, 0.35 / sx, Math.sin(a) * radius);
+        post.position.set(Math.cos(a) * radius, 0.11 / sx, Math.sin(a) * radius);
         post.castShadow = true;
         post.receiveShadow = true;
         group.add(post);
       }
-      const gateZ = -radius;
+      // Flag stands on the left jamb so the road opening stays empty.
+      const flagA = -Math.PI / 2 - gate;
+      const flagX = Math.cos(flagA) * radius;
+      const flagZ = Math.sin(flagA) * radius;
       const pole = new THREE.Mesh(
         new THREE.CylinderGeometry(0.025 / sx, 0.025 / sx, 0.95 / sx, 6),
         concreteMaterial(0x3e3a34),
       );
-      pole.position.set(-0.15 / sx, 0.48 / sx, gateZ - 0.08 / sx);
+      pole.position.set(flagX, 0.48 / sx, flagZ);
       pole.castShadow = true;
       group.add(pole);
       const cloth = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.95 / sx, 0.55 / sx),
+        new THREE.PlaneGeometry(0.72 / sx, 0.42 / sx),
         new THREE.MeshStandardMaterial({
           color: 0x8e1c1c,
           emissive: 0x4a1010,
@@ -524,8 +538,8 @@ function dressBuilding(group, kit) {
           roughness: 0.7,
         }),
       );
-      cloth.position.set(0.28 / sx, 0.72 / sx, gateZ - 0.08 / sx);
-      cloth.rotation.y = Math.PI - 0.55;
+      cloth.position.set(flagX + 0.38 / sx, 0.68 / sx, flagZ);
+      cloth.rotation.y = Math.PI - 0.4;
       cloth.castShadow = true;
       group.add(cloth);
     }

@@ -275,3 +275,9 @@
 
 - Soldiers. The dome radius is 0.08 and the Y scale is 0.3, so the cap is smaller and flatter. The brim is a disc of radius 0.2, wider than that dome. The shoulders are a bar 0.7 wide, wider than the head in the 390 shot. The rifle stays outside that bar. Loose offsets stay. The olive dome and the team colour on the band and one arm stay. The tracked marcher stays on the standing pose. Scale stays 1.28.
 - 67 tests passed. Rebuilt `static/app.js` (597417 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.
+
+## Round 41 fixes
+
+- Soldiers. The 0.7 shoulder bar is gone. The jacket chest is radius 0.19 over 0.155, and the yoke is a short cylinder (radius 0.23 to 0.20, height 0.09) scaled 1.12 by 0.78, only a little wider than the cloth. The cap stays an upper hemisphere of radius 0.15, about a sixth of the figure, with Y scale 0.95. The brim stays radius 0.17, only just past the dome. The rifle sits at x 0.34, outside that yoke. Loose offsets stay. The olive dome and the team colour on the band and one arm stay. The tracked marcher stays on the standing pose. Scale stays 1.28. At 390px the dome is 18.5 CSS px, under the 20px cap.
+- Pages. The review asked to publish the previous bundle, `static/app.js` 597417 bytes, sha256 `18bfd358f2932d3f`. This round does not commit. The soldier rebuild replaces that hash. The new uncommitted bundle is `static/app.js` 597431 bytes, sha256 `5cdec72f0e77381e49034fce4c622cbedbecb35d8cfa607449a6b86e94e25f1e`.
+- 67 tests passed. Rebuilt `static/app.js` (597431 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.

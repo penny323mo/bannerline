@@ -103,48 +103,49 @@ export function soldierGeometry(variant = 0) {
   legL.translate(-0.07, 0.23, 0.02);
   const legR = shade(limb(0.04, 0.05, 0.46, 6), 0.16);
   legR.translate(0.07, 0.23, -0.02);
-  // Jacket under a shoulder bar that is wider than the cap.
-  const torso = shade(limb(0.16, 0.18, 0.48, 8), 0.42);
-  torso.translate(0, 0.54, 0);
-  const shoulders = shade(new THREE.BoxGeometry(0.7, 0.08, 0.28), 0.38);
-  shoulders.translate(0, 0.76, 0);
-  const armL = shade(limb(0.036, 0.042, 0.32, 6), 0.9);
-  armL.translate(-0.34, 0.58, -0.05);
-  const armR = shade(limb(0.032, 0.036, 0.3, 6), 0.26);
-  armR.translate(0.34, 0.56, -0.06);
-  const head = shade(limb(0.036, 0.04, 0.06, 8), 0.55);
-  head.translate(0, 0.82, 0);
-  // Smaller, flatter cap. Radius stays under 0.1 and the Y scale under 0.46.
-  const helmet = shade(new THREE.SphereGeometry(0.08, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2), 1);
-  helmet.scale(1.08, 0.3, 1.08);
-  helmet.translate(0, 0.86, -0.01);
-  const band = shade(new THREE.TorusGeometry(0.074, 0.012, 5, 10), 0.88);
+  // Jacket chest, then a short yoke only a little wider across than the cloth.
+  const torso = shade(limb(0.19, 0.155, 0.48, 8), 0.42);
+  torso.translate(0, 0.48, 0);
+  const shoulders = shade(new THREE.CylinderGeometry(0.23, 0.20, 0.09, 8), 0.38);
+  shoulders.scale(1.12, 1, 0.78);
+  shoulders.translate(0, 0.70, 0);
+  const armL = shade(limb(0.034, 0.04, 0.3, 6), 0.9);
+  armL.translate(-0.25, 0.58, -0.04);
+  const armR = shade(limb(0.03, 0.034, 0.28, 6), 0.26);
+  armR.translate(0.25, 0.56, -0.05);
+  const head = shade(limb(0.04, 0.044, 0.07, 8), 0.55);
+  head.translate(0, 0.8, 0);
+  // Cap about a sixth of the figure, narrower than the shoulder. Brim only just past it.
+  const helmet = shade(new THREE.SphereGeometry(0.15, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), 1);
+  helmet.scale(1, 0.95, 1);
+  helmet.translate(0, 0.78, -0.01);
+  const band = shade(new THREE.TorusGeometry(0.14, 0.016, 5, 10), 0.88);
   band.rotateX(Math.PI / 2);
-  band.translate(0, 0.858, -0.01);
-  const brim = shade(new THREE.CylinderGeometry(0.2, 0.2, 0.014, 14), 0.72);
-  brim.translate(0, 0.845, -0.03);
-  // Rifle on local −z, outside the wider shoulder bar.
-  const rifle = shade(new THREE.BoxGeometry(0.042, 0.03, 0.68), 0.08);
-  rifle.translate(0.42, 0.5, -0.46);
-  const stock = shade(new THREE.BoxGeometry(0.05, 0.055, 0.1), 0.12);
-  stock.translate(0.4, 0.46, -0.1);
+  band.translate(0, 0.8, -0.01);
+  const brim = shade(new THREE.CylinderGeometry(0.17, 0.17, 0.012, 12), 0.72);
+  brim.translate(0, 0.772, -0.02);
+  // Rifle on local −z, just outside the shoulder.
+  const rifle = shade(new THREE.BoxGeometry(0.04, 0.03, 0.5), 0.08);
+  rifle.translate(0.34, 0.5, -0.36);
+  const stock = shade(new THREE.BoxGeometry(0.048, 0.05, 0.09), 0.12);
+  stock.translate(0.33, 0.46, -0.08);
   const pack = shade(new THREE.BoxGeometry(0.12, 0.14, 0.07), 0.2);
   pack.translate(0, 0.52, 0.12);
   if (variant === 1) {
     // A long stride and a rifle swung out so both clear the body from above.
     around(legL, -0.07, 0.46, 0.02, 1.25, 0.1);
     around(legR, 0.07, 0.46, -0.02, -1.05, 0);
-    around(armL, -0.34, 0.72, -0.05, -0.85, 0.25);
-    around(armR, 0.34, 0.7, -0.06, 0.45, -0.35);
-    around(rifle, 0.42, 0.5, -0.16, 0.12, -1.2);
-    around(torso, 0, 0.54, 0, 0.18, 0.28);
+    around(armL, -0.25, 0.68, -0.04, -0.85, 0.25);
+    around(armR, 0.25, 0.66, -0.05, 0.45, -0.35);
+    around(rifle, 0.34, 0.5, -0.14, 0.12, -1.05);
+    around(torso, 0, 0.48, 0, 0.18, 0.28);
   } else if (variant === 2) {
     around(legL, -0.07, 0.46, 0.02, -1.0, 0);
     around(legR, 0.07, 0.46, -0.02, 1.2, -0.12);
-    around(armL, -0.34, 0.72, -0.05, 0.9, -0.2);
-    around(armR, 0.34, 0.7, -0.06, -0.35, 0.4);
-    around(rifle, 0.42, 0.5, -0.16, -0.15, 1.15);
-    around(torso, 0, 0.54, 0, 0.22, -0.42);
+    around(armL, -0.25, 0.68, -0.04, 0.9, -0.2);
+    around(armR, 0.25, 0.66, -0.05, -0.35, 0.4);
+    around(rifle, 0.34, 0.5, -0.14, -0.12, 1.0);
+    around(torso, 0, 0.48, 0, 0.22, -0.42);
   }
   const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, band, brim, rifle, stock, pack]);
   geo.computeVertexNormals();

@@ -23,8 +23,8 @@ export function createFx(scene) {
     transparent: true,
     opacity: 0.82,
     depthWrite: false,
-    // The bridge deck and the hangar were hiding the puff and the muzzle flash.
-    depthTest: false,
+    // Parked slots sit at y −8 with colour 0. Depth test keeps that stack under the ground.
+    depthTest: true,
     sizeAttenuation: true,
   });
   const points = new THREE.Points(geo, material);

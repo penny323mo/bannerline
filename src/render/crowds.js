@@ -97,7 +97,7 @@ function around(geo, x, y, z, rx, ry) {
 }
 
 export function soldierGeometry(variant = 0) {
-  // Longer cloth under a helmet that stays about a sixth of the height.
+  // Longer cloth under a flat cap. The yoke stays wider than that cap.
   // Variant 0 is the standing mesh the size tests measure. 1 and 2 stride.
   const legL = shade(limb(0.04, 0.05, 0.46, 6), 0.22);
   legL.translate(-0.07, 0.23, 0.02);
@@ -114,15 +114,15 @@ export function soldierGeometry(variant = 0) {
   const armR = shade(limb(0.03, 0.034, 0.28, 6), 0.26);
   armR.translate(0.25, 0.56, -0.05);
   const head = shade(limb(0.04, 0.044, 0.07, 8), 0.55);
-  head.translate(0, 0.8, 0);
-  // Cap about a sixth of the figure, narrower than the shoulder. Brim only just past it.
+  head.translate(0, 0.75, 0);
+  // Flat cap. The dome is squashed so it is not a ball, and the brim sticks out past it.
   const helmet = shade(new THREE.SphereGeometry(0.15, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), 1);
-  helmet.scale(1, 0.95, 1);
+  helmet.scale(1, 0.35, 1);
   helmet.translate(0, 0.78, -0.01);
   const band = shade(new THREE.TorusGeometry(0.14, 0.016, 5, 10), 0.88);
   band.rotateX(Math.PI / 2);
-  band.translate(0, 0.8, -0.01);
-  const brim = shade(new THREE.CylinderGeometry(0.17, 0.17, 0.012, 12), 0.72);
+  band.translate(0, 0.785, -0.01);
+  const brim = shade(new THREE.CylinderGeometry(0.22, 0.22, 0.012, 12), 0.72);
   brim.translate(0, 0.772, -0.02);
   // Rifle on local −z, just outside the shoulder.
   const rifle = shade(new THREE.BoxGeometry(0.04, 0.03, 0.5), 0.08);

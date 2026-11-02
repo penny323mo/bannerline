@@ -231,3 +231,14 @@
 
 - The round 34 review found no CRITICAL, MAJOR, or MINOR issues. Opening ranks stay inside the 390×844 frame, the player hangar reads 93 CSS pixels, and the enemy hangar reads 80. Headquarters stay at scale 0.92. The eight loop-r32 art items stay closed on `screenshots/fix-33/home.png` and `combat.png`.
 - 67 tests passed. No source or bundle change. `static/app.js` stays 563647 bytes and `static/style.css` stays 10780 bytes.
+
+## Round 35 fixes
+
+- Camera. The play frame is a higher three-quarter: fov 41 at (0.15, 16, 15), looking at (0, 0.4, 0.4), about 47° down. The near tower sits in the lower field at about 120 CSS pixels, and the lane between the two bases stays open. The home frame is fov 30 at (0.15, 24, 36), looking at (0, 0.1, 4), so the menu card sits under a wide map instead of a tower that fills the portrait.
+- Team colour. Roof paint is lerped about 40% toward concrete, and it is limited to a narrow band, the flag, and the helmet band. The stacked team-colour bars on the barracks roof are now olive-grey shell. Walls stay 0x5a6158. Faction main hexes in the palette are unchanged.
+- Edges and the dish. The renderer turns antialiasing on and draws at device pixel ratio 2. The tower shaft and the hangar body use rounded boxes. The radar dish is a small tilted disc on a thin mast, about a third of the tower width, and it no longer covers the count label.
+- Soldiers. Figures are longer, with a helmet about a sixth of the height, khaki cloth, and a rifle on local −z. Scale is 1.28. Ranks stagger and lean so a squad reads as a loose crowd. Enemy red stays on the helmet and one armband. Contact discs are wider and softer.
+- Front line. A bowed emissive ribbon, green on our side and red on theirs, runs across the visible field and sits on the player bank. The hard band still uses z scale 1.2 and the tint still uses z scale 1.75. Territory stains are pulled toward meadow so they do not read as the front.
+- Ground and light. The meadow and the dirt road carry stronger grass and dust variation. Trees vary in height and leaf colour. The river centre is a lighter blue, 0x6eb4d4, with sand banks. The warm sun and the vignette stay. Software devices still skip the shadow map.
+- Badges. Count pills stay 36px tall with the same −139% shift. They are wider, nowrap, so 「司令部 54 滿」 stays on one line at 390px. Squad pills use the same single-line treatment.
+- 67 tests passed. Rebuilt `static/app.js` (565818 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png`.

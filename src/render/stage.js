@@ -6,24 +6,24 @@ import { PALETTE } from './palette.js';
  * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  // Closer three-quarter. Screen-right is world +x.
-  // The lane fills the portrait width, and both headquarters stay in frame.
-  camera.fov = 48;
+  // High three-quarter, about 47° down. Screen-right is world +x.
+  // The near tower stays a building in the lower field, and the lane stays open.
+  camera.fov = 41;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.15, 10, 14);
+  camera.position.set(0.15, 16, 15);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0.4, 1);
+  camera.lookAt(0, 0.4, 0.4);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
 
-/** Menu frame. The home card covers the lower band, so both bases sit above it. */
+/** Menu frame. The home card covers the lower band, so the map sits above it. */
 export function frameHomeCamera(camera, aspect) {
-  camera.fov = 36;
+  camera.fov = 30;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.2, 12, 24);
+  camera.position.set(0.15, 24, 36);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0, 5);
+  camera.lookAt(0, 0.1, 4);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
@@ -63,7 +63,7 @@ export function applyShadowMode(renderer, sun, enabled) {
 export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: false,
+    antialias: true,
     alpha: false,
     powerPreference: 'high-performance',
   });
@@ -97,7 +97,7 @@ export function createStage(canvas) {
     const h = canvas.clientHeight || 844;
     camera.aspect = w / Math.max(1, h);
     camera.updateProjectionMatrix();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 2), 2);
     renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
   }

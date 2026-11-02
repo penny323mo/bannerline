@@ -6,7 +6,7 @@ import { PALETTE } from './palette.js';
 
 const MAX = 480;
 /** Rank size paired with the play camera so a helmet stays readable beside the pad. */
-export const SOLDIER_SCALE = 1.18;
+export const SOLDIER_SCALE = 1.28;
 export const RANK_SPACING = 0.52;
 /** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
 export const HELMET_PLAYER = 0x3e6b32;
@@ -89,37 +89,37 @@ function limb(radiusTop, radiusBottom, height, sides) {
 }
 
 export function soldierGeometry() {
-  // Helmeted infantry. Local −z is the rifle, which yawForFacing aims along travel.
-  // A 3- or 4-side cylinder is a prism. At the play camera those prisms read as stacked cubes,
-  // so limbs stay at 6+ sides and the helmet is a sphere, not a box.
-  const legL = shade(limb(0.042, 0.05, 0.28, 6), 0.22);
-  legL.translate(-0.07, 0.14, 0.05);
-  const legR = shade(limb(0.042, 0.05, 0.28, 6), 0.16);
-  legR.translate(0.07, 0.14, 0.05);
-  const torso = shade(limb(0.13, 0.15, 0.32, 8), 0.42);
-  torso.translate(0, 0.4, 0);
-  const shoulders = shade(new THREE.CylinderGeometry(0.16, 0.15, 0.06, 8), 0.38);
-  shoulders.translate(0, 0.54, 0);
-  const armL = shade(limb(0.03, 0.034, 0.2, 6), 0.9);
-  armL.translate(-0.15, 0.4, -0.06);
-  const armR = shade(limb(0.03, 0.032, 0.18, 6), 0.26);
-  armR.translate(0.15, 0.4, -0.08);
-  const head = shade(limb(0.05, 0.055, 0.09, 8), 0.55);
-  head.translate(0, 0.58, 0);
-  const helmet = shade(new THREE.SphereGeometry(0.092, 10, 8), 1);
-  helmet.translate(0, 0.66, -0.012);
-  const band = shade(new THREE.TorusGeometry(0.078, 0.016, 6, 10), 0.88);
+  // Proportioned infantry. Local −z is the rifle, which yawForFacing aims along travel.
+  // The helmet is about a sixth of the height. Limbs stay round so they do not read as cubes.
+  const legL = shade(limb(0.038, 0.046, 0.4, 6), 0.22);
+  legL.translate(-0.062, 0.2, 0.02);
+  const legR = shade(limb(0.038, 0.046, 0.4, 6), 0.16);
+  legR.translate(0.062, 0.2, -0.02);
+  const torso = shade(limb(0.1, 0.12, 0.4, 8), 0.42);
+  torso.translate(0, 0.52, 0);
+  const shoulders = shade(new THREE.CylinderGeometry(0.155, 0.13, 0.05, 8), 0.38);
+  shoulders.translate(0, 0.7, 0);
+  const armL = shade(limb(0.026, 0.03, 0.24, 6), 0.9);
+  armL.translate(-0.13, 0.52, -0.04);
+  const armR = shade(limb(0.024, 0.028, 0.22, 6), 0.26);
+  armR.translate(0.13, 0.5, -0.06);
+  const head = shade(limb(0.04, 0.044, 0.07, 8), 0.55);
+  head.translate(0, 0.78, 0);
+  const helmet = shade(new THREE.SphereGeometry(0.07, 10, 8), 1);
+  helmet.scale(1, 0.94, 1);
+  helmet.translate(0, 0.84, -0.01);
+  const band = shade(new THREE.TorusGeometry(0.066, 0.012, 6, 10), 0.88);
   band.rotateX(Math.PI / 2);
-  band.translate(0, 0.64, -0.012);
-  const brim = shade(new THREE.BoxGeometry(0.2, 0.026, 0.14), 0.78);
-  brim.translate(0, 0.6, -0.05);
-  // Thick barrel on local −z. Length stays short so a rank cannot stripe the road.
-  const rifle = shade(new THREE.BoxGeometry(0.06, 0.052, 0.28), 0.08);
-  rifle.translate(0.16, 0.4, -0.2);
-  const stock = shade(new THREE.BoxGeometry(0.07, 0.08, 0.1), 0.12);
-  stock.translate(0.15, 0.32, -0.06);
-  const pack = shade(new THREE.BoxGeometry(0.09, 0.11, 0.06), 0.2);
-  pack.translate(0, 0.34, 0.09);
+  band.translate(0, 0.82, -0.01);
+  const brim = shade(new THREE.BoxGeometry(0.15, 0.018, 0.1), 0.78);
+  brim.translate(0, 0.79, -0.04);
+  // Rifle on local −z. Length stays short so a rank cannot stripe the road.
+  const rifle = shade(new THREE.BoxGeometry(0.04, 0.036, 0.42), 0.08);
+  rifle.translate(0.11, 0.5, -0.28);
+  const stock = shade(new THREE.BoxGeometry(0.05, 0.06, 0.08), 0.12);
+  stock.translate(0.11, 0.44, -0.06);
+  const pack = shade(new THREE.BoxGeometry(0.08, 0.1, 0.05), 0.2);
+  pack.translate(0, 0.48, 0.08);
   const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, band, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;
@@ -205,14 +205,14 @@ export function createCrowds(scene) {
   red.frustumCulled = false;
   green.count = 0;
   red.count = 0;
-  const padGeo = new THREE.CircleGeometry(0.22, 8);
+  const padGeo = new THREE.CircleGeometry(0.3, 12);
   padGeo.rotateX(-Math.PI / 2);
   const pads = new THREE.InstancedMesh(
     padGeo,
     new THREE.MeshBasicMaterial({
       color: 0x1a2016,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.32,
       depthWrite: false,
     }),
     MAX,
@@ -240,12 +240,13 @@ export function createCrowds(scene) {
     return yaw;
   }
 
-  function push(owner, x, y, z, yaw, scale, trackNose) {
+  function push(owner, x, y, z, yaw, scale, trackNose, lean) {
     const mesh = owner === 'player' ? green : red;
     const index = owner === 'player' ? gi : ri;
     if (index >= MAX) return;
+    const tip = lean || 0;
     dummy.position.set(x, y, z);
-    dummy.rotation.set(0, yaw, 0);
+    dummy.rotation.set(tip * 0.4, yaw, tip * 0.25);
     dummy.scale.setScalar(scale);
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
@@ -277,11 +278,14 @@ export function createCrowds(scene) {
       const r = Math.floor(i / cols);
       const rows = Math.ceil(n / cols);
       const rowCount = r === rows - 1 ? n - r * cols : cols;
-      const lx = (c - (rowCount - 1) / 2) * spacing + (r % 2) * spacing * 0.28;
-      const lz = r * spacing * 0.86 + ((i * 5) % 3 - 1) * spacing * 0.08;
+      const lx = (c - (rowCount - 1) / 2) * spacing + (r % 2) * spacing * 0.5 + ((i * 3) % 5 - 2) * spacing * 0.12;
+      const lz = r * spacing * 0.74 + ((i * 5) % 5 - 2) * spacing * 0.14;
       rotateXZ(lx, lz, yaw, _slot);
-      const bob = 1 + ((i * 17) % 5) * 0.015;
-      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yaw, SOLDIER_SCALE * bob, track && i === 0);
+      const bob = 1 + ((i * 17) % 5) * 0.02;
+      const lead = track && i === 0;
+      const yawJ = lead ? yaw : yaw + ((i * 5) % 5 - 2) * 0.07;
+      const lean = lead ? 0 : ((i * 3) % 5 - 2) * 0.08;
+      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean);
     }
   }
 

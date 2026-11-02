@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { yawForFacing } from '../sim/facing.js';
 import { boxMapZones, frontierFrom } from '../sim/territory.js';
 import { PALETTE, ownerPaint } from './palette.js';
@@ -22,6 +23,20 @@ function mat(color, extra = {}) {
     metalness: 0.05,
     ...extra,
   });
+}
+
+/** About 40% toward concrete so a team band stays paint, not a neon slab. */
+function muteTeam(hex) {
+  const color = new THREE.Color(hex);
+  color.lerp(new THREE.Color(0x8a877c), 0.42);
+  return color.getHex();
+}
+
+/** Territory stains sit under the emissive front, so they stay close to meadow. */
+function stain(hex) {
+  const color = new THREE.Color(hex);
+  color.lerp(new THREE.Color(PALETTE.meadow), 0.58);
+  return color.getHex();
 }
 
 function exitDir(map, nodeId, out) {
@@ -125,6 +140,12 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.28, 0.12, 0.16), 0.5, 0.32, -1.22),
     baked(new THREE.BoxGeometry(0.28, 0.12, 0.16), 0.96, 0.3, -1.16),
     baked(new THREE.BoxGeometry(2.2, 0.1, 1.42), 0, 0.72, 0),
+    baked(new THREE.BoxGeometry(1.34, 0.1, 1.02), 0, 2.98, 0.02),
+    baked(new THREE.BoxGeometry(1.1, 0.08, 0.82), 0, 3.34, 0.02),
+    baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), -0.42, 3.48, -0.28),
+    baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), 0.42, 3.48, -0.28),
+    baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), -0.42, 3.48, 0.32),
+    baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), 0.42, 3.48, 0.32),
   ], mat(PALETTE.concrete, { roughness: 0.88, metalness: 0.02 }));
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(2.55, 0.12, 1.85), 0, 0.1, 0.05),
@@ -141,18 +162,20 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), 1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(1.7, 0.08, 0.1), 0, 0.84, -0.6),
     baked(new THREE.BoxGeometry(2.05, 0.52, 1.28), 0, 0.42, 0),
-    baked(new THREE.BoxGeometry(1.22, 2.15, 0.96), 0, 1.85, 0.02),
     baked(new THREE.BoxGeometry(1.05, 0.42, 0.78), 0, 3.12, 0.02),
   ], bodyMat);
   body.userData.slot = 'body';
+  const tower = new THREE.Mesh(
+    new RoundedBoxGeometry(1.22, 2.15, 0.96, 2, 0.1),
+    bodyMat,
+  );
+  tower.position.set(0, 1.85, 0.02);
+  tower.castShadow = true;
+  tower.receiveShadow = true;
   const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(1.38, 0.14, 1.08), 0, 2.95, 0.02),
-    baked(new THREE.BoxGeometry(1.18, 0.1, 0.88), 0, 3.38, 0.02),
-    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), -0.48, 3.5, -0.32),
-    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), 0.48, 3.5, -0.32),
-    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), -0.48, 3.5, 0.36),
-    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), 0.48, 3.5, 0.36),
-  ], mat(paint.main, { roughness: 0.62, metalness: 0.08 }));
+    baked(new THREE.BoxGeometry(1.26, 0.06, 0.08), 0, 2.42, 0.48),
+    baked(new THREE.BoxGeometry(1.26, 0.06, 0.08), 0, 2.42, -0.44),
+  ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.08 }));
   roof.userData.slot = 'roof';
   const door = mergedMesh([
     baked(new THREE.BoxGeometry(0.46, 0.32, 0.06), 0, 0.3, -0.68),
@@ -162,9 +185,9 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.5, 0.04, 0.05), 0, 0.3, -0.7),
   ], mat(PALETTE.ink, { roughness: 0.8, metalness: 0.12 }));
   const metal = mergedMesh([
-    baked(new THREE.CylinderGeometry(0.045, 0.06, 0.55, 6), 0.22, 3.72, 0.02),
-    baked(new THREE.CylinderGeometry(0.34, 0.4, 0.06, 10), 0.22, 3.98, 0.02, 0.4, 0.15, 0.5),
-    baked(new THREE.TorusGeometry(0.2, 0.012, 6, 14), 0.22, 4.02, 0.04, 1.05, 0.2, 0),
+    baked(new THREE.CylinderGeometry(0.028, 0.034, 0.46, 6), 0.16, 3.58, 0.02),
+    baked(new THREE.CylinderGeometry(0.13, 0.18, 0.028, 12), 0.16, 3.84, 0.1, 1.05, 0.15, 0.2),
+    baked(new THREE.TorusGeometry(0.15, 0.008, 6, 14), 0.16, 3.86, 0.12, 1.05, 0.15, 0.1),
     baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, -0.48),
     baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), 0.62, 1.85, -0.48),
     baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, 0.5),
@@ -190,7 +213,7 @@ function makeHq(paint) {
   g.userData.pip = pip;
   g.userData.pulse = bodyMat;
   g.userData.dangerRing = danger;
-  g.add(concrete, sand, body, roof, door, metal, flag, pip, danger);
+  g.add(concrete, sand, body, tower, roof, door, metal, flag, pip, danger);
   return g;
 }
 
@@ -211,7 +234,7 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.35, 0.18, -0.72),
   ], mat(PALETTE.sand, { roughness: 0.94, metalness: 0 }));
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(1.62, 0.46, 0.92),
+    new RoundedBoxGeometry(1.62, 0.46, 0.92, 2, 0.08),
     mat(WALL, { roughness: 0.84, metalness: 0.05 }),
   );
   body.position.y = 0.32;
@@ -225,13 +248,13 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(1.7, 0.07, 0.62), 0, 0.84, 0.22, 0.45, 0, 0),
     baked(new THREE.BoxGeometry(0.1, 0.28, 0.95), -0.86, 0.84, 0),
     baked(new THREE.BoxGeometry(0.1, 0.28, 0.95), 0.86, 0.84, 0),
+    baked(new THREE.BoxGeometry(1.48, 0.05, 0.12), 0, 1.06, 0.02),
+    baked(new THREE.BoxGeometry(0.14, 0.08, 0.14), -0.52, 1.02, 0.04),
+    baked(new THREE.BoxGeometry(0.14, 0.08, 0.14), 0.52, 1.02, -0.04),
   ], mat(WALL, { roughness: 0.8, metalness: 0.06 }));
   const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(1.72, 0.1, 0.28), 0, 1.02, 0),
-    baked(new THREE.BoxGeometry(1.55, 0.08, 0.16), 0, 1.1, 0.02),
-    baked(new THREE.BoxGeometry(0.22, 0.1, 0.2), -0.4, 1.08, 0.08),
-    baked(new THREE.BoxGeometry(0.22, 0.1, 0.2), 0.42, 1.08, -0.1),
-  ], mat(paint.main, { roughness: 0.62, metalness: 0.12 }));
+    baked(new THREE.BoxGeometry(1.36, 0.04, 0.08), 0, 1.0, 0),
+  ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.1 }));
   roof.userData.slot = 'roof';
   const ink = mergedMesh([
     baked(new THREE.BoxGeometry(0.7, 0.045, 0.04), 0, 0.18, -0.48),
@@ -280,7 +303,7 @@ function makeTank(paint) {
   ], mat(0x4a5248, { roughness: 0.55, metalness: 0.28 }));
   const stripe = new THREE.Mesh(
     new THREE.BoxGeometry(0.36, 0.04, 0.28),
-    mat(paint.main, { roughness: 0.5, metalness: 0.16 }),
+    mat(muteTeam(paint.main), { roughness: 0.5, metalness: 0.16 }),
   );
   stripe.position.set(0, 0.42, 0.06);
   stripe.userData.slot = 'roof';
@@ -306,7 +329,7 @@ function paintGroup(group, owner) {
     if (slot === 'body') {
       obj.material.color.setHex(WALL);
       if (obj.material.emissive) obj.material.emissive.setHex(paint.glow);
-    } else if (slot === 'roof') obj.material.color.setHex(paint.main);
+    } else if (slot === 'roof') obj.material.color.setHex(muteTeam(paint.main));
     else if (slot === 'flag') obj.material.color.setHex(paint.flag);
   });
 }
@@ -355,14 +378,14 @@ function frontLineGeometry() {
   for (let i = 0; i <= steps; i++) {
     const u = i / steps;
     const x = -0.5 + u;
-    const bow = -Math.sin(u * Math.PI) * 0.62;
+    const bow = -Math.sin(u * Math.PI) * 0.78;
     const o = i * 6;
     positions[o] = x;
-    positions[o + 1] = 0;
-    positions[o + 2] = bow + 0.16;
+    positions[o + 1] = 0.06;
+    positions[o + 2] = bow + 0.2;
     positions[o + 3] = x;
-    positions[o + 4] = 0.02;
-    positions[o + 5] = bow - 0.16;
+    positions[o + 4] = 0.06;
+    positions[o + 5] = bow - 0.18;
     colors[o] = green.r;
     colors[o + 1] = green.g;
     colors[o + 2] = green.b;
@@ -419,16 +442,20 @@ export function bridgeDeckGeometries(crossings) {
 }
 
 function pushTree(trunks, crowns, x, z, scale, color) {
-  const trunk = new THREE.CylinderGeometry(0.05 * scale, 0.09 * scale, 0.34 * scale, 5);
-  trunk.translate(x, 0.06 + 0.16 * scale, z);
+  const wave = Math.sin(x * 12.7 + z * 4.3);
+  const s = scale * (0.5 + Math.abs(wave) * 1.05);
+  const lean = wave * 0.18;
+  const trunk = new THREE.CylinderGeometry(0.05 * s, 0.09 * s, 0.38 * s, 5);
+  trunk.translate(x + lean, 0.06 + 0.18 * s, z);
   trunks.push(trunk);
-  const list = crowns[color] || (crowns[color] = []);
-  const lower = new THREE.ConeGeometry(0.46 * scale, 0.7 * scale, 8);
-  lower.translate(x, 0.06 + 0.5 * scale, z);
-  const upper = new THREE.ConeGeometry(0.3 * scale, 0.52 * scale, 8);
-  upper.translate(x, 0.06 + 0.92 * scale, z);
-  const tip = new THREE.ConeGeometry(0.16 * scale, 0.28 * scale, 6);
-  tip.translate(x, 0.06 + 1.22 * scale, z);
+  const varied = wave > 0.35 ? 0x5a7344 : wave < -0.35 ? 0x2a3c28 : color;
+  const list = crowns[varied] || (crowns[varied] = []);
+  const lower = new THREE.ConeGeometry(0.42 * s, 0.72 * s, 8);
+  lower.translate(x + lean * 0.4, 0.06 + 0.52 * s, z);
+  const upper = new THREE.ConeGeometry(0.28 * s, 0.5 * s, 8);
+  upper.translate(x - lean * 0.2, 0.06 + 0.96 * s, z);
+  const tip = new THREE.ConeGeometry(0.14 * s, 0.3 * s, 6);
+  tip.translate(x, 0.06 + 1.28 * s, z);
   list.push(lower, upper, tip);
 }
 
@@ -480,13 +507,13 @@ function islandCapGeometry(spanX, spanZ) {
     const x = positions[i * 3];
     const z = positions[i * 3 + 2];
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
-    const n = Math.sin(x * 1.7 + z * 0.8) * Math.cos(z * 1.3 - x * 0.6) + Math.sin(x * 0.45) * 0.35;
-    tone.copy(meadow).lerp(deep, 0.35);
-    if (n > 0.25) tone.lerp(khaki, 0.72);
-    else if (n < -0.05) tone.lerp(deep, 0.85);
-    if (Math.abs(x) < 1.6 && Math.abs(z) > 1.05) tone.lerp(dirt, 0.65 * (1 - Math.abs(x) / 1.6));
-    if (Math.sin(x * 2.1 + 1.3) * Math.sin(z * 1.35) > 0.45) tone.lerp(sand, 0.62);
-    if (u > 0.86) tone.lerp(deepEdge, 0.12);
+    const n = Math.sin(x * 1.7 + z * 0.8) * Math.cos(z * 1.3 - x * 0.6) + Math.sin(x * 4.2 + z * 2.8) * 0.45;
+    tone.copy(meadow).lerp(deep, 0.45);
+    if (n > 0.2) tone.lerp(khaki, 0.82);
+    else if (n < -0.08) tone.lerp(deep, 0.9);
+    if (Math.abs(x) < 2.2 && Math.abs(z) > 0.9) tone.lerp(dirt, 0.55 * (1 - Math.min(1, Math.abs(x) / 2.2)));
+    if (Math.sin(x * 2.1 + 1.3) * Math.sin(z * 1.35) > 0.28) tone.lerp(sand, 0.7);
+    if (u > 0.86) tone.lerp(deepEdge, 0.28);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -518,9 +545,9 @@ function streamRibbon(span) {
   const bands = [
     { off: -(WATER_HALF + BANK_OUT), y: 0.12, hex: 0x6a5c44 },
     { off: -WATER_HALF, y: 0.105, hex: PALETTE.sand },
-    { off: -WATER_HALF + 0.1, y: 0.072, hex: PALETTE.stream },
-    { off: 0, y: 0.058, hex: 0x2a4e68 },
-    { off: WATER_HALF - 0.1, y: 0.072, hex: PALETTE.stream },
+    { off: -WATER_HALF + 0.12, y: 0.078, hex: 0x9ed0e4 },
+    { off: 0, y: 0.055, hex: 0x6eb4d4 },
+    { off: WATER_HALF - 0.12, y: 0.078, hex: PALETTE.stream },
     { off: WATER_HALF, y: 0.105, hex: PALETTE.sand },
     { off: WATER_HALF + BANK_OUT, y: 0.12, hex: 0x6a5c44 },
   ];
@@ -804,7 +831,7 @@ function buildIsland(map, reduceMotion) {
   for (let i = 0; i < map.zones.length; i++) {
     const z = map.zones[i];
     const owner = ownerById[z.buildingId];
-    const slab = owner ? ownerPaint(owner).slab : PALETTE.meadow;
+    const slab = owner ? stain(ownerPaint(owner).slab) : PALETTE.meadow;
     const mesh = new THREE.Mesh(
       new THREE.CylinderGeometry(1, 1.02, 0.045, 18),
       mat(slab, { roughness: 0.96, metalness: 0 }),
@@ -948,7 +975,7 @@ function buildIsland(map, reduceMotion) {
   const frontMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.95,
+    opacity: 1,
     depthWrite: false,
     toneMapped: false,
     side: THREE.DoubleSide,
@@ -956,7 +983,7 @@ function buildIsland(map, reduceMotion) {
   const haloMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.38,
+    opacity: 0.4,
     depthWrite: false,
     toneMapped: false,
     side: THREE.DoubleSide,
@@ -977,7 +1004,7 @@ function buildIsland(map, reduceMotion) {
   const tintMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.18,
+    opacity: 0.07,
     depthWrite: false,
     depthTest: true,
     side: THREE.DoubleSide,
@@ -1136,7 +1163,7 @@ function buildIsland(map, reduceMotion) {
         const zone = zoneMeshes.get(b.id);
         if (zone && zone.userData.owner !== b.owner) {
           zone.userData.owner = b.owner;
-          zone.material.color.setHex(ownerPaint(b.owner).slab);
+          zone.material.color.setHex(stain(ownerPaint(b.owner).slab));
         }
         const ranks = b.upgrades;
         if (mesh.userData.pip) {
@@ -1173,7 +1200,7 @@ function buildIsland(map, reduceMotion) {
       }
 
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
-      glowMat.opacity = 0.22;
+      glowMat.opacity = 0.28;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
@@ -1209,12 +1236,13 @@ function buildIsland(map, reduceMotion) {
         front.visible = true;
         halo.visible = true;
         // Sit the curve on the bank with the lip, so the colour stays off the water.
-        const gx = cx + ox * 1.15;
-        const gz = cz + oz * 1.15;
-        front.position.set(gx, 0.4, gz);
-        halo.position.set(gx, 0.32, gz);
-        front.scale.set(span, 1, 1.15);
-        halo.scale.set(span * 1.02, 1, 1.55);
+        const wide = Math.max(span * 1.2, 8.8);
+        const gx = cx + ox * 1.35;
+        const gz = cz + oz * 1.7;
+        front.position.set(gx, 0.52, gz);
+        halo.position.set(gx, 0.44, gz);
+        front.scale.set(wide, 1, 1.15);
+        halo.scale.set(wide * 1.04, 1, 1.55);
         front.rotation.y = yaw;
         halo.rotation.y = yaw;
       }
@@ -1278,7 +1306,7 @@ function skyDome() {
 export function createWorld(scene) {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   scene.add(skyDome());
-  const fieldGeo = new THREE.PlaneGeometry(180, 220, 24, 28);
+  const fieldGeo = new THREE.PlaneGeometry(180, 220, 36, 40);
   const fieldPos = fieldGeo.attributes.position;
   const fieldColors = new Float32Array(fieldPos.count * 3);
   const meadowA = new THREE.Color(PALETTE.meadow);
@@ -1288,8 +1316,9 @@ export function createWorld(scene) {
   for (let i = 0; i < fieldPos.count; i++) {
     const x = fieldPos.getX(i);
     const y = fieldPos.getY(i);
-    const n = Math.sin(x * 0.55) * Math.cos(y * 0.47) + Math.sin((x + y) * 0.23) * 0.4;
-    meadowTone.copy(n > 0.35 ? meadowC : n < -0.25 ? meadowB : meadowA);
+    const n = Math.sin(x * 0.55) * Math.cos(y * 0.47) + Math.sin(x * 1.7 + y * 1.1) * 0.55;
+    meadowTone.copy(n > 0.22 ? meadowC : n < -0.18 ? meadowB : meadowA);
+    if (Math.abs(Math.sin(x * 0.31) * Math.cos(y * 0.27)) > 0.72) meadowTone.lerp(meadowC, 0.65);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;

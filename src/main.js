@@ -436,7 +436,7 @@ function mapThumb(map) {
   riverPoly(thick / 2 + shore * 0.45, 0);
   g.fillStyle = cssHex(PALETTE.stream);
   riverPoly(thick / 2, 0);
-  g.fillStyle = cssHex(0x2a4e68);
+  g.fillStyle = cssHex(0x6eb4d4);
   riverPoly(thick * 0.22, bow * 0.15);
 
   function frontBand(yOff, color) {
@@ -566,7 +566,7 @@ function mapThumb(map) {
       g.fillStyle = cssHex(PALETTE.metal);
       g.fillRect(at.x - u * 0.08, at.y - u * 1.7, u * 0.16, u * 0.75);
       g.beginPath();
-      g.arc(at.x + u * 0.55, at.y - u * 1.25, Math.max(3.5, u * 0.28), 0, Math.PI * 2);
+      g.arc(at.x + u * 0.42, at.y - u * 1.35, Math.max(2, u * 0.12), 0, Math.PI * 2);
       g.fill();
       g.fillStyle = cssHex(paint.flag);
       g.fillRect(at.x - u * 0.08, at.y - u * 1.85, u * 0.42, u * 0.22);

@@ -375,8 +375,8 @@ export function createFx(scene) {
       }
       if (playerFighting) {
         const barrel = muzzles[muzzles.length - 1];
-        // Visible barrel points up-screen (world −Z). Mesh max-Z is the rear.
-        barrel.position.set(1.8, 0.62, 3.2);
+        // Baked Tank_Gun runs toward the camera. The visible tip is just short of the mesh max-Z.
+        barrel.position.set(1.69, 0.5, 5.14);
         barrel.scale.set(0.18, 0.09, 1);
         barrel.visible = enabled;
       }

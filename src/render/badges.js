@@ -47,7 +47,7 @@ export function createBadges(host) {
     }
     node.hidden = false;
     const anchorY = row.py + PILL_SHIFT_PX;
-    node.style.transform = `translate(${row.px}px, ${anchorY}px) translate(-50%, -115%)`;
+    node.style.transform = `translate(${row.px}px, ${anchorY}px) translate(-50%, -139%)`;
   }
 
   function underAttack(state, id, owner) {

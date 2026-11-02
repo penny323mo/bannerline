@@ -55,6 +55,8 @@ export const DIFFICULTIES = {
     reactDelay: 0.35,
     firstShift: -6,
     hqGrace: 12,
+    // Headquarters assaults wait, so a hard game still has a minute of counterplay.
+    hqAssault: 60,
     marchCap: 0,
     reliefKeep: 0.3,
     counterKeep: 0.3,

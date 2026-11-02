@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as THREE from 'three';
 import { NODES } from '../src/sim/mapdata.js';
-import { yawForFacing, rotateXZ } from '../src/sim/facing.js';
-import { RANK_SPACING, visualCount } from '../src/render/crowds.js';
+import { rotateXZ } from '../src/sim/facing.js';
+import { RANK_SPACING, colsFor, garrisonAnchor, visualCount } from '../src/render/crowds.js';
 import {
   BADGE_LIFT,
   FLAG_Y,
@@ -109,24 +109,21 @@ test('the enemy headquarters pill is outside the ground disc and still picks', (
   assert.equal(picked.id, 'enemy-hq');
 });
 
-test('the player headquarters disc sits on the bunker below the barracks crowd', () => {
+test('the player headquarters pill sits clear of the barracks crowd', () => {
   const camera = cameraAtPhone();
   const hq = NODES['player-hq'];
   const bar = NODES['player-bar'];
   const anchor = project(camera, hq.x, BADGE_LIFT.hq, hq.z);
-  const top = anchor.y - 64 * 1.15;
-  const center = top + 32;
-  const roof = project(camera, hq.x, ROOF_Y.hq, hq.z);
-  const base = project(camera, hq.x, 0.25, hq.z);
-  assert.ok(center > roof.y && center < base.y, `disc center ${center} roof ${roof.y} base ${base.y}`);
-  const yaw = yawForFacing(0, -1);
-  const slot = { x: 0, z: 0 };
-  rotateXZ(0, -1, yaw, slot);
-  const ax = bar.x + slot.x * 1.1;
-  const az = bar.z + slot.z * 1.1;
+  const pillH = 36;
+  const top = anchor.y - pillH * 1.39;
+  const center = top + pillH / 2;
+  assert.ok(Math.abs(anchor.y - center - 32) < 1.5, `pill center shift ${anchor.y - center}`);
+  const spot = garrisonAnchor('player', 'barracks', bar.x, bar.z, 30);
   const n = visualCount(30);
-  const cols = n > 16 ? 8 : 5;
+  const cols = colsFor(n);
+  const slot = { x: 0, z: 0 };
   let crowdBottom = 0;
+  let crowdTop = Infinity;
   for (let i = 0; i < n; i++) {
     const c = i % cols;
     const r = Math.floor(i / cols);
@@ -134,21 +131,21 @@ test('the player headquarters disc sits on the bunker below the barracks crowd',
     const rowCount = r === rows - 1 ? n - r * cols : cols;
     const lx = (c - (rowCount - 1) / 2) * RANK_SPACING;
     const lz = r * RANK_SPACING;
-    rotateXZ(lx, lz, yaw, slot);
-    const p = project(camera, ax + slot.x, 0.9, az + slot.z);
+    rotateXZ(lx, lz, spot.yaw, slot);
+    const p = project(camera, spot.x + slot.x, 0.4, spot.z + slot.z);
     if (p.y > crowdBottom) crowdBottom = p.y;
+    if (p.y < crowdTop) crowdTop = p.y;
   }
   assert.ok(top > crowdBottom, `badge top ${top} overlaps the crowd at ${crowdBottom}`);
+  const building = project(camera, bar.x, 0.4, bar.z);
+  assert.ok(crowdTop > building.y + 8 || Math.abs(spot.x - bar.x) > 1.2, 'crowd stands off the barracks mesh');
   const ehq = NODES['enemy-hq'];
   const eAnchor = project(camera, ehq.x, BADGE_LIFT.hq, ehq.z);
-  const eTop = eAnchor.y - 64 * 1.15;
-  const eCenter = eTop + 32;
-  const eBot = eTop + 64;
-  const eRoof = project(camera, ehq.x, ROOF_Y.hq, ehq.z);
-  const eBase = project(camera, ehq.x, 0.25, ehq.z);
+  const eTop = eAnchor.y - pillH * 1.39;
+  const eBot = eTop + pillH;
   const eBar = project(camera, NODES['enemy-bar'].x, 0.2, NODES['enemy-bar'].z);
-  assert.ok(eBot > eRoof.y && eCenter < eBase.y, 'enemy disc meets the bunker');
-  assert.ok(eBot < eBar.y, 'enemy disc stays off the barracks');
+  assert.ok(eTop > 64, `enemy pill top ${eTop} sits under the top bar`);
+  assert.ok(eBot < eBar.y, `enemy pill bottom ${eBot} meets the barracks at ${eBar.y}`);
 });
 
 test('the ground disc still picks a building the pointer is not hovering as a pill', () => {

@@ -369,7 +369,7 @@ function pushTree(trunks, crowns, x, z, scale, color) {
 function paintMeadowCap(geo) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
-  const hi = new THREE.Color(0x8ea36a);
+  const hi = new THREE.Color(0xa8c07a);
   const mid = new THREE.Color(PALETTE.meadow);
   const lo = new THREE.Color(PALETTE.meadowDeep);
   const tone = new THREE.Color();
@@ -378,7 +378,7 @@ function paintMeadowCap(geo) {
     const y = pos.getY(i);
     const z = pos.getZ(i);
     const n = Math.sin(x * 11 + z * 4) * Math.cos(z * 9 - x * 3);
-    if (y < 0.12) tone.copy(lo).multiplyScalar(0.82);
+    if (y < 0.12) tone.copy(lo).multiplyScalar(0.9);
     else if (n > 0.35) tone.copy(hi);
     else if (n < -0.25) tone.copy(lo);
     else tone.copy(mid);
@@ -559,6 +559,27 @@ export function planRoadSegments(map) {
   return clipped;
 }
 
+function paintDirt(geo) {
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const base = new THREE.Color(PALETTE.road);
+  const dark = new THREE.Color(0x6e5e4a);
+  const light = new THREE.Color(0xb09878);
+  const tone = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const n = Math.sin(x * 6.5 + z * 3.1) * Math.cos(z * 5.2 - x * 2.4);
+    if (n > 0.35) tone.copy(light);
+    else if (n < -0.25) tone.copy(dark);
+    else tone.copy(base);
+    colors[i * 3] = tone.r;
+    colors[i * 3 + 1] = tone.g;
+    colors[i * 3 + 2] = tone.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+}
+
 function addEdges(group, map, roadMat) {
   const segs = planRoadSegments(map);
   const unit = new THREE.BoxGeometry(ROAD_W, ROAD_H, 1);
@@ -571,6 +592,7 @@ function addEdges(group, map, roadMat) {
     piece.updateMatrix();
     const baked = unit.clone();
     baked.applyMatrix4(piece.matrix);
+    paintDirt(baked);
     parts.push(baked);
   }
   unit.dispose();
@@ -622,7 +644,8 @@ function buildIsland(map, reduceMotion) {
   stream.receiveShadow = true;
   group.add(stream);
 
-  const roadMat = mat(PALETTE.road, {
+  const roadMat = mat(0xffffff, {
+    vertexColors: true,
     roughness: 0.9,
     polygonOffset: true,
     polygonOffsetFactor: 1,
@@ -691,15 +714,16 @@ function buildIsland(map, reduceMotion) {
     }
     group.add(groupB);
     buildings.set(spec.id, groupB);
-    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.55 : 1.2, 10);
+    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 0.95 : 0.72, 10);
     blob.rotateX(-Math.PI / 2);
-    blob.translate(p.x, 0.045, p.z);
+    // Sun sits toward −x and +z. The contact blob falls the other way.
+    blob.translate(p.x + 0.28, 0.04, p.z - 0.22);
     blobs.push(blob);
   }
   addMerged(group, blobs, new THREE.MeshBasicMaterial({
     color: PALETTE.ink,
     transparent: true,
-    opacity: 0.46,
+    opacity: 0.34,
     depthWrite: false,
   }));
 
@@ -715,7 +739,7 @@ function buildIsland(map, reduceMotion) {
   const tintMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.32,
+    opacity: 0.5,
     depthWrite: false,
     depthTest: true,
     side: THREE.DoubleSide,
@@ -903,7 +927,7 @@ function buildIsland(map, reduceMotion) {
       }
 
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
-      glowMat.opacity = 0.92;
+      glowMat.opacity = 1;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
@@ -920,12 +944,12 @@ function buildIsland(map, reduceMotion) {
         const yaw = alongX ? flip : Math.PI / 2 + flip;
         band.visible = true;
         band.position.set(cx, 0.22, cz);
-        band.scale.set(span, 1, 3.2);
+        band.scale.set(span, 1, 4.4);
         band.rotation.y = yaw;
         const tint = tints[i];
         tint.visible = true;
         tint.position.set(cx, 0.08, cz);
-        tint.scale.set(span, 1, 4.2);
+        tint.scale.set(span, 1, 6.4);
         tint.rotation.y = yaw;
       }
       for (let i = segs.length; i < tints.length; i++) tints[i].visible = false;

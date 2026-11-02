@@ -19,6 +19,13 @@ export function canIssue(t, nextSendAt, underAttack, alarmAt, reactDelay, answer
   return t >= alarmAt + reactDelay;
 }
 
+/** Opening grace, and the hard assault delay, keep early marches off the headquarters. */
+function holdsHq(ctx) {
+  if (ctx.hqGrace > 0 && ctx.t < ctx.hqGrace) return true;
+  if (ctx.hqAssault > 0 && ctx.t < ctx.hqAssault) return true;
+  return false;
+}
+
 function attackScore(personality, target) {
   if (personality === 'aggressive') {
     const value = target.kind === 'hq' ? 40 : 16;
@@ -141,7 +148,7 @@ export function writeOrder(ctx, out) {
       && ctx.alarmAt != null
       && ctx.t < ctx.alarmAt + ctx.riposte
     ) return false;
-    const skipHq = ctx.hqGrace > 0 && ctx.t < ctx.hqGrace;
+    const skipHq = holdsHq(ctx);
     const target = counterTarget(ctx.targets, ctx.targetCount, skipHq);
     if (!target) return false;
     out.targetId = target.id;
@@ -177,7 +184,7 @@ export function writeOrder(ctx, out) {
 
   // Opening grace blocks a march on the player headquarters. Reinforcing an
   // enemy building (above) is unchanged. marchCap trims offensive waves only.
-  const skipHq = ctx.hqGrace > 0 && ctx.t < ctx.hqGrace;
+  const skipHq = holdsHq(ctx);
   const target = bestTarget(ctx.personality, ctx.targets, ctx.targetCount, skipHq);
   if (!target) return false;
   let keep = 0;

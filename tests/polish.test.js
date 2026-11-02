@@ -7,11 +7,10 @@ import { DIFFICULTIES } from '../src/sim/maps.js';
 import { upgradeAffordance } from '../src/sim/upgrades.js';
 import { frontierBandGeometry } from '../src/render/world.js';
 import { PALETTE } from '../src/render/palette.js';
-import { HELMET_ENEMY, HELMET_PLAYER, SOLDIER_SCALE, soldierGeometry } from '../src/render/crowds.js';
+import { HELMET_ENEMY, HELMET_PLAYER, SOLDIER_SCALE, garrisonAnchor, soldierGeometry } from '../src/render/crowds.js';
 import { frameDioramaCamera } from '../src/render/stage.js';
 import { projectToCss } from '../src/render/pointer-math.js';
 import { NODES } from '../src/sim/mapdata.js';
-import { yawForFacing, rotateXZ } from '../src/sim/facing.js';
 
 const MAPS = ['crossing', 'long-road', 'two-lanes'];
 const DIFFS = ['easy', 'normal', 'hard'];
@@ -169,6 +168,8 @@ test('the 中 button stores the id createMatch reads', () => {
   assert.ok(normal.reliefCap >= 16);
   assert.ok(normal.counterCap >= 10);
   assert.equal(hard.hqGrace, 12);
+  assert.equal(hard.hqAssault, 60);
+  assert.equal(normal.hqAssault, 0);
   assert.ok(hard.reactDelay < normal.reactDelay);
   assert.ok(DIFFICULTIES.easy.reactDelay > normal.reactDelay);
 });
@@ -284,17 +285,18 @@ test('palette and soldiers match the military art brief', () => {
   geo.dispose();
 });
 
-test('a player barracks soldier reads as a helmet and a rifle at 390px', () => {
+test('a player barracks soldier reads as a small helmet at 390px', () => {
   const width = 390;
   const height = 844;
-  const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 90);
+  const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 140);
   frameDioramaCamera(camera, width / height);
   const bar = NODES['player-bar'];
-  const yaw = yawForFacing(0, -1);
-  const slot = { x: 0, z: 0 };
-  rotateXZ(0, -1, yaw, slot);
-  const ax = bar.x + slot.x * 1.1;
-  const az = bar.z + slot.z * 1.1;
+  const spot = garrisonAnchor('player', 'barracks', bar.x, bar.z, 30);
+  const ax = spot.x;
+  const az = spot.z;
+  assert.ok(spot.z > 0.7, `barracks rank stays off the stream (${spot.z})`);
+  const east = garrisonAnchor('player', 'barracks', 1.85, 1.25, 30);
+  assert.ok(east.z > 0.68, `雙橋 rank stays off the stream (${east.z})`);
   const geo = soldierGeometry();
   const pos = geo.getAttribute('position');
   const col = geo.getAttribute('color');
@@ -327,12 +329,46 @@ test('a player barracks soldier reads as a helmet and a rifle at 390px', () => {
   }
   const helmetPx = Math.min(hMaxX - hMinX, hMaxY - hMinY);
   const barrelPx = Math.min(rMaxX - rMinX, rMaxY - rMinY);
-  assert.ok(helmetPx >= 14, `helmet ${helmetPx.toFixed(1)}px`);
-  assert.ok(barrelPx >= 4, `barrel ${barrelPx.toFixed(1)}px thick`);
+  assert.ok(SOLDIER_SCALE > 0.5 && SOLDIER_SCALE < 0.75, `scale ${SOLDIER_SCALE}`);
+  assert.ok(helmetPx > 2 && helmetPx < 12, `helmet ${helmetPx.toFixed(1)}px`);
+  assert.ok(barrelPx > 0.5 && barrelPx < 8, `barrel ${barrelPx.toFixed(1)}px`);
   geo.dispose();
   const fxSrc = readFileSync(new URL('../src/render/fx.js', import.meta.url), 'utf8');
   const size = Number((fxSrc.match(/size:\s*([0-9.]+)/) || [])[1]);
-  assert.ok(size >= 0.8 && size <= 1.2, `spark size ${size}`);
+  assert.ok(size >= 1.4 && size <= 2.2, `spark size ${size}`);
+});
+
+test('spamming the enemy headquarters on 中 is not a win before 60s', () => {
+  const state = createMatch({ mapId: 'crossing', difficulty: 'normal' });
+  while (state.status === 'playing' && state.t < 60) {
+    stepMatch(state, 0.25);
+    for (let i = 0; i < state.buildings.length; i++) {
+      const building = state.buildings[i];
+      if (building.owner !== 'player' || building.count < 10) continue;
+      sendSquad(state, building.id, 'enemy-hq', 0);
+    }
+  }
+  assert.notEqual(state.status, 'win', `spam ${state.status} at ${state.t}`);
+});
+
+test('idling on 難 still holds the headquarters after 60s', () => {
+  const state = createMatch({ mapId: 'crossing', difficulty: 'hard' });
+  stepMatch(state, 60);
+  assert.equal(state.status, 'playing', `hard idle ${state.status} at ${state.t}`);
+  assert.equal(buildingById(state, 'player-hq').owner, 'player');
+});
+
+test('dumping both stacks at the enemy headquarters on 難 lasts 60s', () => {
+  const state = createMatch({ mapId: 'crossing', difficulty: 'hard' });
+  stepMatch(state, 0.2);
+  for (let i = 0; i < state.buildings.length; i++) {
+    const building = state.buildings[i];
+    if (building.owner !== 'player') continue;
+    sendSquad(state, building.id, 'enemy-hq', 0);
+  }
+  stepMatch(state, 59.8);
+  assert.equal(state.status, 'playing', `hard dump ${state.status} at ${state.t}`);
+  assert.equal(buildingById(state, 'player-hq').owner, 'player');
 });
 
 test('the diorama grades with standard materials and a device shadow gate', () => {

@@ -5,9 +5,9 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-/** Big enough that a barracks helmet is at least 14 CSS px at 390×844. */
-export const SOLDIER_SCALE = 1.95;
-export const RANK_SPACING = 0.56;
+/** Miniatures, about a third of the previous rank, so a full map fits the portrait. */
+export const SOLDIER_SCALE = 0.65;
+export const RANK_SPACING = 0.24;
 /** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
 export const HELMET_PLAYER = 0x3e6b32;
 export const HELMET_ENEMY = 0x7c2a22;
@@ -20,6 +20,41 @@ export function visualCount(count) {
   if (n <= 12) return n;
   // Dense ranks. A full board plus marching squads can pass 200 bodies under the 480 cap.
   return Math.min(56, 12 + Math.round((n - 12) * 0.8));
+}
+
+/** Wider ranks stay short, so a garrison fits between the pad and the stream. */
+export function colsFor(n) {
+  if (n > 24) return 8;
+  if (n > 10) return 5;
+  return Math.max(1, n);
+}
+
+const _garrison = { x: 0, z: 0 };
+
+/**
+ * Front rank ahead of the pad and off the mesh.
+ * Formation local +z grows back toward the building. forward stops the
+ * near-stream edge about 0.72 from the bank. The sideways step uses the
+ * soldier's right from rotateXZ, flipped so the block steps away from x=0.
+ * Player yaw 0 faces −z. Enemy yaw π mirrors it.
+ */
+export function garrisonAnchor(owner, kind, x, z, count) {
+  const n = Math.max(1, visualCount(count));
+  const cols = colsFor(n);
+  const rows = Math.ceil(n / cols);
+  const depth = (rows - 1) * RANK_SPACING;
+  const room = Math.abs(z) - 0.72;
+  const forward = Math.max(0.28, Math.min(depth + 0.5, Math.max(0.28, room)));
+  const flank = kind === 'hq' ? 1.85 : 1.8;
+  const yaw = owner === 'player' ? yawForFacing(0, -1) : yawForFacing(0, 1);
+  let side = 0;
+  if (x > 0.4) side = 1;
+  else if (x < -0.4) side = -1;
+  else side = owner === 'player' ? 1 : -1;
+  rotateXZ(1, 0, yaw, _garrison);
+  const localSide = _garrison.x * side >= 0 ? flank : -flank;
+  rotateXZ(localSide, -forward, yaw, _garrison);
+  return { x: x + _garrison.x, z: z + _garrison.z, yaw };
 }
 
 /**
@@ -188,7 +223,7 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const cols = n > 16 ? 8 : n > 8 ? 5 : Math.max(1, n);
+    const cols = colsFor(n);
     const spacing = RANK_SPACING;
     for (let i = 0; i < n; i++) {
       const c = i % cols;
@@ -226,14 +261,9 @@ export function createCrowds(scene) {
         if (b.count <= 0) continue;
         const p = nodes[b.node];
         if (!p) continue;
-        // Face the enemy. A barracks exit runs sideways, and those rifles drew black bars across the road.
-        const yaw = b.owner === 'player' ? yawForFacing(0, -1) : yawForFacing(0, 1);
-        // Stay on this pad. A longer reach parks the headquarters rank inside the barracks rank.
-        const reach = Math.min(1.1, exitReach(b.node) * 0.82);
-        rotateXZ(0, -1, yaw, _slot);
-        const anchorX = p.x + _slot.x * reach;
-        const anchorZ = p.z + _slot.z * reach;
-        formation(b.owner, anchorX, anchorZ, yaw, b.count, false);
+        // Face the enemy, and stand beside the mesh so the rank does not cover the badge.
+        const spot = garrisonAnchor(b.owner, b.kind, p.x, p.z, b.count);
+        formation(b.owner, spot.x, spot.z, spot.yaw, b.count, false);
       }
 
       for (let i = 0; i < state.squads.length; i++) {

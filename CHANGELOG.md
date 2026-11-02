@@ -170,3 +170,12 @@
 
 - The round 25 review found no CRITICAL, MAJOR, or MINOR issues. The helmeted ranks, the three battlefield cards, the siege sparks on the bunker, and the headquarters badge on the player bunker stay. Loop-r22’s road, frontier, scores, coach, and measured 中 / 難 timing stay closed.
 - 63 tests passed. No source or bundle change.
+
+## Round 26 fixes
+
+- The play camera sits high over the island (fov 38 at (0.15, 28, 8), looking at (0, 0, 0.4)) so both headquarters, the road, and the stream fit in the 390×844 frame. Soldiers are miniatures at scale 0.65, spacing 0.24, and each garrison stands beside its pad.
+- Siege fire, smoke, tracers, and a short burst read on the target. Spark size is 1.6. The green/red frontier tint is wider. The key light is warmer, the road carries dirt vertex colour, and contact blobs sit off the sun side.
+- Count badges are 36px pills. On 對岸 the enemy headquarters pill starts below the top bar.
+- Home cards are taller painted maps in a riveted metal frame, with a larger embossed title and a thicker 出戰.
+- Spamming the enemy headquarters on 中 is not a win before 60s. 難 holds headquarters assaults until t=60, so an idle game and a full dump are still playing at 60s. A measured 難 win stays inside 120–240s.
+- 66 tests passed. Rebuilt `static/app.js` (558358 bytes) and `static/style.css` (9423 bytes).

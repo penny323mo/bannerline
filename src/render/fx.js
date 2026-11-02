@@ -17,8 +17,8 @@ export function createFx(scene) {
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
-    // World units. 7.5 covered the enemy headquarters at 390px; about 1 stays on the building.
-    size: 1,
+    // World units. 7.5 covered the headquarters. About 1.6 reads as a flash from the high camera.
+    size: 1.6,
     vertexColors: true,
     transparent: true,
     opacity: 0.82,
@@ -68,7 +68,7 @@ export function createFx(scene) {
     update(dt, state) {
       if (!enabled || !state) return;
       const squads = state.squads || [];
-      let budget = 36;
+      let budget = 64;
       const tick = Math.floor((state.t || 0) * 8);
       for (let s = 0; s < squads.length && budget > 0; s++) {
         const q = squads[s];
@@ -88,12 +88,13 @@ export function createFx(scene) {
             spawn(q.x + 0.12, 0.62, q.z, q.mode === 'siege' ? fire : flash, 0.4, 0, 0.4, 0);
             budget -= 1;
           }
+          const shot = q.owner === 'player' ? -2.8 : 2.8;
           if (budget > 0) {
-            spawn(q.x, 0.7, q.z - 0.35, flash, 0.22, 0, 0.15, -3.2);
+            spawn(q.x, 0.7, q.z, flash, 0.22, 0, 0.15, shot);
             budget -= 1;
           }
           if (budget > 0) {
-            spawn(q.x + 0.08, 0.58, q.z - 0.7, flash, 0.18, 0, 0.1, -2.4);
+            spawn(q.x + 0.08, 0.58, q.z, flash, 0.18, 0, 0.1, shot * 0.75);
             budget -= 1;
           }
           if (q.mode === 'siege' && budget > 0) {
@@ -104,11 +105,21 @@ export function createFx(scene) {
             spawn(q.x + 0.15, 1.15, q.z, smoke, 0.9, -0.2, 0.8, 0.15);
             budget -= 1;
           }
+          if (q.mode === 'siege') {
+            const boom = (s * 3 + tick) % 6;
+            for (let k = 0; k < 4 && budget > 0; k++) {
+              const ang = boom + k * 1.5;
+              const cx = Math.cos(ang);
+              const sz = Math.sin(ang);
+              spawn(q.x + cx * 0.35, 0.65 + (k % 3) * 0.28, q.z + sz * 0.35, k % 2 ? fire : flash, 0.5, cx * 1.5, 1.7, sz * 1.5);
+              budget -= 1;
+            }
+          }
         }
       }
       const nodes = state.nodes;
       const buildings = state.buildings;
-      if (nodes && buildings && tick % 2 === 0) {
+      if (nodes && buildings) {
         for (let i = 0; i < buildings.length && budget > 0; i++) {
           const b = buildings[i];
           if (b.kind !== 'hq' && b.kind !== 'barracks') continue;
@@ -129,6 +140,14 @@ export function createFx(scene) {
           }
           if (b.capture > 0.05 && budget > 0) {
             spawn(p.x, 0.9, p.z, flash, 0.35, 0, 1.4, 0);
+            budget -= 1;
+          }
+          if (b.capture > 0.05 && budget > 0) {
+            spawn(p.x + 0.25, 1.15, p.z - 0.15, flash, 0.4, 0.8, 1.6, -0.4);
+            budget -= 1;
+          }
+          if (b.capture > 0.05 && budget > 0) {
+            spawn(p.x - 0.2, 1.05, p.z + 0.1, fire, 0.35, -0.7, 1.5, 0.35);
             budget -= 1;
           }
         }

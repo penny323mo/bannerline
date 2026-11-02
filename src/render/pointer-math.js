@@ -15,8 +15,8 @@ export const PICK_RADIUS = 1.42;
 export const SCREEN_HIT_PX = 44;
 
 /**
- * The count pill is shifted up from the badge anchor by translate(-50%, -115%).
- * 32px is the middle of that card, so a 44px disc covers the white number.
+ * The count pill is shifted up from the badge anchor by translate(-50%, -139%)
+ * on a 36px pill. 32px is that pill's center, so a 44px disc covers the number.
  */
 export const PILL_SHIFT_PX = 32;
 

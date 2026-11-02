@@ -1,0 +1,11 @@
+Read review/loop-r25/coder-audit.md (supervisor live 390x844 audit r25: NOT SHIP) and review/art-mockup-v2/01/02/03 PNGs. Fix in priority order, verify each with a 390x844 screenshot into screenshots/fix-26/:
+1. CAMERA/SCALE (CRITICAL): pull the play camera much higher and more top-down like mockup 01/03 so the whole map, road, both HQs and the stream are visible; shrink soldiers to small miniatures (~1/3 current size) in denser crowds. No crowd may cover a building or badge.
+2. EFFECTS (CRITICAL): muzzle flashes, tracers, smoke, explosions and fire at the siege target; capture burst; glowing green/red frontier and tinted territory ground.
+3. TERRAIN/LIGHTING (MAJOR): bright sunlit ground, warm key light with visible shadows, dirt road texture, no murky dark green, no blue band dominating the top.
+4. BADGES/HUD (MAJOR): small pill badges that don't overlap troops; enemy HQ badge never under the top bar.
+5. HOME (CRITICAL): painted map cards, riveted metal frame, embossed title, chunky bevelled 出戰.
+6. BALANCE: 中 must not be won in <60s by spamming the HQ; 難 must give at least 60s of counterplay.
+Keep npm test green. Commit nothing outside this repo.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-26.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-26.done

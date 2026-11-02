@@ -23,6 +23,8 @@ export function createFx(scene) {
     transparent: true,
     opacity: 0.82,
     depthWrite: false,
+    // The bridge deck and the hangar were hiding the puff and the muzzle flash.
+    depthTest: false,
     sizeAttenuation: true,
   });
   const points = new THREE.Points(geo, material);
@@ -43,13 +45,40 @@ export function createFx(scene) {
     transparent: true,
     opacity: 0.95,
     depthWrite: false,
-    depthTest: true,
+    depthTest: false,
     side: THREE.DoubleSide,
     toneMapped: false,
   }));
   tracers.frustumCulled = false;
   tracers.renderOrder = 5;
   scene.add(tracers);
+
+  // A soft disc on each clashing rank. Point sprites were too faint on the deck.
+  const puffCanvas = document.createElement('canvas');
+  puffCanvas.width = 64;
+  puffCanvas.height = 64;
+  const puffCtx = puffCanvas.getContext('2d');
+  const puffGrad = puffCtx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  puffGrad.addColorStop(0, 'rgba(244, 240, 230, 0.95)');
+  puffGrad.addColorStop(1, 'rgba(244, 240, 230, 0)');
+  puffCtx.fillStyle = puffGrad;
+  puffCtx.fillRect(0, 0, 64, 64);
+  const puffMat = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(puffCanvas),
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    toneMapped: false,
+  });
+  const rankPuffs = [0, 1].map(() => {
+    const sprite = new THREE.Sprite(puffMat);
+    sprite.scale.set(0.7, 0.7, 1);
+    sprite.visible = false;
+    sprite.renderOrder = 6;
+    sprite.frustumCulled = false;
+    scene.add(sprite);
+    return sprite;
+  });
   const traceGreen = new THREE.Color(0xb6ff6a);
   const traceRed = new THREE.Color(0xffb15a);
 
@@ -60,6 +89,7 @@ export function createFx(scene) {
   let enabled = true;
   const dust = new THREE.Color(PALETTE.sand);
   const smoke = new THREE.Color(0xc4beb4);
+  const puff = new THREE.Color(0xf4f0e6);
   const flash = new THREE.Color(0xffe08a);
   const fire = new THREE.Color(0xff7a32);
 
@@ -88,6 +118,10 @@ export function createFx(scene) {
       enabled = !!on;
       points.visible = enabled;
       tracers.visible = enabled;
+      if (!enabled) {
+        rankPuffs[0].visible = false;
+        rankPuffs[1].visible = false;
+      }
     },
     update(dt, state) {
       if (!enabled || !state) return;
@@ -177,6 +211,8 @@ export function createFx(scene) {
         }
       }
       let lines = 0;
+      rankPuffs[0].visible = false;
+      rankPuffs[1].visible = false;
       for (let a = 0; a < squads.length; a++) {
         const qa = squads[a];
         if (!qa || qa.count <= 0) continue;
@@ -187,15 +223,17 @@ export function createFx(scene) {
           const dz = qb.z - qa.z;
           const dist = Math.hypot(dx, dz);
           if (dist > 4.4 || dist < 0.12 || lines >= MAX_LINES) continue;
-          const halfW = 0.4;
+          const halfW = Math.min(0.18, dist * 0.08);
           const inv = 1 / dist;
           const hx = -dz * inv * halfW;
           const hz = dx * inv * halfW;
-          const y = 1.1;
-          const ax = qa.x;
-          const az = qa.z;
-          const bx = qb.x;
-          const bz = qb.z;
+          // Soldier height, so the line lies on the rank instead of stopping above it.
+          const y = 0.5;
+          const pad = 0.28;
+          const ax = qa.x - dx * inv * pad;
+          const az = qa.z - dz * inv * pad;
+          const bx = qb.x + dx * inv * pad;
+          const bz = qb.z + dz * inv * pad;
           const o = lines * 18;
           const xyz = [
             ax - hx, y, az - hz,
@@ -216,16 +254,38 @@ export function createFx(scene) {
             lineCol[co + 2] = c.b;
           }
           lines += 1;
+          if (lines === 1) {
+            rankPuffs[0].position.set(ax, 0.62, az);
+            rankPuffs[1].position.set(bx, 0.62, bz);
+            rankPuffs[0].visible = enabled;
+            rankPuffs[1].visible = enabled;
+          }
           const mx = (qa.x + qb.x) * 0.5;
           const mz = (qa.z + qb.z) * 0.5;
           if (budget > 0) {
             spawn(mx, 0.28, mz, smoke, 0.7, 0, 0.55, 0);
             budget -= 1;
           }
-          // The short puff dies before the clash frame, and a puff on the ground
-          // sits under the count badge. This one stays up above the ribbon.
+          // Stays up through the clash frame. Sits on the midpoint at soldier height.
           if (budget > 0) {
-            spawn(mx, 1.85, mz, smoke, 1.2, 0, 0.22, 0);
+            spawn(mx, 0.55, mz, puff, 1.2, 0, 0.15, 0);
+            budget -= 1;
+          }
+          // A flash and a puff on each squad. The bridge rank is one of these ends.
+          if (budget > 0) {
+            spawn(qa.x, 0.55, qa.z, puff, 1.2, 0, 0.12, 0);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(qb.x, 0.55, qb.z, puff, 1.2, 0, 0.12, 0);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(qa.x, 0.62, qa.z, flash, 0.9, 0, 0.08, 0);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(qb.x, 0.62, qb.z, flash, 0.9, 0, 0.08, 0);
             budget -= 1;
           }
           if (budget > 0) {

@@ -251,3 +251,11 @@
 - Front line. The bowed ribbon is raised, thickened, and shifted onto the grass past the sand bank. Width stays 9.2 so the sine bow crosses the 390px frame. Halo opacity is 0.78 and the hard band opacity is 0.12, so the green-then-red curve is the bright mark. The hard band still uses z scale 1.2 and the tint still uses z scale 1.75.
 - Ground and light. The river centre keeps `0x6eb4d4` and gains a pale glint toward `0xe7f6fb`. Sand banks are wider (`BANK_OUT` 0.52). Pines vary height and width separately, with a wider leaf spread. Territory discs carry dirt and deep-grass patches. `__BL.setShadows` can turn the warm sun shadow on for a shot. The software path still starts with the shadow map off. The fix screenshots were rendered with that shadow on, so the towers show contact.
 - 67 tests passed. Rebuilt `static/app.js` (567200 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.
+
+## Round 37 fixes
+
+- Building edges. The tower shaft is a rounded box with 6 segments and radius 0.36. The hangar body uses radius 0.24. The headquarters plinth, sand pads, apron, wing walls, and roof caps are rounded meshes. The square corner posts on the shaft are gone. The dish stays a cylinder of radius 0.18 on its mast. Road runs and their shoulders are extruded strips with round ends.
+- Soldiers. The two stride poses swing one leg and the rifle clear of the body. Garrison figures use those poses, with a wider scatter and a stronger yaw spread, so a squad reads as a loose crowd. The olive dome and the team colour on the helmet band and one arm stay. The tracked marcher stays on the standing pose.
+- Ground and light. The sand bank is wider (`BANK_OUT` 0.98) and pale, so it sits beside the water. The river centre stays `0x6eb4d4`, with a lighter streak and a darker trough. Territory discs and dirt patches break the meadow. A dark contact disc sits on the near side of each headquarters, and the combat shot is rendered with the warm sun shadow on.
+- Pages. The reviewed bundle was already live: `static/app.js` 567200 bytes, sha256 `39205eda2fb377ed`. This round rebuilds a new bundle in the tree. No git commit.
+- 67 tests passed. Rebuilt `static/app.js` (597044 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.

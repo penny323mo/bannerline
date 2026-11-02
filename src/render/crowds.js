@@ -129,17 +129,20 @@ export function soldierGeometry(variant = 0) {
   const pack = shade(new THREE.BoxGeometry(0.09, 0.12, 0.06), 0.2);
   pack.translate(0, 0.54, 0.09);
   if (variant === 1) {
-    around(legL, -0.07, 0.46, 0.02, 0.62, 0);
-    around(legR, 0.07, 0.46, -0.02, -0.48, 0);
-    around(armL, -0.15, 0.72, -0.04, -0.5, 0);
-    around(armR, 0.15, 0.7, -0.05, 0.38, 0);
-    around(torso, 0, 0.58, 0, 0.06, 0.2);
+    // A long stride and a rifle swung out so both clear the body from above.
+    around(legL, -0.07, 0.46, 0.02, 1.25, 0.1);
+    around(legR, 0.07, 0.46, -0.02, -1.05, 0);
+    around(armL, -0.15, 0.72, -0.04, -0.85, 0.25);
+    around(armR, 0.15, 0.7, -0.05, 0.45, -0.35);
+    around(rifle, 0.12, 0.52, -0.08, 0.15, -1.05);
+    around(torso, 0, 0.58, 0, 0.18, 0.28);
   } else if (variant === 2) {
-    around(legL, -0.07, 0.46, 0.02, -0.42, 0);
-    around(legR, 0.07, 0.46, -0.02, 0.58, 0);
-    around(armL, -0.15, 0.72, -0.04, 0.72, 0);
-    around(armR, 0.15, 0.7, -0.05, -0.22, 0);
-    around(torso, 0, 0.58, 0, -0.1, -0.24);
+    around(legL, -0.07, 0.46, 0.02, -1.0, 0);
+    around(legR, 0.07, 0.46, -0.02, 1.2, -0.12);
+    around(armL, -0.15, 0.72, -0.04, 0.9, -0.2);
+    around(armR, 0.15, 0.7, -0.05, -0.35, 0.4);
+    around(rifle, 0.12, 0.52, -0.08, -0.2, 0.95);
+    around(torso, 0, 0.58, 0, 0.22, -0.42);
   }
   const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, band, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
@@ -301,16 +304,17 @@ export function createCrowds(scene) {
       const r = Math.floor(i / cols);
       const rows = Math.ceil(n / cols);
       const rowCount = r === rows - 1 ? n - r * cols : cols;
-      const lx = (c - (rowCount - 1) / 2) * spacing * 1.34
-        + (r % 2) * spacing * 0.72
-        + ((i * 3) % 7 - 3) * spacing * 0.24;
-      const lz = r * spacing * 0.98 + ((i * 5) % 7 - 3) * spacing * 0.22;
-      rotateXZ(lx, lz, yaw, _slot);
-      const bob = 0.92 + ((i * 17) % 5) * 0.045;
       const lead = track && i === 0;
-      const yawJ = lead ? yaw : yaw + ((i * 5) % 7 - 3) * 0.11;
-      const lean = lead ? 0 : ((i * 3) % 5 - 2) * 0.1;
-      const pose = lead ? 0 : i % POSES;
+      const scatter = lead ? 0 : 1;
+      const lx = (c - (rowCount - 1) / 2) * spacing * 1.7
+        + scatter * Math.sin(i * 2.17 + r * 1.3) * spacing * 1.05;
+      const lz = r * spacing * 0.72
+        + scatter * Math.cos(i * 1.63) * spacing * 0.95;
+      rotateXZ(lx, lz, yaw, _slot);
+      const bob = lead ? 1 : 0.84 + Math.abs(Math.sin(i * 2.4)) * 0.3;
+      const yawJ = lead ? yaw : yaw + Math.sin(i * 1.9) * 0.62;
+      const lean = lead ? 0 : Math.sin(i * 2.6) * 0.16;
+      const pose = lead ? 0 : (i % 2) + 1;
       push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean, pose);
     }
   }

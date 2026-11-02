@@ -55,8 +55,8 @@ export function applyShadowMode(renderer, sun, enabled) {
   sun.shadow.camera.right = 14;
   sun.shadow.camera.top = 14;
   sun.shadow.camera.bottom = -14;
-  sun.shadow.bias = -0.0016;
-  sun.shadow.normalBias = 0.08;
+  sun.shadow.bias = -0.0008;
+  sun.shadow.normalBias = 0.028;
   sun.shadow.camera.updateProjectionMatrix();
 }
 

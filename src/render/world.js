@@ -9,7 +9,7 @@ import { rocksFor, streamBand, streamCrossings, treesFor } from './scenery.js';
 /** Olive-grey walls. Team colour stays on the roof and the flag. */
 const WALL = 0x5a6158;
 const WATER_HALF = 0.64;
-const BANK_OUT = 0.52;
+const BANK_OUT = 0.98;
 const STREAM_BOW = 0.28;
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -40,8 +40,8 @@ function stain(hex) {
 }
 
 const _stainBase = new THREE.Color();
-const _stainDirt = new THREE.Color(0x6a5c3e);
-const _stainDeep = new THREE.Color(0x3c4a30);
+const _stainDirt = new THREE.Color(0x8d6840);
+const _stainDeep = new THREE.Color(0x3a4a2c);
 const _stainTone = new THREE.Color();
 
 /** Break a flat owner disc into dirt and deep-grass patches. */
@@ -59,10 +59,11 @@ function tintZone(mesh, hex) {
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
     const z = pos.getZ(i);
-    const n = Math.sin(x * 7.5 + ox * 1.6 + z * 4.2) * Math.cos(z * 5.5 + oz * 0.9);
+    const n = Math.sin(x * 2.4 + ox * 0.55) + Math.cos(z * 3.1 + oz * 0.4);
     _stainTone.copy(_stainBase);
-    if (n > 0.12) _stainTone.lerp(_stainDirt, 0.58);
-    else if (n < -0.12) _stainTone.lerp(_stainDeep, 0.66);
+    if (n > 0.2) _stainTone.lerp(_stainDirt, 0.9);
+    else if (n < -0.45) _stainTone.lerp(_stainDeep, 0.8);
+    else if (Math.sin(x * 6.5 + z * 4 + ox) > 0.35) _stainTone.lerp(_stainDirt, 0.72);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
   colors.needsUpdate = true;
@@ -159,13 +160,16 @@ function roundMesh(w, h, d, segs, radius, x, y, z, material) {
  */
 function makeHq(paint) {
   const g = new THREE.Group();
+  const concreteMat = mat(PALETTE.concrete, { roughness: 0.88, metalness: 0.02 });
+  const apron = roundMesh(2.85, 0.4, 2.15, 4, 0.18, 0, 0.16, 0.05, concreteMat);
+  const wingL = roundMesh(0.36, 0.66, 1.12, 3, 0.14, -1.28, 0.48, -0.02, concreteMat);
+  const wingR = roundMesh(0.36, 0.66, 1.12, 3, 0.14, 1.28, 0.48, -0.02, concreteMat);
+  const capNear = roundMesh(1.02, 0.18, 0.78, 4, 0.12, 0, 2.98, 0.02, concreteMat);
+  const capTop = roundMesh(0.86, 0.16, 0.64, 3, 0.1, 0, 3.32, 0.02, concreteMat);
   const concrete = mergedMesh([
-    baked(new THREE.BoxGeometry(3.1, 0.1, 2.4), 0, 0.05, 0.05),
     baked(new THREE.BoxGeometry(2.2, 0.2, 0.4), 0, 0.2, -0.98),
     // Positive rotation.x takes local +y toward +z, so −0.42 lowers the −z edge.
     baked(new THREE.BoxGeometry(2.15, 0.1, 0.78), 0, 0.38, -0.78, -0.42, 0, 0),
-    baked(new THREE.BoxGeometry(0.2, 0.7, 1.2), -1.32, 0.46, -0.02),
-    baked(new THREE.BoxGeometry(0.2, 0.7, 1.2), 1.32, 0.46, -0.02),
     baked(new THREE.BoxGeometry(2.2, 0.14, 0.16), 0, 0.2, 1.08),
     baked(new THREE.BoxGeometry(0.7, 0.36, 0.16), 0, 0.42, 1.12),
     baked(new THREE.BoxGeometry(0.16, 0.55, 0.16), -0.7, 0.5, 1.05),
@@ -177,16 +181,14 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.28, 0.12, 0.16), 0.02, 0.3, -1.18),
     baked(new THREE.BoxGeometry(0.28, 0.12, 0.16), 0.5, 0.32, -1.22),
     baked(new THREE.BoxGeometry(0.28, 0.12, 0.16), 0.96, 0.3, -1.16),
-    baked(new THREE.BoxGeometry(2.2, 0.1, 1.42), 0, 0.72, 0),
-    baked(new THREE.BoxGeometry(1.34, 0.1, 1.02), 0, 2.98, 0.02),
-    baked(new THREE.BoxGeometry(1.1, 0.08, 0.82), 0, 3.34, 0.02),
+    baked(new THREE.BoxGeometry(1.7, 0.1, 1.05), 0, 0.72, 0),
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), -0.42, 3.48, -0.28),
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), 0.42, 3.48, -0.28),
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), -0.42, 3.48, 0.32),
     baked(new THREE.BoxGeometry(0.14, 0.16, 0.14), 0.42, 3.48, 0.32),
-  ], mat(PALETTE.concrete, { roughness: 0.88, metalness: 0.02 }));
+  ], concreteMat);
   const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
-  const sandPad = roundMesh(2.55, 0.16, 1.85, 3, 0.06, 0, 0.1, 0.05, sandMat);
+  const sandPad = roundMesh(2.45, 0.32, 1.75, 4, 0.14, 0, 0.14, 0.05, sandMat);
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(0.34, 0.14, 0.18), -0.7, 0.28, -1.02),
     baked(new THREE.BoxGeometry(0.34, 0.14, 0.18), 0, 0.28, -1.02),
@@ -200,11 +202,10 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), -1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), 1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(1.7, 0.08, 0.1), 0, 0.84, -0.6),
-    baked(new THREE.BoxGeometry(1.05, 0.42, 0.78), 0, 3.12, 0.02),
   ], bodyMat);
   body.userData.slot = 'body';
-  const plinth = roundMesh(2.05, 0.52, 1.28, 4, 0.16, 0, 0.42, 0, bodyMat);
-  const tower = roundMesh(1.22, 2.15, 0.96, 4, 0.18, 0, 1.85, 0.02, bodyMat);
+  const plinth = roundMesh(1.92, 0.58, 1.2, 5, 0.26, 0, 0.42, 0, bodyMat);
+  const tower = roundMesh(1.22, 2.15, 0.96, 6, 0.36, 0, 1.85, 0.02, bodyMat);
   const roof = mergedMesh([
     baked(new THREE.BoxGeometry(0.9, 0.026, 0.038), 0, 2.5, 0.46),
   ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.08 }));
@@ -220,10 +221,6 @@ function makeHq(paint) {
     baked(new THREE.CylinderGeometry(0.028, 0.034, 0.46, 6), 0.16, 3.58, 0.02),
     baked(new THREE.CylinderGeometry(0.18, 0.18, 0.032, 16), 0.16, 3.84, 0.1, 1.05, 0.15, 0.2),
     baked(new THREE.TorusGeometry(0.15, 0.008, 6, 14), 0.16, 3.86, 0.12, 1.05, 0.15, 0.1),
-    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, -0.48),
-    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), 0.62, 1.85, -0.48),
-    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, 0.5),
-    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), 0.62, 1.85, 0.5),
     baked(new THREE.CylinderGeometry(0.018, 0.022, 0.7, 5), 0.72, 3.7, 0.05),
     baked(new THREE.BoxGeometry(0.16, 0.02, 0.02), 0.72, 4.02, 0.05),
   ], mat(PALETTE.metal, { roughness: 0.38, metalness: 0.55 }));
@@ -245,7 +242,7 @@ function makeHq(paint) {
   g.userData.pip = pip;
   g.userData.pulse = bodyMat;
   g.userData.dangerRing = danger;
-  g.add(concrete, sandPad, sand, plinth, body, tower, roof, door, metal, flag, pip, danger);
+  g.add(apron, wingL, wingR, capNear, capTop, concrete, sandPad, sand, plinth, body, tower, roof, door, metal, flag, pip, danger);
   return g;
 }
 
@@ -253,7 +250,7 @@ function makeHq(paint) {
 function makeBarracks(paint) {
   const g = new THREE.Group();
   const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
-  const sandPad = roundMesh(2.05, 0.16, 1.35, 3, 0.06, 0, 0.08, 0.05, sandMat);
+  const sandPad = roundMesh(1.95, 0.32, 1.28, 4, 0.14, 0, 0.14, 0.05, sandMat);
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, -0.55),
     baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, -0.55),
@@ -267,12 +264,12 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.35, 0.18, -0.72),
   ], sandMat);
   const wallMat = mat(WALL, { roughness: 0.84, metalness: 0.05 });
-  const body = roundMesh(1.74, 0.54, 1.0, 4, 0.15, 0, 0.36, 0, wallMat);
+  const body = roundMesh(1.74, 0.58, 1.02, 6, 0.24, 0, 0.38, 0, wallMat);
   body.userData.slot = 'body';
   const shellMat = mat(WALL, { roughness: 0.8, metalness: 0.06 });
-  const slopeNear = roundMesh(1.66, 0.16, 0.58, 3, 0.06, 0, 0.86, -0.22, shellMat);
+  const slopeNear = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, -0.22, shellMat);
   slopeNear.rotation.x = -0.45;
-  const slopeFar = roundMesh(1.66, 0.16, 0.58, 3, 0.06, 0, 0.86, 0.22, shellMat);
+  const slopeFar = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, 0.22, shellMat);
   slopeFar.rotation.x = 0.45;
   const shell = mergedMesh([
     baked(new THREE.BoxGeometry(0.1, 0.22, 0.9), -0.84, 0.86, 0),
@@ -577,13 +574,17 @@ function streamRibbon(span) {
   const cols = 22;
   const halfX = span / 2;
   const bands = [
-    { off: -(WATER_HALF + BANK_OUT), y: 0.12, hex: 0x6a5c44 },
-    { off: -WATER_HALF, y: 0.105, hex: PALETTE.sand },
-    { off: -WATER_HALF + 0.12, y: 0.078, hex: 0x9ed0e4 },
-    { off: 0, y: 0.055, hex: 0x6eb4d4 },
-    { off: WATER_HALF - 0.12, y: 0.078, hex: PALETTE.stream },
-    { off: WATER_HALF, y: 0.105, hex: PALETTE.sand },
-    { off: WATER_HALF + BANK_OUT, y: 0.12, hex: 0x6a5c44 },
+    { off: -(WATER_HALF + BANK_OUT), y: 0.14, hex: 0xe7d7a8, sand: true },
+    { off: -(WATER_HALF + BANK_OUT * 0.42), y: 0.125, hex: 0xf3e6c0, sand: true },
+    { off: -WATER_HALF, y: 0.108, hex: 0xd9c49a, sand: true },
+    { off: -WATER_HALF + 0.18, y: 0.08, hex: 0xb9dcea },
+    { off: -0.16, y: 0.062, hex: 0x8ec8e0 },
+    { off: 0, y: 0.05, hex: 0x6eb4d4 },
+    { off: 0.16, y: 0.062, hex: PALETTE.stream },
+    { off: WATER_HALF - 0.18, y: 0.08, hex: 0x9ed0e4 },
+    { off: WATER_HALF, y: 0.108, hex: 0xd9c49a, sand: true },
+    { off: WATER_HALF + BANK_OUT * 0.42, y: 0.125, hex: 0xf3e6c0, sand: true },
+    { off: WATER_HALF + BANK_OUT, y: 0.14, hex: 0xe7d7a8, sand: true },
   ];
   const positions = new Float32Array((cols + 1) * bands.length * 3);
   const colors = new Float32Array((cols + 1) * bands.length * 3);
@@ -816,37 +817,70 @@ function paintDirt(geo) {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 }
 
+/** Flat strip with round ends. Length runs along local Z so alignLength can place it. */
+function roundedStrip(length, width, radius, height) {
+  const r = Math.min(radius, width * 0.46, Math.max(0.04, length * 0.46));
+  const hw = width / 2;
+  const hl = length / 2;
+  const shape = new THREE.Shape();
+  shape.moveTo(-hw + r, -hl);
+  shape.lineTo(hw - r, -hl);
+  shape.absarc(hw - r, -hl + r, r, -Math.PI / 2, 0, false);
+  shape.lineTo(hw, hl - r);
+  shape.absarc(hw - r, hl - r, r, 0, Math.PI / 2, false);
+  shape.lineTo(-hw + r, hl);
+  shape.absarc(-hw + r, hl - r, r, Math.PI / 2, Math.PI, false);
+  shape.lineTo(-hw, -hl + r);
+  shape.absarc(-hw + r, -hl + r, r, Math.PI, Math.PI * 1.5, false);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false,
+    curveSegments: 5,
+  });
+  geo.translate(0, 0, -height / 2);
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
+
+function bakeStrip(length, width, radius, height, x0, z0, x1, z1, y) {
+  const geo = roundedStrip(length, width, radius, height);
+  const holder = new THREE.Mesh(geo);
+  holder.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+  const dx = x1 - x0;
+  const dz = z1 - z0;
+  const len = Math.hypot(dx, dz) || 1;
+  _dir.set(dx / len, 0, dz / len);
+  holder.quaternion.setFromUnitVectors(LOCAL_Z, _dir);
+  holder.updateMatrix();
+  geo.applyMatrix4(holder.matrix);
+  return geo;
+}
+
 function addEdges(group, map, roadMat) {
   const segs = planRoadSegments(map);
-  const unit = new THREE.BoxGeometry(ROAD_W, ROAD_H, 1);
   const parts = [];
-  const piece = new THREE.Mesh(unit);
-  for (let i = 0; i < segs.length; i++) {
-    const seg = segs[i];
-    const len = alignLength(piece, seg.x0, seg.z0, seg.x1, seg.z1, seg.y);
-    if (len < 0.15) continue;
-    piece.updateMatrix();
-    const baked = unit.clone();
-    baked.applyMatrix4(piece.matrix);
-    paintDirt(baked);
-    parts.push(baked);
-  }
-  unit.dispose();
-  addMerged(group, parts, roadMat, { cast: false, receive: false });
-  const shoulderUnit = new THREE.BoxGeometry(ROAD_W + 0.55, ROAD_H * 0.4, 1);
   const shoulderParts = [];
-  const shoulder = new THREE.Mesh(shoulderUnit);
   for (let i = 0; i < segs.length; i++) {
     const seg = segs[i];
-    const len = alignLength(shoulder, seg.x0, seg.z0, seg.x1, seg.z1, seg.y - 0.03);
+    const len = Math.hypot(seg.x1 - seg.x0, seg.z1 - seg.z0);
     if (len < 0.15) continue;
-    shoulder.updateMatrix();
-    const bakedShoulder = shoulderUnit.clone();
-    bakedShoulder.applyMatrix4(shoulder.matrix);
-    shoulderParts.push(bakedShoulder);
+    const road = bakeStrip(len, ROAD_W, 0.3, ROAD_H, seg.x0, seg.z0, seg.x1, seg.z1, seg.y);
+    paintDirt(road);
+    parts.push(road);
+    shoulderParts.push(bakeStrip(
+      len,
+      ROAD_W + 0.7,
+      0.42,
+      ROAD_H * 0.55,
+      seg.x0,
+      seg.z0,
+      seg.x1,
+      seg.z1,
+      seg.y - 0.03,
+    ));
   }
-  shoulderUnit.dispose();
-  addMerged(group, shoulderParts, mat(PALETTE.sand, { roughness: 0.96, metalness: 0 }), { cast: false, receive: false });
+  addMerged(group, parts, roadMat, { cast: false, receive: false });
+  addMerged(group, shoulderParts, mat(0xe6d3a8, { roughness: 0.96, metalness: 0 }), { cast: false, receive: false });
 }
 
 function buildIsland(map, reduceMotion) {
@@ -886,6 +920,41 @@ function buildIsland(map, reduceMotion) {
     group.add(mesh);
     zoneMeshes.set(z.buildingId, mesh);
   }
+
+  const dirtSpots = [
+    [2.35, 4.7, 1.2, 0x8d6840],
+    [-2.55, 3.9, 0.95, 0x6b4e32],
+    [1.5, 7.05, 0.8, 0x967044],
+    [-2.1, 6.7, 0.7, 0x7a5636],
+    [2.9, -4.5, 1.1, 0x8a623c],
+    [-2.4, -5.4, 0.9, 0x6a4c30],
+    [3.2, -6.7, 0.75, 0x947048],
+    [-3.3, 2.15, 0.72, 0x7c5a38],
+    [3.5, 2.2, 0.68, 0x886038],
+  ];
+  const dirtParts = [];
+  const dirtTone = new THREE.Color();
+  const dirtMeadow = new THREE.Color(PALETTE.meadow);
+  for (let i = 0; i < dirtSpots.length; i++) {
+    const spot = dirtSpots[i];
+    const geo = new THREE.CircleGeometry(spot[2], 16);
+    geo.rotateX(-Math.PI / 2);
+    geo.translate(spot[0], 0.065, spot[1]);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    dirtTone.setHex(spot[3]);
+    for (let v = 0; v < pos.count; v++) {
+      const edge = Math.min(1, Math.hypot(pos.getX(v) - spot[0], pos.getZ(v) - spot[1]) / spot[2]);
+      const tone = dirtTone.clone();
+      if (edge > 0.45) tone.lerp(dirtMeadow, (edge - 0.45) / 0.55);
+      colors[v * 3] = tone.r;
+      colors[v * 3 + 1] = tone.g;
+      colors[v * 3 + 2] = tone.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    dirtParts.push(geo);
+  }
+  addMerged(group, dirtParts, mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 
   const waterSpan = streamBand(map);
   const stream = new THREE.Mesh(
@@ -1000,16 +1069,24 @@ function buildIsland(map, reduceMotion) {
     }
     group.add(groupB);
     buildings.set(spec.id, groupB);
-    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.45 : 1.7, 12);
-    blob.rotateX(-Math.PI / 2);
-    // Sun sits toward −x and +z. The contact blob falls the other way.
-    blob.translate(p.x + 0.28, 0.04, p.z - 0.22);
-    blobs.push(blob);
+    if (spec.kind === 'hq') {
+      const blob = new THREE.CircleGeometry(2.6, 20);
+      blob.rotateX(-Math.PI / 2);
+      blob.scale(1.2, 1, 0.82);
+      // The near side of the tower, toward the camera, so the contact reads in the shot.
+      blob.translate(p.x + 1.05, 0.08, p.z + 0.85);
+      blobs.push(blob);
+    } else {
+      const blob = new THREE.CircleGeometry(1.85, 14);
+      blob.rotateX(-Math.PI / 2);
+      blob.translate(p.x + 0.45, 0.06, p.z + 0.15);
+      blobs.push(blob);
+    }
   }
   addMerged(group, blobs, new THREE.MeshBasicMaterial({
-    color: PALETTE.ink,
+    color: 0x10140e,
     transparent: true,
-    opacity: 0.62,
+    opacity: 0.88,
     depthWrite: false,
   }));
 

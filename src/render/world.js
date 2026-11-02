@@ -8,8 +8,8 @@ import { rocksFor, streamBand, streamCrossings, treesFor } from './scenery.js';
 
 /** Olive-grey walls. Team colour stays on the roof and the flag. */
 const WALL = 0x5a6158;
-const WATER_HALF = 0.26;
-const BANK_OUT = 0.2;
+const WATER_HALF = 0.16;
+const BANK_OUT = 0.05;
 const STREAM_BOW = 0.28;
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -116,19 +116,23 @@ function tintZone(mesh, hex) {
   const oz = mesh.position.z;
   const sx = mesh.scale.x || 1;
   const sz = mesh.scale.z || 1;
-  const patchDirt = new THREE.Color(0x5a3418);
-  const moss = new THREE.Color(0x314422);
-  const pale = new THREE.Color(0x8eae58);
+  const sunGrass = new THREE.Color(0x6fa84a);
+  const deepGrass = new THREE.Color(0x4f8a3c);
+  const pale = new THREE.Color(0x8ec85a);
+  const worn = new THREE.Color(0x8a6844);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i) * sx + ox;
     const z = pos.getZ(i) * sz + oz;
     const patch = Math.sin(x * 0.72 + 0.8) * Math.cos(z * 0.58 - 0.3);
     const fine = Math.sin(x * 1.8 + z * 0.6);
-    _stainTone.copy(_stainBase);
-    if (patch > 0.5) _stainTone.lerp(patchDirt, 0.82);
-    else if (patch < -0.4) _stainTone.lerp(moss, 0.55);
-    else if (fine > 0.4) _stainTone.lerp(pale, 0.35);
-    else _stainTone.lerp(moss, 0.12);
+    _stainTone.copy(sunGrass);
+    if (fine > 0.35) _stainTone.lerp(pale, 0.42);
+    else if (fine < -0.4) _stainTone.lerp(deepGrass, 0.38);
+    else _stainTone.lerp(deepGrass, 0.12);
+    // Mud stays on the road corridor and a few worn spots, not across the meadow.
+    const onRoad = Math.abs(x) < 0.95 && Math.abs(z) > 0.9;
+    if (onRoad && patch > 0.35) _stainTone.lerp(worn, 0.45);
+    _stainTone.lerp(_stainBase, 0.08);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
   colors.needsUpdate = true;
@@ -589,6 +593,48 @@ function thinFrontGeometry() {
   return geo;
 }
 
+/**
+ * Thick bowed front. Local −Y becomes world +Z (player green) after rotateX(−π/2).
+ * Local +Y becomes world −Z (enemy red). The halo uses a wider half.
+ */
+function glowFrontGeometry(half, bowAmp) {
+  const steps = 22;
+  const positions = new Float32Array((steps + 1) * 2 * 3);
+  const colors = new Float32Array((steps + 1) * 2 * 3);
+  const green = new THREE.Color(0x3dff78);
+  const red = new THREE.Color(0xff4a2a);
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const x = -0.5 + u;
+    const bow = Math.sin(u * Math.PI) * bowAmp;
+    const o = i * 6;
+    positions[o] = x;
+    positions[o + 1] = bow - half;
+    positions[o + 2] = 0;
+    positions[o + 3] = x;
+    positions[o + 4] = bow + half;
+    positions[o + 5] = 0;
+    colors[o] = green.r;
+    colors[o + 1] = green.g;
+    colors[o + 2] = green.b;
+    colors[o + 3] = red.r;
+    colors[o + 4] = red.g;
+    colors[o + 5] = red.b;
+  }
+  const indices = [];
+  for (let i = 0; i < steps; i++) {
+    const a = i * 2;
+    indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.setIndex(indices);
+  geo.rotateX(-Math.PI / 2);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function makeGlow(geo, material) {
   const mesh = new THREE.Mesh(geo, material);
   mesh.visible = false;
@@ -673,12 +719,10 @@ function islandCapGeometry(spanX, spanZ) {
   const count = 1 + rings * segs;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
-  const meadow = new THREE.Color(PALETTE.meadow);
-  const deep = new THREE.Color(PALETTE.meadowDeep);
-  const khaki = new THREE.Color(0x6a6244);
-  const dirt = new THREE.Color(0x6e5c42);
-  const deepEdge = new THREE.Color(PALETTE.meadowDeep);
-  const moss = new THREE.Color(0x314228);
+  const meadow = new THREE.Color(0x6fa84a);
+  const deep = new THREE.Color(0x4e8638);
+  const pale = new THREE.Color(0x8ec85a);
+  const worn = new THREE.Color(0x8a6844);
   const tone = new THREE.Color();
   let vi = 1;
   for (let r = 1; r <= rings; r++) {
@@ -699,11 +743,12 @@ function islandCapGeometry(spanX, spanZ) {
     const patch = Math.sin(x * 0.7 + 0.4) * Math.cos(z * 0.55);
     const speckle = Math.sin(x * 1.6 + z * 1.1);
     tone.copy(meadow);
-    if (patch > 0.45) tone.lerp(new THREE.Color(0x6a3e1e), 0.85);
-    else if (speckle > 0.12) tone.lerp(new THREE.Color(0x86a84a), 0.5);
-    else if (speckle < -0.12) tone.lerp(moss, 0.58);
-    else tone.lerp(deep, 0.22);
-    if (u > 0.9) tone.lerp(deepEdge, 0.2);
+    if (speckle > 0.2) tone.lerp(pale, 0.4);
+    else if (speckle < -0.25) tone.lerp(deep, 0.35);
+    else tone.lerp(deep, 0.1);
+    const onRoad = Math.abs(x) < 0.95 && Math.abs(z) > 0.9;
+    if (onRoad && patch > 0.2) tone.lerp(worn, 0.5);
+    if (u > 0.92) tone.lerp(deep, 0.18);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -733,17 +778,17 @@ function streamRibbon(span) {
   const cols = 22;
   const halfX = span / 2;
   const bands = [
-    { off: -(WATER_HALF + BANK_OUT), y: 0.11, hex: 0x7a5c40, sand: true },
-    { off: -(WATER_HALF + BANK_OUT * 0.45), y: 0.095, hex: 0x8d6a48, sand: true },
-    { off: -WATER_HALF, y: 0.078, hex: 0x6a4c34, sand: true },
-    { off: -WATER_HALF * 0.7, y: 0.064, hex: 0x2c5160 },
-    { off: -WATER_HALF * 0.28, y: 0.052, hex: 0x3a6a7c },
-    { off: 0, y: 0.046, hex: 0x2e5c6e },
-    { off: WATER_HALF * 0.32, y: 0.052, hex: 0x245066 },
-    { off: WATER_HALF * 0.74, y: 0.064, hex: 0x2c5160 },
-    { off: WATER_HALF, y: 0.078, hex: 0x6a4c34, sand: true },
-    { off: WATER_HALF + BANK_OUT * 0.45, y: 0.095, hex: 0x8d6a48, sand: true },
-    { off: WATER_HALF + BANK_OUT, y: 0.11, hex: 0x7a5c40, sand: true },
+    { off: -(WATER_HALF + BANK_OUT), y: 0.11, hex: 0x6a8a48, sand: true },
+    { off: -(WATER_HALF + BANK_OUT * 0.45), y: 0.095, hex: 0x628048, sand: true },
+    { off: -WATER_HALF, y: 0.078, hex: 0x5a7044, sand: true },
+    { off: -WATER_HALF * 0.7, y: 0.064, hex: 0x3a6274 },
+    { off: -WATER_HALF * 0.28, y: 0.052, hex: 0x4a7890 },
+    { off: 0, y: 0.046, hex: 0x3e6e84 },
+    { off: WATER_HALF * 0.32, y: 0.052, hex: 0x355e70 },
+    { off: WATER_HALF * 0.74, y: 0.064, hex: 0x3a6274 },
+    { off: WATER_HALF, y: 0.078, hex: 0x5a7044, sand: true },
+    { off: WATER_HALF + BANK_OUT * 0.45, y: 0.095, hex: 0x628048, sand: true },
+    { off: WATER_HALF + BANK_OUT, y: 0.11, hex: 0x6a8a48, sand: true },
   ];
   const positions = new Float32Array((cols + 1) * bands.length * 3);
   const colors = new Float32Array((cols + 1) * bands.length * 3);
@@ -760,11 +805,11 @@ function streamRibbon(span) {
       tone.setHex(band.hex);
       if (!band.sand) {
         const rip = 0.5 + 0.5 * Math.sin(x * 3.3 + band.off * 9);
-        tone.lerp(new THREE.Color(0x2c5a68), rip * 0.28);
-        tone.lerp(new THREE.Color(0x102830), (1 - rip) * 0.45);
+        tone.lerp(new THREE.Color(0x5a90a4), rip * 0.22);
+        tone.lerp(new THREE.Color(0x243848), (1 - rip) * 0.2);
       } else {
         const grit = 0.5 + 0.5 * Math.sin(x * 4.1 + band.off * 6);
-        tone.lerp(new THREE.Color(0x3a2c20), grit * 0.22);
+        tone.lerp(new THREE.Color(0x5a7040), grit * 0.12);
       }
       colors[p] = tone.r;
       colors[p + 1] = tone.g;
@@ -1130,12 +1175,9 @@ function buildIsland(map, reduceMotion) {
 
   // Dark worn patches sit in the open meadow beside the tan road.
   const dirtSpots = [
-    [-3.6, 3.4, 1.7, 1.2, 0x5a3418],
-    [3.8, 1.6, 1.45, 1.05, 0x6b4524],
-    [-3.3, -2.6, 1.55, 1.15, 0x4e3018],
-    [3.5, -3.8, 1.4, 1.0, 0x62381c],
-    [-2.4, 6.1, 1.25, 0.9, 0x6a4020],
-    [2.6, -6.2, 1.3, 0.95, 0x553218],
+    [-0.95, 2.6, 0.48, 0.32, 0x8a6844],
+    [0.85, -2.15, 0.42, 0.28, 0x7d6040],
+    [-0.7, 4.7, 0.36, 0.24, 0x8d6c48],
   ];
   const dirtParts = [];
   const dirtTone = new THREE.Color();
@@ -1335,13 +1377,14 @@ function buildIsland(map, reduceMotion) {
   const blobMesh = addMerged(group, blobs, new THREE.MeshBasicMaterial({
     color: 0x1c1812,
     transparent: true,
-    opacity: 0.42,
+    opacity: 0.22,
     depthWrite: false,
   }));
   if (blobMesh) flora.push(blobMesh);
   group.userData.flora = flora;
   group.userData.treeSpots = treeSpots;
   group.userData.rockSpots = rockSpots;
+  group.userData.playBox = box;
   group.userData.buildings = buildings;
 
   const frontMat = new THREE.MeshBasicMaterial({
@@ -1417,6 +1460,37 @@ function buildIsland(map, reduceMotion) {
     const lip = makeGlow(lipGeo, lipMat);
     group.add(lip);
     lips.push(lip);
+  }
+  const coreGeo = glowFrontGeometry(0.22, 0.16);
+  const auraGeo = glowFrontGeometry(0.46, 0.16);
+  const coreMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    depthTest: true,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const auraMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.48,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  const cores = [];
+  const auras = [];
+  for (let i = 0; i < glows.length; i++) {
+    const aura = makeGlow(auraGeo, auraMat);
+    group.add(aura);
+    auras.push(aura);
+    const core = makeGlow(coreGeo, coreMat);
+    group.add(core);
+    cores.push(core);
   }
 
   const boxed = boxMapZones(map.zones);
@@ -1615,6 +1689,8 @@ function buildIsland(map, reduceMotion) {
           fronts[i].visible = false;
           halos[i].visible = false;
           lips[i].visible = false;
+          cores[i].visible = false;
+          auras[i].visible = false;
           continue;
         }
         const alongX = seg.axis !== 'z';
@@ -1653,17 +1729,24 @@ function buildIsland(map, reduceMotion) {
         front.rotation.y = yaw;
         halo.rotation.y = yaw;
         // The thick bow is the old candy arc. The saturated band stays in the
-        // graph for the art test and is not drawn. One thin lip is the front.
+        // graph for the art test and is not drawn. The visible front is the
+        // emissive core plus a soft additive halo, green on our side.
         front.visible = false;
         halo.visible = false;
         band.visible = false;
         tint.visible = false;
-        const lipMesh = lips[i];
-        lipMesh.visible = i === frontIndex;
-        if (lipMesh.visible) {
-          lipMesh.position.set(cx + ox, 0.21, cz + oz);
-          lipMesh.scale.set(span, 1, 1);
-          lipMesh.rotation.y = yaw;
+        lips[i].visible = false;
+        const showFront = i === frontIndex;
+        const wideSpan = Math.max(span, 13);
+        cores[i].visible = showFront;
+        auras[i].visible = showFront;
+        if (showFront) {
+          cores[i].position.set(cx + ox, 0.36, cz + oz);
+          auras[i].position.set(cx + ox, 0.3, cz + oz);
+          cores[i].scale.set(wideSpan, 1, 1);
+          auras[i].scale.set(wideSpan, 1, 1);
+          cores[i].rotation.y = yaw;
+          auras[i].rotation.y = yaw;
         }
       }
       for (let i = segs.length; i < tints.length; i++) {
@@ -1671,6 +1754,8 @@ function buildIsland(map, reduceMotion) {
         fronts[i].visible = false;
         halos[i].visible = false;
         lips[i].visible = false;
+        cores[i].visible = false;
+        auras[i].visible = false;
       }
 
       placeMarker(ring, selectedId, state);
@@ -1730,11 +1815,10 @@ export function createWorld(scene) {
   const fieldGeo = new THREE.PlaneGeometry(180, 220, 36, 40);
   const fieldPos = fieldGeo.attributes.position;
   const fieldColors = new Float32Array(fieldPos.count * 3);
-  const meadowA = new THREE.Color(PALETTE.meadow);
-  const meadowB = new THREE.Color(PALETTE.meadowDeep);
-  const meadowC = new THREE.Color(0x8eae58);
-  const dirtPatch = new THREE.Color(0x8d6840);
-  const dirtDeep = new THREE.Color(0x6a5038);
+  const meadowA = new THREE.Color(0x6fa84a);
+  const meadowB = new THREE.Color(0x4e8638);
+  const meadowC = new THREE.Color(0x8ec85a);
+  const worn = new THREE.Color(0x8a6844);
   const meadowTone = new THREE.Color();
   for (let i = 0; i < fieldPos.count; i++) {
     const x = fieldPos.getX(i);
@@ -1742,10 +1826,10 @@ export function createWorld(scene) {
     const n = Math.sin(x * 0.07) * Math.cos(y * 0.055) + Math.sin(x * 0.16 + y * 0.11) * 0.4;
     const blot = Math.sin(x * 0.09 + 1.7) * Math.cos(y * 0.075);
     meadowTone.copy(meadowA);
-    if (blot > 0.45) meadowTone.lerp(new THREE.Color(0x6a3e1e), 0.85);
-    else if (blot < -0.4) meadowTone.lerp(meadowB, 0.55);
-    else if (n > 0.2) meadowTone.lerp(meadowC, 0.45);
-    else meadowTone.lerp(meadowB, 0.22);
+    if (n > 0.25) meadowTone.lerp(meadowC, 0.4);
+    else if (blot < -0.35) meadowTone.lerp(meadowB, 0.32);
+    else meadowTone.lerp(meadowB, 0.12);
+    if (Math.abs(x) < 1.1 && blot > 0.55) meadowTone.lerp(worn, 0.4);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;

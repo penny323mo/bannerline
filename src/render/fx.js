@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
-import { SOLDIER_SCALE } from './crowds.js';
+import { SOLDIER_SCALE, drawAnchor, drawnCount, formationWorld } from './crowds.js';
 
 const POOL = 640;
 
@@ -48,6 +48,7 @@ export function createFx(scene) {
     opacity: 0.95,
     depthWrite: false,
     depthTest: false,
+    blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
     toneMapped: false,
   }));
@@ -81,17 +82,43 @@ export function createFx(scene) {
     scene.add(sprite);
     return sprite;
   });
+  function radialMap(stops) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 31);
+    for (let i = 0; i < stops.length; i++) grad.addColorStop(stops[i][0], stops[i][1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    return map;
+  }
+  const flashMap = radialMap([
+    [0, 'rgba(255, 252, 236, 1)'],
+    [0.16, 'rgba(255, 244, 190, 0.95)'],
+    [0.42, 'rgba(255, 186, 70, 0.45)'],
+    [1, 'rgba(255, 140, 40, 0)'],
+  ]);
+  const dustMap = radialMap([
+    [0, 'rgba(214, 198, 168, 0.55)'],
+    [0.45, 'rgba(186, 170, 142, 0.22)'],
+    [1, 'rgba(160, 148, 124, 0)'],
+  ]);
   const streakMat = new THREE.SpriteMaterial({
-    color: 0xff7a32,
+    map: flashMap,
+    color: 0xffffff,
     transparent: true,
     opacity: 0.9,
     depthWrite: false,
     depthTest: false,
+    blending: THREE.AdditiveBlending,
     toneMapped: false,
   });
   const streaks = [0, 1].map(() => {
     const sprite = new THREE.Sprite(streakMat);
-    sprite.scale.set(0.22, 0.018, 1);
+    sprite.scale.set(0.2, 0.2, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -99,16 +126,18 @@ export function createFx(scene) {
     return sprite;
   });
   const muzzleMat = new THREE.SpriteMaterial({
-    color: 0xff9a3c,
+    map: flashMap,
+    color: 0xffffff,
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.95,
     depthWrite: false,
     depthTest: false,
+    blending: THREE.AdditiveBlending,
     toneMapped: false,
   });
   const muzzles = [0, 1, 2, 3, 4].map(() => {
     const sprite = new THREE.Sprite(muzzleMat);
-    sprite.scale.set(0.16, 0.08, 1);
+    sprite.scale.set(0.34, 0.34, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -116,9 +145,10 @@ export function createFx(scene) {
     return sprite;
   });
   const dustMat = new THREE.SpriteMaterial({
-    color: 0xe2c89a,
+    map: dustMap,
+    color: 0xffffff,
     transparent: true,
-    opacity: 0.78,
+    opacity: 0.85,
     depthWrite: false,
     depthTest: false,
     toneMapped: false,
@@ -196,11 +226,11 @@ export function createFx(scene) {
     scene.add(sprite);
     return sprite;
   });
-  // Baked shotgun tip in the unit-height soldier. crowds modelMul is 1.14.
+  // Baked shotgun tip in the unit-height soldier. crowds modelMul is 1.4.
   const MUZZLE = { x: -0.024, y: 0.6, z: -0.397 };
-  const FIGURE = SOLDIER_SCALE * 1.14;
-  const traceGreen = new THREE.Color(0xff9a3c);
-  const traceRed = new THREE.Color(0xff6a28);
+  const FIGURE = SOLDIER_SCALE * 1.4;
+  const traceGreen = new THREE.Color(0xfff4c8);
+  const traceRed = new THREE.Color(0xffd27a);
 
   const life = new Float32Array(POOL);
   const maxLife = new Float32Array(POOL);
@@ -232,45 +262,23 @@ export function createFx(scene) {
   function flashOn(sprite, x, z, yaw) {
     rotateXZ(MUZZLE.x, MUZZLE.z, yaw, slot);
     sprite.position.set(x + slot.x * FIGURE, 0.02 + MUZZLE.y * FIGURE, z + slot.z * FIGURE);
-    sprite.scale.set(0.26, 0.13, 1);
+    sprite.scale.set(0.36, 0.36, 1);
     sprite.visible = enabled;
   }
 
   function frontFigures(owner, count, anchorX, anchorZ, yaw) {
-    const raw = Math.max(1, Math.floor(count));
-    const n = raw <= 8 ? raw : Math.min(owner === 'enemy' ? 44 : 48, raw);
+    const n = Math.max(1, drawnCount(owner, count));
     const placed = [];
     rotateXZ(0, -1, yaw, face);
-    if (owner === 'enemy') {
-      const cols = Math.min(8, n);
-      const spacing = 0.27;
-      const rowCount = Math.min(cols, n);
-      for (let col = 0; col < rowCount; col++) {
-        const lx = (col - (rowCount - 1) / 2) * spacing;
-        rotateXZ(lx, 0, yaw, slot);
-        placed.push({ x: anchorX + slot.x, z: anchorZ + slot.z });
-      }
-    } else {
-      const gap = 0.42;
-      for (let i = 0; i < n; i++) {
-        let lx = 0;
-        let lz = 0;
-        if (i > 0) {
-          const ang = i * 2.399963;
-          const rad = gap * 0.55 * Math.sqrt(i);
-          lx = Math.cos(ang) * rad * 1.15;
-          lz = Math.sin(ang) * rad * 0.72;
-        }
-        rotateXZ(lx, lz, yaw, slot);
-        const along = slot.x * face.x + slot.z * face.z;
-        placed.push({ x: anchorX + slot.x, z: anchorZ + slot.z, along });
-      }
-      placed.sort((a, b) => b.along - a.along);
-      return placed.slice(0, 2);
+    for (let i = 0; i < n; i++) {
+      formationWorld(owner, i, n, yaw, slot);
+      const along = slot.x * face.x + slot.z * face.z;
+      placed.push({ x: anchorX + slot.x, z: anchorZ + slot.z, along });
     }
-    if (placed.length <= 2) return placed;
-    const mid = Math.floor(placed.length / 2);
-    return [placed[Math.max(0, mid - 1)], placed[Math.min(placed.length - 1, mid + 1)]];
+    placed.sort((a, b) => b.along - a.along);
+    const lead = placed[0];
+    const next = placed[Math.min(placed.length - 1, Math.max(1, Math.floor(n / 8)))];
+    return next && next !== lead ? [lead, next] : [lead];
   }
 
   function spawn(x, y, z, color, ttl, vx, vy, vz) {
@@ -335,7 +343,7 @@ export function createFx(scene) {
           }
         } else if (q.mode === 'fight' || q.mode === 'siege') {
           if (q.owner === 'player') playerFighting = true;
-          const spot = q.owner === 'enemy' && q.z > -3.6 ? { x: 0.4, z: -4.4 } : { x: q.x, z: q.z };
+          const spot = drawAnchor(q.owner, q.x, q.z, q.count);
           const side = ((s + tick) % 3) - 1;
           const yaw = yawOf(q, nodesNow);
           const tips = frontFigures(q.owner, q.count, spot.x, spot.z, yaw);
@@ -350,7 +358,7 @@ export function createFx(scene) {
             const dustX = onDeck ? q.x : spot.x;
             const dustZ = onDeck ? 1.35 : spot.z;
             puffSprite.position.set(dustX + side * 0.1, 0.08, dustZ);
-            puffSprite.scale.set(0.22, 0.12, 1);
+            puffSprite.scale.set(0.42, 0.28, 1);
             puffSprite.visible = enabled;
           }
           if (q.mode === 'siege' && budget > 0) {
@@ -377,7 +385,7 @@ export function createFx(scene) {
         const barrel = muzzles[muzzles.length - 1];
         // Baked Tank_Gun runs toward the camera. The visible tip is just short of the mesh max-Z.
         barrel.position.set(1.69, 0.5, 5.14);
-        barrel.scale.set(0.18, 0.09, 1);
+        barrel.scale.set(0.4, 0.4, 1);
         barrel.visible = enabled;
       }
       const nodes = state.nodes;
@@ -433,21 +441,31 @@ export function createFx(scene) {
         for (let b = a + 1; b < squads.length; b++) {
           const qb = squads[b];
           if (!qb || qb.count <= 0 || qa.owner === qb.owner) continue;
-          const dx = qb.x - qa.x;
-          const dz = qb.z - qa.z;
-          const dist = Math.hypot(dx, dz);
-          if (dist > 4.4 || dist < 0.12 || lines >= MAX_LINES) continue;
-          const halfW = Math.min(0.04, dist * 0.015);
+          const realDx = qb.x - qa.x;
+          const realDz = qb.z - qa.z;
+          const realDist = Math.hypot(realDx, realDz);
+          if (realDist > 4.4 || realDist < 0.12 || lines >= MAX_LINES) continue;
+          const aDraw = drawAnchor(qa.owner, qa.x, qa.z, qa.count);
+          const bDraw = drawAnchor(qb.owner, qb.x, qb.z, qb.count);
+          let dx = bDraw.x - aDraw.x;
+          let dz = bDraw.z - aDraw.z;
+          let dist = Math.hypot(dx, dz);
+          if (dist < 0.2) {
+            dx = realDx;
+            dz = realDz;
+            dist = realDist;
+          }
+          const reach = Math.min(0.55, dist * 0.35);
+          const halfW = Math.min(0.022, reach * 0.05);
           const inv = 1 / dist;
           const hx = -dz * inv * halfW;
           const hz = dx * inv * halfW;
-          // Soldier height, so the line lies on the rank instead of stopping above it.
+          // A short streak from the visible rank, not a bar across the map.
           const y = 0.5;
-          const pad = 0.28;
-          const ax = qa.x - dx * inv * pad;
-          const az = qa.z - dz * inv * pad;
-          const bx = qb.x + dx * inv * pad;
-          const bz = qb.z + dz * inv * pad;
+          const ax = aDraw.x;
+          const az = aDraw.z;
+          const bx = aDraw.x + dx * inv * reach;
+          const bz = aDraw.z + dz * inv * reach;
           const o = lines * 18;
           const xyz = [
             ax - hx, y, az - hz,
@@ -468,10 +486,33 @@ export function createFx(scene) {
             lineCol[co + 2] = c.b;
           }
           lines += 1;
-          if (lines === 1) {
-            // Cream rank discs sat on the planks. The ribbon is the tracer.
-            streaks[0].position.set(ax, 0.48, az);
-            streaks[1].position.set(bx, 0.48, bz);
+          if (lines < MAX_LINES) {
+            const cx0 = bDraw.x;
+            const cz0 = bDraw.z;
+            const cx1 = bDraw.x - dx * inv * reach;
+            const cz1 = bDraw.z - dz * inv * reach;
+            const o2 = lines * 18;
+            const xyz2 = [
+              cx0 - hx, y, cz0 - hz,
+              cx0 + hx, y, cz0 + hz,
+              cx1 - hx, y, cz1 - hz,
+              cx0 + hx, y, cz0 + hz,
+              cx1 + hx, y, cz1 + hz,
+              cx1 - hx, y, cz1 - hz,
+            ];
+            for (let k = 0; k < 18; k++) linePos[o2 + k] = xyz2[k];
+            const back = qb.owner === 'player' ? traceGreen : traceRed;
+            for (let v = 0; v < 6; v++) {
+              const co = o2 + v * 3;
+              lineCol[co] = back.r;
+              lineCol[co + 1] = back.g;
+              lineCol[co + 2] = back.b;
+            }
+            lines += 1;
+          }
+          if (lines === 1 || lines === 2) {
+            streaks[0].position.set(ax, 0.52, az);
+            streaks[1].position.set(bDraw.x, 0.52, bDraw.z);
             streaks[0].visible = enabled;
             streaks[1].visible = enabled;
           }

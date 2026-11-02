@@ -6,13 +6,13 @@ import { PALETTE } from './palette.js';
  * camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  // South-east three-quarter, about 42° down. The enemy fort sits upper right.
-  // The player bunker sits low on the left. camera.up stays (0, 1, 0).
-  camera.fov = 38;
+  // Pulled back so the enemy fort and the player bunker both clear the 390 frame.
+  // camera.up stays (0, 1, 0). Screen-right is still not world +x.
+  camera.fov = 42;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(5.6, 14.2, 14);
+  camera.position.set(4.2, 18.8, 16.2);
   camera.up.set(0, 1, 0);
-  camera.lookAt(-0.6, 0.45, -0.2);
+  camera.lookAt(-0.6, 0.35, -0.6);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }

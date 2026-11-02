@@ -23,12 +23,74 @@ export function visualCount(count) {
 }
 
 /**
- * The close camera piles an enemy rank near the stream onto the green clash.
- * Step that rank back onto the enemy field so it reads as its own block.
+ * Two readable enemy blocks. The headquarters rank stands inside the wall, so
+ * it steps out in front of the gate. A squad near the stream keeps its lane
+ * and stands on the enemy bank instead of in the water.
  */
-function enemyBank(x, z) {
-  if (z > -3.6) return { x: 0.4, z: -4.4 };
+function enemyBank(x, z, count) {
+  const n = Math.max(0, Math.floor(count || 0));
+  if (z < -5.2) return { x: x >= 0 ? 1.22 : x, z: -4.25 };
+  if (z > -3.6) {
+    const lane = x > 0.4 ? 1 : -1;
+    if (n > 8) return { x: lane < 0 ? -3.4 : 1.85, z: -4.25 };
+    return { x: lane < 0 ? -3.35 : 2.7, z: z < -1.6 ? -0.7 : -0.45 };
+  }
   return { x, z };
+}
+
+/**
+ * Where a squad is drawn. Enemy ranks split into a gate block and a field
+ * block. A player squad on the water steps onto the grass below the front.
+ */
+export function drawAnchor(owner, x, z, count = 0) {
+  if (owner === 'enemy') return enemyBank(x, z, count);
+  if (z < 1.8 && z > -0.5) return { x: x - 0.4, z: z + 1.55 };
+  return { x, z };
+}
+
+/**
+ * Local XZ slot before yaw. Wide ranks keep a body-sized gap so the oblique
+ * camera does not stack thirty figures into one blot. A short player garrison
+ * grows up-screen so it stays above the bottom bar.
+ */
+export function formationLocal(owner, index, n) {
+  const count = Math.max(1, n);
+  const enemy = owner === 'enemy';
+  const mass = enemy || count > 22;
+  const cols = mass
+    ? (enemy ? (count >= 20 ? 7 : Math.min(count, 6)) : (count >= 24 ? 8 : 6))
+    : Math.min(4, count);
+  const colGap = mass ? (enemy ? 0.56 : 0.62) : 0.46;
+  const rowGap = mass ? (enemy ? 0.86 : 0.74) : 0.4;
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  const rowCount = Math.min(cols, count - row * cols);
+  const lx = (col - (rowCount - 1) / 2) * colGap;
+  // Enemy yaw π maps local −z onto world +z, toward the camera.
+  // Player yaw 0 maps local +z down the meadow. A short garrison uses −z.
+  const lz = enemy || !mass ? -row * rowGap : row * rowGap;
+  return { lx, lz, mass };
+}
+
+/** World XZ of one drawn figure. Mass blocks stay axis-aligned so columns do not stack. */
+export function formationWorld(owner, index, n, yaw, out) {
+  const local = formationLocal(owner, index, n);
+  const enemy = owner === 'enemy';
+  if (local.mass && (n > 22 || (enemy && n >= 20))) {
+    out.x = local.lx;
+    out.z = enemy ? -local.lz : local.lz;
+    return out;
+  }
+  return rotateXZ(local.lx, local.lz, yaw, out);
+}
+
+/** Figures on screen. visualCount stays the pick cap. This only scales the draw. */
+export function drawnCount(owner, count) {
+  const raw = Math.max(0, Math.floor(count));
+  if (raw <= 8) return raw;
+  if (owner === 'enemy') return Math.min(32, Math.max(raw, Math.round(raw * 2)));
+  if (raw < 16) return Math.min(22, Math.round(raw * 1.4));
+  return Math.min(44, Math.round(raw * 2.3));
 }
 
 /** Team colour stays off vertices darker than about 0.25, so the shotgun stays dark metal. */
@@ -272,7 +334,7 @@ export function createCrowds(scene) {
     new THREE.MeshBasicMaterial({
       color: 0x12160f,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.28,
       depthWrite: false,
     }),
     MAX,
@@ -332,45 +394,16 @@ export function createCrowds(scene) {
   }
 
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
-    const raw = Math.max(0, Math.floor(count));
-    // visualCount stays the garrison cap. The drawn block is larger so a squad reads as a crowd.
-    const enemy = owner === 'enemy';
-    const n = raw <= 8 ? raw : (enemy ? Math.min(44, raw) : Math.min(48, raw));
+    const n = drawnCount(owner, count);
     if (n <= 0) return;
-    if (enemy) {
-      const cols = Math.min(8, Math.max(1, n));
-      const spacing = 0.27;
-      for (let i = 0; i < n; i++) {
-        const lead = track && i === 0;
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const rowCount = Math.min(cols, n - row * cols);
-        const lx = (col - (rowCount - 1) / 2) * spacing;
-        const lz = row * spacing * 0.7;
-        rotateXZ(lx, lz, yaw, _slot);
-        const bob = lead ? 1 : 0.96;
-        const pose = lead ? 0 : (i % 2) + 1;
-        push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yaw, SOLDIER_SCALE * bob, lead, 0, pose);
-      }
-      return;
-    }
-    const gap = 0.42;
+    const enemy = owner === 'enemy';
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
-      let lx = 0;
-      let lz = 0;
-      if (!lead) {
-        const ang = i * 2.399963;
-        const rad = gap * 0.55 * Math.sqrt(i);
-        lx = Math.cos(ang) * rad * 1.15;
-        lz = Math.sin(ang) * rad * 0.72;
-      }
-      rotateXZ(lx, lz, yaw, _slot);
-      const bob = lead ? 1 : 0.9 + (i % 4) * 0.035;
-      const yawJ = lead ? yaw : yaw + ((i % 7) - 3) * 0.07;
-      const lean = lead ? 0 : ((i % 5) - 2) * 0.04;
+      formationWorld(owner, i, n, yaw, _slot);
+      const bob = lead ? 1 : 0.96;
+      const yawJ = enemy || lead ? yaw : yaw + ((i % 5) - 2) * 0.035;
       const pose = lead ? 0 : (i % 2) + 1;
-      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean, pose);
+      push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, 0, pose);
     }
   }
 
@@ -402,7 +435,7 @@ export function createCrowds(scene) {
         if (!p) continue;
         // Face the enemy, and stand beside the mesh so the rank does not cover the badge.
         const spot = garrisonAnchor(b.owner, b.kind, p.x, p.z, b.count);
-        const parked = b.owner === 'enemy' ? enemyBank(spot.x, spot.z) : spot;
+        const parked = drawAnchor(b.owner, spot.x, spot.z, b.count);
         formation(b.owner, parked.x, parked.z, spot.yaw, b.count, false);
       }
 
@@ -425,13 +458,9 @@ export function createCrowds(scene) {
           }
         }
         const yaw = rememberYaw(s.id, dx, dz);
-        let drawX = s.x;
-        let drawZ = s.z;
-        if (s.owner === 'enemy') {
-          const parked = enemyBank(s.x, s.z);
-          drawX = parked.x;
-          drawZ = parked.z;
-        }
+        const parked = drawAnchor(s.owner, s.x, s.z, s.count);
+        const drawX = parked.x;
+        const drawZ = parked.z;
         const wantTrack = !tracked && s.mode === 'march';
         formation(s.owner, drawX, drawZ, yaw, s.count, wantTrack);
         if (wantTrack) {
@@ -467,7 +496,7 @@ export function createCrowds(scene) {
       pads.instanceMatrix.needsUpdate = true;
     },
     useSoldier(geo) {
-      const greenGeo = tintSoldierGeo(geo, 0x5a6a3c);
+      const greenGeo = tintSoldierGeo(geo, 0x2a5c32);
       const redGeo = tintSoldierGeo(geo, 0x8e1c1c);
       const greenMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
@@ -488,7 +517,7 @@ export function createCrowds(scene) {
         red[v].material = redMat;
       }
       pads.visible = true;
-      modelMul = 1.14;
+      modelMul = 1.4;
     },
   };
 }

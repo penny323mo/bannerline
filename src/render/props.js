@@ -428,7 +428,7 @@ function dressBuilding(group, kit) {
   if (hq && enemy && kit.tower) {
     const tower = kit.tower.clone(true);
     detach(tower);
-    repaint(tower, concreteMaterial(0x9a958c), true);
+    repaint(tower, concreteMaterial(0xd4cfc6), true);
     fitHeight(tower, group, 3.15, 1.45);
     group.updateWorldMatrix(true, true);
     _box.setFromObject(tower);
@@ -436,15 +436,15 @@ function dressBuilding(group, kit) {
     const top = _box.max.y;
     const halfW = Math.max(0.25, (_box.max.x - _box.min.x) * 0.5);
     const bandMat = new THREE.MeshStandardMaterial({
-      color: 0xd24a3c,
-      emissive: 0x8a221c,
-      emissiveIntensity: 0.4,
-      roughness: 0.55,
+      color: 0xe0241c,
+      emissive: 0xff2a22,
+      emissiveIntensity: 0.7,
+      roughness: 0.45,
       metalness: 0.04,
     });
     const sx = frameOf(group).scale.x || 1;
-    for (const frac of [0.34, 0.68]) {
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.09, 20), bandMat);
+    for (const frac of [0.28, 0.52, 0.76]) {
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.16, 20), bandMat);
       band.scale.setScalar((halfW * 1.2) / (0.5 * sx));
       band.castShadow = true;
       band.receiveShadow = true;
@@ -464,12 +464,12 @@ function dressBuilding(group, kit) {
       const wallCount = 20;
       const radius = 1.62 / sx;
       const gate = 0.48;
-      const wallMat = concreteMaterial(0x5e5a54);
+      const wallMat = concreteMaterial(0xc4bfb6);
       const trimMat = new THREE.MeshStandardMaterial({
-        color: 0x8e1c1c,
-        emissive: 0x3a1010,
-        emissiveIntensity: 0.12,
-        roughness: 0.7,
+        color: 0xd01818,
+        emissive: 0xff241c,
+        emissiveIntensity: 0.45,
+        roughness: 0.5,
         metalness: 0.02,
       });
       for (let i = 0; i < wallCount; i++) {
@@ -486,7 +486,7 @@ function dressBuilding(group, kit) {
         wall.receiveShadow = true;
         group.add(wall);
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(1.05 / sx, 0.035 / sx, 0.16 / sx),
+          new THREE.BoxGeometry(1.05 / sx, 0.09 / sx, 0.2 / sx),
           trimMat,
         );
         trim.position.set(wall.position.x, wall.position.y + 0.27 / sx, wall.position.z);
@@ -573,51 +573,69 @@ function dressBuilding(group, kit) {
   seatFlag(group, flagY);
 }
 
+/** Pines and rocks along the left, right, and far edges. Not the meadow. */
+function forestSpots(box) {
+  const spots = [];
+  const topZ = box.minZ - 0.95;
+  for (let i = 0; i < 8; i++) {
+    const t = i / 7;
+    const x = box.minX + 0.15 + t * (box.maxX - box.minX) * 0.62;
+    spots.push({ x, z: topZ - (i % 2) * 0.45, s: 1.5 + (i % 3) * 0.14 });
+  }
+  for (let i = 0; i < 12; i++) {
+    const t = i / 11;
+    const z = box.minZ + 0.15 + t * (box.maxZ - box.minZ) * 0.86;
+    const x = box.minX - 1.25 + t * 2.15;
+    if (Math.abs(z) < 0.55) continue;
+    if (Math.hypot(x, z - 6.5) < 1.7) continue;
+    spots.push({ x, z, s: 1.28 + (i % 3) * 0.12 });
+  }
+  for (let i = 0; i < 8; i++) {
+    const t = i / 7;
+    const z = box.minZ + 0.4 + t * (box.maxZ - box.minZ) * 0.72;
+    const x = box.minX - 0.55 + t * 1.7;
+    if (Math.abs(z) < 0.55) continue;
+    if (Math.abs(x) < 1.6) continue;
+    spots.push({ x, z: z + 0.35, s: 1.12 + (i % 2) * 0.1 });
+  }
+  for (let i = 0; i < 9; i++) {
+    const t = i / 8;
+    const z = box.minZ + 1.1 + t * (box.maxZ - box.minZ) * 0.48;
+    const x = box.maxX - 1.15 - t * 0.4;
+    if (Math.abs(z) < 0.55) continue;
+    spots.push({ x, z, s: 1.32 + (i % 3) * 0.1 });
+  }
+  return spots;
+}
+
 function dressIsland(group, kit) {
   if (group.userData.assetDress) return;
   group.userData.assetDress = true;
   const flora = group.userData.flora || [];
   for (let i = 0; i < flora.length; i++) flora[i].visible = false;
-  const trees = [];
-  const corners = [
-    [-8.6, 6.4, 1.2], [-7.7, 7.2, 1.05], [-8.9, 5.1, 0.95],
-    [8.5, 6.6, 1.15], [7.6, 7.3, 1.0], [9.0, 5.2, 0.9],
-    [-8.7, -6.2, 1.1], [-7.5, -7.1, 0.95],
-    [8.6, -6.0, 1.1], [7.4, -6.9, 0.92],
-    [-5.4, 8.8, 1.05], [5.2, 8.7, 1.0],
-    [-5.2, -8.6, 1.0], [5.4, -8.5, 0.95],
-  ];
-  for (let i = 0; i < corners.length; i++) {
-    trees.push({ x: corners[i][0], z: corners[i][1], s: corners[i][2] });
-  }
+  const box = group.userData.playBox || { minX: -3.4, maxX: 3.4, minZ: -7.7, maxZ: 7.7 };
+  const trees = forestSpots(box);
   const pineMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0 });
   const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
   const fenceMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.84, metalness: 0 });
-  scatter(group, kit.pineA, trees.filter((_, i) => i % 2 === 0).map((spot) => ({ x: spot.x, z: spot.z, s: 1.15 + spot.s * 0.18 })), pineMat, (i) => i * 0.7, true);
-  scatter(group, kit.pineB, trees.filter((_, i) => i % 2 === 1).map((spot) => ({ x: spot.x, z: spot.z, s: 1.05 + spot.s * 0.16 })), pineMat, (i) => i * 0.9, true);
-  const rocks = (group.userData.rockSpots || []).filter((spot) => Math.abs(spot.x) > 6.2 || Math.abs(spot.z) > 6.5);
-  scatter(group, kit.rockA, rocks.filter((_, i) => i % 2 === 0).map((spot) => ({ x: spot.x, z: spot.z, s: 0.28 + spot.s * 0.12 })), rockMat);
-  scatter(group, kit.rockB, rocks.filter((_, i) => i % 2 === 1).map((spot) => ({ x: spot.x, z: spot.z, s: 0.32 + spot.s * 0.1 })), rockMat);
-  const nest = corners.map((c, i) => ({
-    x: c[0] + (i % 2 ? 0.45 : -0.4),
-    z: c[1] + (i % 3 ? 0.35 : -0.3),
-    s: 0.34 + (i % 3) * 0.08,
-  }));
-  scatter(group, kit.rockA, nest.filter((_, i) => i % 2 === 0), rockMat);
-  scatter(group, kit.rockB, nest.filter((_, i) => i % 2 === 1), rockMat);
-  const pebblesA = [];
-  const pebblesB = [];
-  for (let i = 0; i < 36; i++) {
-    const x = Math.sin(i * 12.9898) * 6.8;
-    const z = Math.cos(i * 78.233) * 7.6;
-    if (Math.abs(z) < 0.9) continue;
-    if (Math.abs(x) < 1.5 && Math.abs(z) < 2.6) continue;
-    const spot = { x, z, s: 0.22 + (i % 4) * 0.05 };
-    if (i % 2 === 0) pebblesA.push(spot);
-    else pebblesB.push(spot);
+  scatter(group, kit.pineA, trees.filter((_, i) => i % 2 === 0), pineMat, (i) => i * 0.7, true);
+  scatter(group, kit.pineB, trees.filter((_, i) => i % 2 === 1), pineMat, (i) => i * 0.9, true);
+  const nestA = [];
+  const nestB = [];
+  for (let i = 0; i < trees.length; i += 2) {
+    const tree = trees[i];
+    const rock = {
+      x: tree.x + (i % 4 === 0 ? 0.46 : -0.38),
+      z: tree.z + (i % 3 === 0 ? 0.3 : -0.24),
+      s: 0.36 + (i % 3) * 0.1,
+    };
+    if (Math.abs(rock.z) < 0.6) continue;
+    if (Math.abs(rock.x) < 1.4 && Math.abs(rock.z) < 6.2) continue;
+    if (i % 4 === 0) nestA.push(rock);
+    else nestB.push(rock);
   }
-  scatter(group, kit.rockA, pebblesA, rockMat);
-  scatter(group, kit.rockB, pebblesB, rockMat);
+  scatter(group, kit.rockA, nestA, rockMat);
+  scatter(group, kit.rockB, nestB, rockMat);
   const fences = [
     { x: -7.2, z: 2.4, s: 1.15, y: 0.4 },
     { x: -7.4, z: -2.2, s: 1.15, y: 0.2 },

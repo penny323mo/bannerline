@@ -356,7 +356,7 @@ test('a player barracks soldier reads at 390px', () => {
   geo.dispose();
   const fxSrc = readFileSync(new URL('../src/render/fx.js', import.meta.url), 'utf8');
   const size = Number((fxSrc.match(/size:\s*([0-9.]+)/) || [])[1]);
-  assert.ok(size >= 1.4 && size <= 2.2, `spark size ${size}`);
+  assert.ok(size >= 0.22 && size <= 0.45, `spark size ${size}`);
 });
 
 test('spamming the enemy headquarters on 中 is not a win before 60s', () => {

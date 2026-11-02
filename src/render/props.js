@@ -165,7 +165,7 @@ function buildSoldier(soldierRoot, rifleRoot) {
   return merged;
 }
 
-function preparedGeometry(root, tint, strength = 0.45) {
+function preparedGeometry(root, tint, strength = 0.45, gain = 1) {
   root.updateMatrixWorld(true);
   const parts = [];
   root.traverse((obj) => {
@@ -176,6 +176,8 @@ function preparedGeometry(root, tint, strength = 0.45) {
     const color = mat && mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
     const lum = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
     if (tint && lum >= 0.25) color.lerp(new THREE.Color(tint), strength);
+    // Pines pass a gain under 1. The sun at 3.5 lifts a 0x142016 lerp back to cartoon green.
+    if (gain !== 1) color.multiplyScalar(gain);
     parts.push(posColor(geo, color.getHex()));
   });
   const geo = mergeGeometries(parts);
@@ -657,8 +659,8 @@ export function loadBattlefield(world, crowds) {
       bags: gltf.bags.scene,
       tank: gltf.tank.scene,
       radar: gltf.radar ? gltf.radar.scene : null,
-      pineA: preparedGeometry(gltf.pineA.scene, 0x142016, 0.94),
-      pineB: preparedGeometry(gltf.pineB.scene, 0x101810, 0.96),
+      pineA: preparedGeometry(gltf.pineA.scene, 0x142016, 0.94, 0.35),
+      pineB: preparedGeometry(gltf.pineB.scene, 0x101810, 0.96, 0.35),
       rockA: preparedGeometry(gltf.rockA.scene, 0x6a6560),
       rockB: preparedGeometry(gltf.rockB.scene, 0x746e68),
       fence: preparedGeometry(gltf.fence.scene, 0x6a5340),

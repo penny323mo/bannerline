@@ -17,8 +17,8 @@ export function createFx(scene) {
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
-    // World units. 7.5 covered the headquarters. About 1.6 reads as a flash from the high camera.
-    size: 1.6,
+    // World units. 7.5 covered the headquarters. About 0.3 is a few pixels at this camera.
+    size: 0.3,
     vertexColors: true,
     transparent: true,
     opacity: 0.82,
@@ -89,7 +89,7 @@ export function createFx(scene) {
   });
   const streaks = [0, 1].map(() => {
     const sprite = new THREE.Sprite(streakMat);
-    sprite.scale.set(0.42, 0.032, 1);
+    sprite.scale.set(0.22, 0.018, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -106,7 +106,7 @@ export function createFx(scene) {
   });
   const muzzles = [0, 1, 2, 3, 4].map(() => {
     const sprite = new THREE.Sprite(muzzleMat);
-    sprite.scale.set(0.32, 0.16, 1);
+    sprite.scale.set(0.16, 0.08, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
     sprite.frustumCulled = false;
@@ -123,7 +123,7 @@ export function createFx(scene) {
   });
   const dustPuffs = [0, 1, 2, 3].map(() => {
     const sprite = new THREE.Sprite(dustMat);
-    sprite.scale.set(0.92, 0.46, 1);
+    sprite.scale.set(0.22, 0.12, 1);
     sprite.visible = false;
     sprite.renderOrder = 5;
     sprite.frustumCulled = false;
@@ -148,17 +148,42 @@ export function createFx(scene) {
     opacity: 0.85,
     toneMapped: false,
   });
+  const plumeCanvas = document.createElement('canvas');
+  plumeCanvas.width = 64;
+  plumeCanvas.height = 64;
+  const plumeCtx = plumeCanvas.getContext('2d');
+  const plumeGrad = plumeCtx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  plumeGrad.addColorStop(0, 'rgba(186, 188, 180, 0.96)');
+  plumeGrad.addColorStop(0.45, 'rgba(140, 142, 134, 0.78)');
+  plumeGrad.addColorStop(1, 'rgba(120, 122, 114, 0)');
+  plumeCtx.fillStyle = plumeGrad;
+  plumeCtx.fillRect(0, 0, 64, 64);
+  const plumeMat = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(plumeCanvas),
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    opacity: 0.94,
+    toneMapped: false,
+  });
   const driftSpots = [
     [0.6, 1.6, 6.0],
     [1.5, 2.5, -4.8],
-    [1.25, 2.35, -5.15],
+    // Enemy tower. The old (1.25, −5.15) spot projected past x=390.
+    [-0.2, 3.25, -6.4],
     [6.6, 2.3, 2.4],
     [-6.8, 2.5, -2.2],
   ];
+  const driftSize = [
+    [0.85, 1.05],
+    [0.7, 0.9],
+    [2.15, 2.9],
+    [0.7, 0.85],
+    [0.7, 0.85],
+  ];
   const drifts = driftSpots.map((spot, i) => {
-    const sprite = new THREE.Sprite(driftMat);
-    const wide = i < 3 ? 4.4 : 2.6;
-    sprite.scale.set(wide, i < 3 ? 4.6 : 2.8, 1);
+    const sprite = new THREE.Sprite(i === 2 ? plumeMat : driftMat);
+    sprite.scale.set(driftSize[i][0], driftSize[i][1], 1);
     sprite.position.set(spot[0], spot[1], spot[2]);
     sprite.renderOrder = 3;
     sprite.frustumCulled = false;
@@ -229,26 +254,36 @@ export function createFx(scene) {
         if (!q || q.count <= 0) continue;
         const jitter = ((s * 17) % 5) * 0.05;
         if (q.mode === 'march') {
-          spawn(q.x + jitter, 0.16, q.z - jitter, dust, 0.8, 0, 0.45, 0);
-          budget -= 1;
-          if (budget > 0 && s % 2 === 0) {
-            spawn(q.x - jitter, 0.22, q.z + 0.1, dust, 0.55, 0.2, 0.3, 0);
+          // Planks run about z −1.1 to 1.1. Dust on that span reads as a pale card.
+          if (Math.abs(q.z) >= 1.2) {
+            spawn(q.x + jitter, 0.16, q.z - jitter, dust, 0.8, 0, 0.45, 0);
             budget -= 1;
+            if (budget > 0 && s % 2 === 0) {
+              spawn(q.x - jitter, 0.22, q.z + 0.1, dust, 0.55, 0.2, 0.3, 0);
+              budget -= 1;
+            }
           }
         } else if (q.mode === 'fight' || q.mode === 'siege') {
           if (q.owner === 'player') playerFighting = true;
           const spot = q.owner === 'enemy' && q.z > -3.6 ? { x: 0.4, z: -4.4 } : { x: q.x, z: q.z };
           const side = ((s + tick) % 3) - 1;
+          // Player local forward is −Z. Enemy ranks face +Z, back toward their bank.
+          const facing = q.owner === 'player' ? -1 : 1;
           if (muzzleIndex < muzzles.length - 1) {
             const flashSprite = muzzles[muzzleIndex];
             muzzleIndex += 1;
-            flashSprite.position.set(spot.x + side * 0.16, 0.5, spot.z);
+            flashSprite.position.set(spot.x + side * 0.1, 0.42, spot.z + facing * 0.34);
+            flashSprite.scale.set(0.16, 0.08, 1);
             flashSprite.visible = enabled;
           }
           if (dustIndex < dustPuffs.length) {
             const puffSprite = dustPuffs[dustIndex];
             dustIndex += 1;
-            puffSprite.position.set(spot.x + side * 0.22, 0.22, spot.z + 0.1);
+            const onDeck = q.owner === 'player' && Math.abs(q.z) < 1.15;
+            const dustX = onDeck ? q.x : spot.x;
+            const dustZ = onDeck ? 1.35 : spot.z;
+            puffSprite.position.set(dustX + side * 0.1, 0.08, dustZ);
+            puffSprite.scale.set(0.22, 0.12, 1);
             puffSprite.visible = enabled;
           }
           if (q.mode === 'siege' && budget > 0) {
@@ -273,8 +308,9 @@ export function createFx(scene) {
       }
       if (playerFighting) {
         const barrel = muzzles[muzzles.length - 1];
-        barrel.position.set(1.7, 0.4, 3.5);
-        barrel.scale.set(0.18, 0.1, 1);
+        // Baked tank sits near (1.7, 0, 4.35) and the gun points −Z, toward the bridge.
+        barrel.position.set(1.7, 0.58, 3.05);
+        barrel.scale.set(0.24, 0.12, 1);
         barrel.visible = enabled;
       }
       const nodes = state.nodes;
@@ -365,10 +401,7 @@ export function createFx(scene) {
           }
           lines += 1;
           if (lines === 1) {
-            rankPuffs[0].position.set(ax, 0.62, az);
-            rankPuffs[1].position.set(bx, 0.62, bz);
-            rankPuffs[0].visible = enabled;
-            rankPuffs[1].visible = enabled;
+            // Cream rank discs sat on the planks. The ribbon is the tracer.
             streaks[0].position.set(ax, 0.48, az);
             streaks[1].position.set(bx, 0.48, bz);
             streaks[0].visible = enabled;

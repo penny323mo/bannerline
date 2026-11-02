@@ -220,3 +220,9 @@
 - Map thumbs are 110px. The home card top is at y=507. 易 / 中 / 難 and 出戰 stay.
 - A match puts 據點號令 on the left of one translucent bar and the 我軍 / 敵軍 counts together on the right. 揀地圖 and mute stay as icon buttons.
 - 67 tests passed. Rebuilt `static/app.js` (563647 bytes) and `static/style.css` (10780 bytes).
+
+## Round 33 fixes
+
+- Opening ranks sit inside the 390×844 frame. A headquarters flank is 1.28 on the player pad and 1.55 on the enemy pad. The headquarters forward cap stays 0.15, and the play camera stays at fov 48, (0.15, 10, 14). Barracks ranks stand on the lane side of the pad (step −1.9) so every opening figure lands between x=8 and x=382. Stream-bank ranks step −1.5 toward the lane and stay on the home side of the stream.
+- Barracks group scale is 1.47, one and a half times the previous 0.98, so the hangar reads about 90 CSS pixels from the ground to the roof. The sandbag ring and the team roof stay clear of the count pill. Headquarters towers stay at scale 0.92.
+- 67 tests passed. Rebuilt `static/app.js` (563647 bytes) and `static/style.css` (10780 bytes).

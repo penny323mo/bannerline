@@ -34,10 +34,15 @@ const _garrison = { x: 0, z: 0 };
 /**
  * Front rank beside the pad, off the mesh and off the next count pill.
  * Formation local +z grows back toward the building. A headquarters stays
- * on its own pad, on the far side of that pad's barracks. A pad on the
- * stream bank stands on the home side. Other ranks stop about 0.72 from
- * the bank. The sideways step uses the soldier's right from rotateXZ.
- * Player yaw 0 faces −z. Enemy yaw π mirrors it.
+ * on its own pad, on the far side of that pad's barracks. The player pad
+ * is closer to the camera, so its step is shorter than the enemy step.
+ * Both stay inside the 390px frame. The enemy step stays past 1.5.
+ * A barracks rank stands on the lane side of the pad: the outer side of
+ * this camera runs off the screen, and the rank still stays clear of the
+ * mesh. A pad on the stream bank stands on the home side, toward the lane.
+ * Other ranks stop about 0.72 from the bank. The sideways step uses the
+ * soldier's right from rotateXZ. Player yaw 0 faces −z. Enemy yaw π mirrors it.
+ * Headquarters forward stays capped at 0.15.
  */
 export function garrisonAnchor(owner, kind, x, z, count) {
   const n = Math.max(1, visualCount(count));
@@ -46,7 +51,8 @@ export function garrisonAnchor(owner, kind, x, z, count) {
   const depth = (rows - 1) * RANK_SPACING;
   const room = Math.abs(z) - 0.72;
   let forward = Math.max(0.28, Math.min(depth + 0.5, Math.max(0.28, room)));
-  let flank = kind === 'hq' ? 2.7 : 1.8;
+  // Lane-side barracks step is negative so the rank leaves the outer edge.
+  let flank = kind === 'hq' ? (owner === 'player' ? 1.28 : 1.55) : -1.9;
   const yaw = owner === 'player' ? yawForFacing(0, -1) : yawForFacing(0, 1);
   let side = 0;
   if (x > 0.4) side = 1;
@@ -57,7 +63,7 @@ export function garrisonAnchor(owner, kind, x, z, count) {
     if (Math.abs(x) <= 0.4) side = -side;
   } else if (Math.abs(z) < 2.4) {
     forward = -0.45;
-    flank = Math.abs(x) > 0.4 ? 2.35 : 2.05;
+    flank = -1.5;
   }
   rotateXZ(1, 0, yaw, _garrison);
   const localSide = _garrison.x * side >= 0 ? flank : -flank;

@@ -915,7 +915,9 @@ function buildIsland(map, reduceMotion) {
     exitDir(map, spec.node, dir);
     groupB.position.set(p.x, 0.06, p.z);
     groupB.rotation.y = yawForFacing(dir.x, dir.z);
-    const fit = spec.kind === 'hq' ? 0.92 : 0.98;
+    // Barracks are 1.5× the previous 0.98 fit so the roof reads about 90px.
+    // Headquarters stays 0.92 so the towers keep their height.
+    const fit = spec.kind === 'hq' ? 0.92 : 1.47;
     groupB.userData.baseScale = fit;
     groupB.scale.setScalar(fit);
     groupB.userData.owner = spec.owner;
@@ -930,7 +932,7 @@ function buildIsland(map, reduceMotion) {
     }
     group.add(groupB);
     buildings.set(spec.id, groupB);
-    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.45 : 1.15, 12);
+    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.45 : 1.7, 12);
     blob.rotateX(-Math.PI / 2);
     // Sun sits toward −x and +z. The contact blob falls the other way.
     blob.translate(p.x + 0.28, 0.04, p.z - 0.22);

@@ -524,6 +524,7 @@ function addMerged(group, parts, material, shadow) {
   mesh.castShadow = !shadow || shadow.cast !== false;
   mesh.receiveShadow = !shadow || shadow.receive !== false;
   group.add(mesh);
+  return mesh;
 }
 
 /** One grey deck per stream crossing. The plank runs along world z, across the stream. */
@@ -894,6 +895,9 @@ function paintDirt(geo) {
       tone.copy(base);
       tone.lerp(dark, 0.55);
     }
+    const groove = Math.sin(z * 18 + x * 2.4);
+    if (groove > 0.25) tone.lerp(dark, 0.88);
+    else if (groove < -0.45) tone.lerp(light, 0.65);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -1067,9 +1071,12 @@ function buildIsland(map, reduceMotion) {
 
   const trunks = [];
   const crowns = {};
+  const treeSpots = [];
+  const flora = [];
   const trees = treesFor(map);
   for (let i = 0; i < trees.length; i++) {
     const t = trees[i];
+    treeSpots.push({ x: t.x, z: t.z, s: t.s });
     pushTree(trunks, crowns, t.x, t.z, t.s, t.color);
   }
   const edgeSpots = [
@@ -1084,6 +1091,7 @@ function buildIsland(map, reduceMotion) {
   ];
   for (let i = 0; i < edgeSpots.length; i++) {
     const spot = edgeSpots[i];
+    treeSpots.push({ x: spot[0], z: spot[1], s: spot[2] });
     pushTree(trunks, crowns, spot[0], spot[1], spot[2], i % 2 ? PALETTE.leafDeep : PALETTE.leaf);
   }
   for (let i = 0; i < 36; i++) {
@@ -1093,9 +1101,12 @@ function buildIsland(map, reduceMotion) {
     const z = Math.sin(a) * rad * 0.95;
     if (Math.abs(x) < 2.1 && Math.abs(z) < 10) continue;
     if (Math.abs(z) < 1.7) continue;
-    pushTree(trunks, crowns, x, z, 0.75 + (i % 4) * 0.12, i % 3 ? PALETTE.leaf : PALETTE.leafDeep);
+    const s = 0.75 + (i % 4) * 0.12;
+    treeSpots.push({ x, z, s });
+    pushTree(trunks, crowns, x, z, s, i % 3 ? PALETTE.leaf : PALETTE.leafDeep);
   }
   const rocks = rocksFor(map).slice();
+  const rockSpots = [];
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + 0.15;
     const rad = 10.5 + (i % 4) * 1.1;
@@ -1104,6 +1115,9 @@ function buildIsland(map, reduceMotion) {
       z: Math.sin(a) * rad * 0.9,
       s: 1.35 + (i % 3) * 0.45,
     });
+  }
+  for (let i = 0; i < rocks.length; i++) {
+    rockSpots.push({ x: rocks[i].x, z: rocks[i].z, s: rocks[i].s });
   }
   if (rocks.length) {
     const rockGeo = new THREE.DodecahedronGeometry(0.36, 0);
@@ -1120,12 +1134,15 @@ function buildIsland(map, reduceMotion) {
       rockParts.push(chip);
     }
     rockGeo.dispose();
-    addMerged(group, rockParts, mat(PALETTE.rock, { roughness: 0.9, metalness: 0.02 }));
+    const rockMesh = addMerged(group, rockParts, mat(PALETTE.rock, { roughness: 0.9, metalness: 0.02 }));
+    if (rockMesh) flora.push(rockMesh);
   }
-  addMerged(group, trunks, mat(PALETTE.trunk));
+  const trunkMesh = addMerged(group, trunks, mat(PALETTE.trunk));
+  if (trunkMesh) flora.push(trunkMesh);
   const crownColors = Object.keys(crowns);
   for (let i = 0; i < crownColors.length; i++) {
-    addMerged(group, crowns[crownColors[i]], mat(Number(crownColors[i])));
+    const crownMesh = addMerged(group, crowns[crownColors[i]], mat(Number(crownColors[i])));
+    if (crownMesh) flora.push(crownMesh);
   }
 
   const buildings = new Map();
@@ -1145,6 +1162,7 @@ function buildIsland(map, reduceMotion) {
     groupB.userData.baseScale = fit;
     groupB.scale.setScalar(fit);
     groupB.userData.owner = spec.owner;
+    groupB.userData.kind = spec.kind;
     groupB.traverse((obj) => {
       if (obj.userData && obj.userData.flutter) flags.push(obj);
     });
@@ -1171,12 +1189,17 @@ function buildIsland(map, reduceMotion) {
       blobs.push(blob);
     }
   }
-  addMerged(group, blobs, new THREE.MeshBasicMaterial({
+  const blobMesh = addMerged(group, blobs, new THREE.MeshBasicMaterial({
     color: 0x5c5344,
     transparent: true,
     opacity: 0.28,
     depthWrite: false,
   }));
+  if (blobMesh) flora.push(blobMesh);
+  group.userData.flora = flora;
+  group.userData.treeSpots = treeSpots;
+  group.userData.rockSpots = rockSpots;
+  group.userData.buildings = buildings;
 
   const frontMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
@@ -1491,7 +1514,7 @@ function skyDome() {
   const colors = new Float32Array(pos.count * 3);
   const top = new THREE.Color(0xe4eef6);
   const mid = new THREE.Color(PALETTE.sky);
-  const horizon = new THREE.Color(0x66725a);
+  const horizon = new THREE.Color(0xc5d6c0);
   const tone = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i) / 46;
@@ -1523,16 +1546,16 @@ export function createWorld(scene) {
   const fieldColors = new Float32Array(fieldPos.count * 3);
   const meadowA = new THREE.Color(PALETTE.meadow);
   const meadowB = new THREE.Color(PALETTE.meadowDeep);
-  const meadowC = new THREE.Color(0x4a5538);
+  const meadowC = new THREE.Color(0x9cbe68);
   const meadowTone = new THREE.Color();
   for (let i = 0; i < fieldPos.count; i++) {
     const x = fieldPos.getX(i);
     const y = fieldPos.getY(i);
     const n = Math.sin(x * 0.18) * Math.cos(y * 0.14) + Math.sin(x * 0.55 + y * 0.4) * 0.65;
     meadowTone.copy(meadowA);
-    if (n > 0.35) meadowTone.lerp(meadowC, 0.72);
-    else if (n < -0.25) meadowTone.lerp(meadowB, 0.55);
-    else meadowTone.lerp(meadowB, 0.18);
+    if (n > 0.35) meadowTone.lerp(meadowC, 0.7);
+    else if (n < -0.25) meadowTone.lerp(meadowB, 0.22);
+    else meadowTone.lerp(meadowC, 0.34);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;
@@ -1550,6 +1573,7 @@ export function createWorld(scene) {
   const holder = new THREE.Group();
   scene.add(holder);
   let island = null;
+  let dresser = null;
 
   function mount(map) {
     if (island) {
@@ -1559,10 +1583,15 @@ export function createWorld(scene) {
     }
     island = buildIsland(map, reduceMotion);
     holder.add(island.group);
+    if (dresser) dresser(island.group);
   }
 
   return {
     mount,
+    setDresser(fn) {
+      dresser = fn;
+      if (island) dresser(island.group);
+    },
     resetDrag() {
       if (island) island.resetDrag();
     },

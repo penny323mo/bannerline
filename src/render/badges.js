@@ -2,6 +2,9 @@ import { NODES } from '../sim/mapdata.js';
 import { quoteUpgrade, upgradeAffordance } from '../sim/upgrades.js';
 import { BADGE_LIFT, PILL_SHIFT_PX, SQUAD_LIFT, layoutPills, projectToCss, squadMarkX } from './pointer-math.js';
 
+const RIFLE = '<svg viewBox="0 0 16 12" aria-hidden="true"><path fill="currentColor" d="M0 5.1h2.4l.5 2.6H1zM2.2 4.2h6.4v1.8H2.2zM8.4 3.3h6.4v1.5H8.4zM6 6h1.3v3.4H6z"/></svg>';
+const CAMP = '<svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 .4l4.6 2.6v1.6H1.4V3zM2.2 5.6h7.6V11H2.2z"/></svg>';
+
 export function createBadges(host) {
   const pool = new Map();
   const spot = { x: 0, y: 0 };
@@ -28,11 +31,18 @@ export function createBadges(host) {
     if (!node) {
       node = document.createElement('div');
       node.className = 'badge';
-      node.innerHTML = '<span class="tag"></span><b class="num"></b><i class="sub"></i>';
+      node.innerHTML = '<span class="mark" aria-hidden="true"></span><span class="tag"></span><b class="num"></b><i class="sub"></i>';
       host.appendChild(node);
       pool.set(id, node);
     }
     return node;
+  }
+
+  function setMark(node, kind) {
+    const mark = node.querySelector('.mark');
+    if (!mark || mark.dataset.kind === kind) return;
+    mark.dataset.kind = kind;
+    mark.innerHTML = kind === 'squad' ? RIFLE : CAMP;
   }
 
   function setText(node, selector, text) {
@@ -78,6 +88,7 @@ export function createBadges(host) {
         node.classList.toggle('enemy', b.owner === 'enemy');
         node.classList.toggle('squad', false);
         node.classList.toggle('hq', b.kind === 'hq');
+        setMark(node, 'camp');
         const canUp = upgradeAffordance(b);
         node.classList.toggle('can-up', canUp);
         if (canUp) {
@@ -121,6 +132,7 @@ export function createBadges(host) {
         seen.add(s.id);
         const node = take(s.id);
         node.classList.add('squad');
+        setMark(node, 'squad');
         node.classList.remove('hq');
         node.classList.toggle('player', s.owner === 'player');
         node.classList.toggle('enemy', s.owner === 'enemy');

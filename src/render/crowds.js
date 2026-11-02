@@ -268,6 +268,7 @@ export function createCrowds(scene) {
   let lastDot = null;
   let noseMesh = null;
   let noseIndex = -1;
+  let modelMul = 1;
 
   function rememberYaw(id, dirX, dirZ) {
     if (Math.hypot(dirX, dirZ) < 0.05) return yawCache.get(id) || 0;
@@ -286,7 +287,7 @@ export function createCrowds(scene) {
     const tip = lean || 0;
     dummy.position.set(x, y, z);
     dummy.rotation.set(tip * 0.4, yaw, tip * 0.25);
-    dummy.scale.setScalar(scale);
+    dummy.scale.setScalar(scale * modelMul);
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
     if (pi < MAX) {
@@ -309,10 +310,10 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const raw = Math.max(0, Math.floor(count));
     // visualCount stays the garrison cap. The drawn block is larger so a squad reads as a crowd.
-    const n = raw <= 8 ? raw : (owner === 'enemy' ? Math.min(24, raw) : Math.min(32, raw));
+    const n = raw <= 8 ? raw : (owner === 'enemy' ? Math.min(32, raw) : Math.min(36, raw));
     if (n <= 0) return;
-    const cols = owner === 'enemy' ? Math.min(5, Math.max(1, n)) : Math.min(6, Math.max(1, n));
-    const spacing = owner === 'enemy' ? 0.15 : 0.4;
+    const cols = owner === 'enemy' ? Math.min(6, Math.max(1, n)) : Math.min(6, Math.max(1, n));
+    const spacing = owner === 'enemy' ? 0.36 : 0.55;
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
       const row = Math.floor(i / cols);
@@ -420,6 +421,28 @@ export function createCrowds(scene) {
       }
       pads.count = pi;
       pads.instanceMatrix.needsUpdate = true;
+    },
+    useSoldier(geo) {
+      const greenMat = new THREE.MeshStandardMaterial({
+        color: 0x2f9e5b,
+        roughness: 0.78,
+        metalness: 0.04,
+        vertexColors: true,
+      });
+      const redMat = new THREE.MeshStandardMaterial({
+        color: 0xc43c32,
+        roughness: 0.78,
+        metalness: 0.04,
+        vertexColors: true,
+      });
+      for (let v = 0; v < POSES; v++) {
+        green[v].geometry = geo;
+        red[v].geometry = geo;
+        green[v].material = greenMat;
+        red[v].material = redMat;
+      }
+      pads.visible = false;
+      modelMul = 1.75;
     },
   };
 }

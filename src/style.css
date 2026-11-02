@@ -78,9 +78,9 @@ body {
   align-items: center;
   justify-content: center;
   flex-wrap: nowrap;
-  gap: 4px;
-  width: 36px;
-  height: 36px;
+  gap: 2px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   white-space: nowrap;
   border: 0;
@@ -120,21 +120,19 @@ body {
   display: none;
 }
 
-.badge.hq {
-  width: auto;
-  min-width: 78px;
-  padding: 0 10px;
+.badge.hq,
+.badge.enemy.hq,
+.badge.player.hq {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 2px 2px 1px;
+  flex-direction: column;
+  gap: 0;
   border-radius: 999px;
 }
 
 .badge.enemy.hq {
-  width: 68px;
-  height: 68px;
-  min-width: 68px;
-  padding: 6px 4px;
-  flex-direction: column;
-  gap: 0;
-  border-radius: 999px;
   background: #6a221c;
 }
 
@@ -156,9 +154,26 @@ body {
   margin: 0;
 }
 
+.badge .mark {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 14px;
+  height: 10px;
+  color: #fff;
+}
+
+.badge .mark svg {
+  display: block;
+  width: 14px;
+  height: 10px;
+}
+
+.badge.hq .mark { display: none; }
+
 .badge .num {
   display: block;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--paper);
   font-variant-numeric: tabular-nums;
@@ -183,24 +198,28 @@ body {
 .badge .sub:empty { display: none; }
 
 .badge.hq .tag,
+.badge.hq .num,
 .badge.hq .sub {
   display: block;
+  font-size: 9px;
+  line-height: 1.05;
 }
 
 .badge.is-danger .sub {
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: 9px;
+  letter-spacing: 0.04em;
   color: #fff4f2;
 }
 
 .badge.squad {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   padding: 0;
+  gap: 1px;
   border-radius: 999px;
 }
 
-.badge.squad .num { font-size: 15px; }
+.badge.squad .num { font-size: 11px; }
 .badge.squad .tag { font-size: 12px; letter-spacing: 0.02em; }
 .badge.squad .sub { font-size: 12px; }
 
@@ -725,6 +744,15 @@ body {
     inset 0 2px 0 rgba(236, 246, 238, 0.72),
     inset 0 -3px 0 rgba(0, 0, 0, 0.55),
     inset 0 0 0 1px var(--green);
+}
+
+.asset-credit {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
 }
 
 #start {

@@ -5,6 +5,7 @@ import { createCrowds } from './render/crowds.js';
 import { createFx } from './render/fx.js';
 import { attachInput } from './render/input.js';
 import { createStage, frameDioramaCamera, frameHomeCamera } from './render/stage.js';
+import { loadBattlefield } from './render/props.js';
 import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
 import { DIFFICULTIES, MAP_LIST } from './sim/maps.js';
@@ -34,6 +35,7 @@ const sheetTimeEl = document.getElementById('sheet-time');
 const stage = createStage(canvas);
 const world = createWorld(stage.scene);
 const crowds = createCrowds(stage.scene);
+const assetsReady = loadBattlefield(world, crowds);
 const fx = createFx(stage.scene);
 let fxOn = true;
 const badges = createBadges(document.getElementById('badges'));
@@ -721,6 +723,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 window.__BL = {
+  whenAssets: assetsReady,
   get state() {
     return state;
   },

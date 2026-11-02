@@ -2,28 +2,28 @@ import * as THREE from 'three';
 import { PALETTE } from './palette.js';
 
 /**
- * Fixed diorama camera on the +z side, looking toward −z (enemy / top of the portrait).
- * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
+ * Fixed diorama camera on the south-east side, looking toward the clash.
+ * camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  // High three-quarter, about 47° down. Screen-right is world +x.
-  // The near tower stays a building in the lower field, and the lane stays open.
-  camera.fov = 41;
+  // South-east three-quarter, about 42° down. The enemy fort sits upper right.
+  // The player bunker sits low on the left. camera.up stays (0, 1, 0).
+  camera.fov = 38;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.15, 16, 15);
+  camera.position.set(5.6, 14.2, 14);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0.4, 0.4);
+  camera.lookAt(-0.6, 0.45, -0.2);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
 
 /** Menu frame. The home card covers the lower band, so the map sits above it. */
 export function frameHomeCamera(camera, aspect) {
-  camera.fov = 30;
+  camera.fov = 34;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.15, 24, 36);
+  camera.position.set(4.8, 20, 28);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0.1, 4);
+  camera.lookAt(0.2, 0.3, 1.2);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
@@ -69,20 +69,20 @@ export function createStage(canvas) {
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.58;
+  renderer.toneMappingExposure = 1.18;
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xc5d4ae, 62, 140);
+  scene.fog = new THREE.Fog(0x8ea06e, 26, 78);
   scene.background = new THREE.Color(PALETTE.sky);
 
   const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xfff6e4, 0xc6d4a0, 1.25));
-  scene.add(new THREE.AmbientLight(0xfff8ee, 0.72));
+  scene.add(new THREE.HemisphereLight(0xfff6e4, 0x8aa06a, 0.92));
+  scene.add(new THREE.AmbientLight(0xfff4e6, 0.42));
 
-  const sun = new THREE.DirectionalLight(0xffe2a8, 2.55);
+  const sun = new THREE.DirectionalLight(0xffe2a8, 1.75);
   sun.position.set(-9, 13, 8);
   sun.target.position.set(0, 0, 0);
   scene.add(sun);

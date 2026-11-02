@@ -72,9 +72,58 @@ export function createFx(scene) {
   });
   const rankPuffs = [0, 1].map(() => {
     const sprite = new THREE.Sprite(puffMat);
-    sprite.scale.set(0.7, 0.7, 1);
+    sprite.scale.set(0.42, 0.42, 1);
     sprite.visible = false;
     sprite.renderOrder = 6;
+    sprite.frustumCulled = false;
+    scene.add(sprite);
+    return sprite;
+  });
+  const streakMat = new THREE.SpriteMaterial({
+    color: 0xff7a32,
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    depthTest: false,
+    toneMapped: false,
+  });
+  const streaks = [0, 1].map(() => {
+    const sprite = new THREE.Sprite(streakMat);
+    sprite.scale.set(1.15, 0.16, 1);
+    sprite.visible = false;
+    sprite.renderOrder = 6;
+    sprite.frustumCulled = false;
+    scene.add(sprite);
+    return sprite;
+  });
+  const smokeCanvas = document.createElement('canvas');
+  smokeCanvas.width = 64;
+  smokeCanvas.height = 64;
+  const smokeCtx = smokeCanvas.getContext('2d');
+  const smokeGrad = smokeCtx.createRadialGradient(32, 32, 4, 32, 32, 30);
+  smokeGrad.addColorStop(0, 'rgba(90, 92, 88, 0.55)');
+  smokeGrad.addColorStop(1, 'rgba(90, 92, 88, 0)');
+  smokeCtx.fillStyle = smokeGrad;
+  smokeCtx.fillRect(0, 0, 64, 64);
+  const driftMat = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(smokeCanvas),
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    opacity: 0.85,
+    toneMapped: false,
+  });
+  const driftSpots = [
+    [5.4, 1.8, 4.6],
+    [-5.8, 2.1, -5.2],
+    [0.3, 2.6, -6.2],
+    [-0.4, 1.7, 5.6],
+  ];
+  const drifts = driftSpots.map((spot, i) => {
+    const sprite = new THREE.Sprite(driftMat);
+    sprite.scale.set(2.8 + (i % 2) * 0.6, 3.2, 1);
+    sprite.position.set(spot[0], spot[1], spot[2]);
+    sprite.renderOrder = 3;
     sprite.frustumCulled = false;
     scene.add(sprite);
     return sprite;
@@ -118,9 +167,12 @@ export function createFx(scene) {
       enabled = !!on;
       points.visible = enabled;
       tracers.visible = enabled;
+      for (let i = 0; i < drifts.length; i++) drifts[i].visible = enabled;
       if (!enabled) {
         rankPuffs[0].visible = false;
         rankPuffs[1].visible = false;
+        streaks[0].visible = false;
+        streaks[1].visible = false;
       }
     },
     update(dt, state) {
@@ -213,6 +265,14 @@ export function createFx(scene) {
       let lines = 0;
       rankPuffs[0].visible = false;
       rankPuffs[1].visible = false;
+      streaks[0].visible = false;
+      streaks[1].visible = false;
+      const driftT = (typeof performance !== 'undefined' ? performance.now() : 0) * 0.001;
+      for (let i = 0; i < drifts.length; i++) {
+        const spot = driftSpots[i];
+        drifts[i].position.y = spot[1] + Math.sin(driftT * 0.35 + i) * 0.18;
+        drifts[i].visible = enabled;
+      }
       for (let a = 0; a < squads.length; a++) {
         const qa = squads[a];
         if (!qa || qa.count <= 0) continue;
@@ -254,14 +314,18 @@ export function createFx(scene) {
             lineCol[co + 2] = c.b;
           }
           lines += 1;
+          const mx = (qa.x + qb.x) * 0.5;
+          const mz = (qa.z + qb.z) * 0.5;
           if (lines === 1) {
             rankPuffs[0].position.set(ax, 0.62, az);
             rankPuffs[1].position.set(bx, 0.62, bz);
             rankPuffs[0].visible = enabled;
             rankPuffs[1].visible = enabled;
+            streaks[0].position.set(ax + dx * inv * 0.35, 0.72, az + dz * inv * 0.35);
+            streaks[1].position.set(mx, 0.78, mz);
+            streaks[0].visible = enabled;
+            streaks[1].visible = enabled;
           }
-          const mx = (qa.x + qb.x) * 0.5;
-          const mz = (qa.z + qb.z) * 0.5;
           if (budget > 0) {
             spawn(mx, 0.28, mz, smoke, 0.7, 0, 0.55, 0);
             budget -= 1;

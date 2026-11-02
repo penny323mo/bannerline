@@ -298,10 +298,12 @@ export function createCrowds(scene) {
   }
 
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
-    const n = visualCount(count);
+    const raw = Math.max(0, Math.floor(count));
+    // visualCount stays the garrison cap. The drawn block is larger so a squad reads as a crowd.
+    const n = raw <= 8 ? raw : (owner === 'enemy' ? Math.min(24, raw) : Math.min(32, raw));
     if (n <= 0) return;
-    const cols = Math.min(4, Math.max(1, n));
-    const spacing = 0.16;
+    const cols = owner === 'enemy' ? Math.min(5, Math.max(1, n)) : Math.min(6, Math.max(1, n));
+    const spacing = owner === 'enemy' ? 0.15 : 0.26;
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
       const row = Math.floor(i / cols);

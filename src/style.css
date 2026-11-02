@@ -127,6 +127,27 @@ body {
   border-radius: 999px;
 }
 
+.badge.enemy.hq {
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  padding: 6px 4px;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 999px;
+  background: #6a221c;
+}
+
+.badge.enemy.hq::before {
+  background: #3c1410;
+}
+
+.badge.enemy.hq .tag,
+.badge.enemy.hq .num,
+.badge.enemy.hq .sub {
+  color: #fff6f2;
+}
+
 .badge .tag {
   font-size: 11px;
   font-weight: 800;
@@ -326,42 +347,61 @@ body {
 }
 
 #app:not(.is-home) .hud-row {
-  background: rgba(12, 16, 14, 0.72);
-  border: 1px solid rgba(154, 163, 154, 0.4);
-  border-radius: 4px;
-  padding: 4px 6px 4px 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
   gap: 6px;
 }
 
 #app:not(.is-home) .brand {
-  background: transparent;
-  border: none;
+  background: rgba(12, 14, 16, 0.88);
+  border: 1px solid rgba(180, 186, 178, 0.35);
   box-shadow: none;
-  padding: 0 2px;
-  font-size: 16px;
+  padding: 8px 10px;
+  font-size: 18px;
+  letter-spacing: 0.04em;
 }
 
 #app:not(.is-home) .scores {
-  gap: 0;
-  padding: 0 2px;
-  background: rgba(0, 0, 0, 0.38);
-  border-radius: 2px;
+  gap: 6px;
+  padding: 0;
+  margin-left: auto;
+  background: transparent;
 }
 
 #app:not(.is-home) .pill {
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  min-height: 32px;
   padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+#app:not(.is-home) .pill.mine {
+  background: rgba(16, 18, 20, 0.92);
+  border: 1px solid rgba(160, 168, 160, 0.45);
+  color: #f4f7f4;
+}
+
+#app:not(.is-home) .pill.foe {
+  background: #8e241c;
+  border: 1px solid #e25548;
+  color: #fff6f2;
+}
+
+#app:not(.is-home) .pill.mine b,
+#app:not(.is-home) .pill.foe b {
+  color: inherit;
 }
 
 #app:not(.is-home) #home-btn,
 #app:not(.is-home) #mute {
-  min-width: 44px;
-  width: 44px;
+  min-width: 32px;
+  width: 32px;
+  min-height: 32px;
   padding: 0;
-  font-size: 18px;
-  background: rgba(0, 0, 0, 0.28);
+  font-size: 14px;
+  line-height: 30px;
+  background: rgba(12, 14, 16, 0.82);
 }
 
 #home-btn,

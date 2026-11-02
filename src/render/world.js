@@ -19,8 +19,8 @@ const _dir = new THREE.Vector3();
 function mat(color, extra = {}) {
   return new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.72,
-    metalness: 0.05,
+    roughness: 0.88,
+    metalness: 0.04,
     ...extra,
   });
 }
@@ -252,6 +252,36 @@ function makeHq(paint) {
   g.userData.pulse = bodyMat;
   g.userData.dangerRing = danger;
   g.add(apron, wingL, wingR, capNear, capTop, concrete, sandPad, sand, plinth, body, tower, roof, door, metal, flag, pip, danger);
+  if (paint.main === PALETTE.player.main) {
+    tower.visible = false;
+    capNear.visible = false;
+    capTop.visible = false;
+    roof.visible = false;
+    metal.visible = false;
+    const lowRoof = roundMesh(2.15, 0.2, 1.62, 4, 0.1, 0, 1.02, 0.02, roofMat);
+    lowRoof.userData.slot = 'roof';
+    const lip = roundMesh(1.7, 0.1, 1.15, 3, 0.06, 0, 1.16, 0.02, roofMat);
+    lip.userData.slot = 'roof';
+    const bags = mergedMesh([
+      baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), -1.15, 0.32, -0.7),
+      baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), -1.15, 0.32, 0.15),
+      baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), -1.15, 0.32, 0.85),
+      baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), 1.15, 0.32, -0.55),
+      baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), 1.15, 0.32, 0.25),
+      baked(new THREE.BoxGeometry(0.42, 0.28, 0.32), 1.15, 0.32, 0.95),
+      baked(new THREE.BoxGeometry(0.5, 0.26, 0.36), 0.2, 0.3, 1.15),
+      baked(new THREE.BoxGeometry(0.5, 0.26, 0.36), -0.45, 0.3, 1.15),
+    ], sandMat);
+    g.add(lowRoof, lip, bags);
+  } else {
+    tower.material = concreteMat;
+    tower.userData.slot = '';
+    const bandA = roundMesh(1.34, 0.16, 1.08, 3, 0.04, 0, 1.42, 0.02, roofMat);
+    const bandB = roundMesh(1.3, 0.14, 1.04, 3, 0.04, 0, 2.32, 0.02, roofMat);
+    bandA.userData.slot = 'roof';
+    bandB.userData.slot = 'roof';
+    g.add(bandA, bandB);
+  }
   return g;
 }
 
@@ -272,11 +302,10 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), -0.18, 0.26, -0.82),
     baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), 0.38, 0.26, -0.82),
   ], sandMat);
-  const wallMat = mat(muteTeam(paint.main), { roughness: 0.72, metalness: 0.06 });
-  const body = roundMesh(1.74, 0.58, 1.02, 6, 0.24, 0, 0.38, 0, wallMat);
-  body.userData.slot = 'body';
-  const shellMat = mat(WALL, { roughness: 0.8, metalness: 0.06 });
-  const roofMat = mat(muteTeam(paint.main), { roughness: 0.48, metalness: 0.08 });
+  const wallMat = mat(PALETTE.concrete, { roughness: 0.94, metalness: 0.02 });
+  const body = roundMesh(1.74, 0.58, 1.02, 6, 0.16, 0, 0.38, 0, wallMat);
+  const shellMat = mat(WALL, { roughness: 0.9, metalness: 0.04 });
+  const roofMat = mat(muteTeam(paint.main), { roughness: 0.84, metalness: 0.04 });
   const slopeNear = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, -0.22, roofMat);
   slopeNear.rotation.x = -0.45;
   const slopeFar = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, 0.22, roofMat);
@@ -333,9 +362,9 @@ function makeBarracks(paint) {
 /** Light tank. Local −z is the barrel, so the parent yaw (same helper as the building) aims it down the road. */
 function makeTank(paint) {
   const g = new THREE.Group();
-  const hullMat = mat(0x6d775c, { roughness: 0.55, metalness: 0.2 });
-  hullMat.emissive = new THREE.Color(0x5c654e);
-  hullMat.emissiveIntensity = 0.5;
+  const hullMat = mat(0x314428, { roughness: 0.78, metalness: 0.16 });
+  hullMat.emissive = new THREE.Color(0x24321e);
+  hullMat.emissiveIntensity = 0.18;
   const hull = mergedMesh([
     baked(new THREE.BoxGeometry(0.62, 0.16, 0.95), 0, 0.22, 0),
     baked(new THREE.BoxGeometry(0.4, 0.12, 0.42), 0, 0.34, 0.06),
@@ -351,9 +380,9 @@ function makeTank(paint) {
     mat(PALETTE.metal, { roughness: 0.35, metalness: 0.6 }),
   );
   barrel.position.set(0, 0.36, -0.55);
-  const trackMat = mat(0x5a5648, { roughness: 0.8, metalness: 0.18 });
-  trackMat.emissive = new THREE.Color(0x4a4638);
-  trackMat.emissiveIntensity = 0.4;
+  const trackMat = mat(0x3a3832, { roughness: 0.9, metalness: 0.12 });
+  trackMat.emissive = new THREE.Color(0x2a2824);
+  trackMat.emissiveIntensity = 0.12;
   const tracks = mergedMesh([
     baked(new THREE.BoxGeometry(0.12, 0.14, 1.02), -0.36, 0.12, 0),
     baked(new THREE.BoxGeometry(0.12, 0.14, 1.02), 0.36, 0.12, 0),
@@ -485,7 +514,7 @@ export function bridgeDeckGeometries(crossings) {
 }
 
 function pushTree(trunks, crowns, x, z, scale, color) {
-  scale *= 0.42;
+  scale *= 0.62;
   const wave = Math.sin(x * 12.7 + z * 4.3);
   const tall = 0.48 + Math.abs(Math.sin(z * 2.15 + x * 0.37)) * 1.35;
   const fat = 0.4 + Math.abs(Math.cos(x * 1.85 - z * 0.62)) * 0.95;
@@ -537,6 +566,7 @@ function islandCapGeometry(spanX, spanZ) {
   const sand = new THREE.Color(PALETTE.sand);
   const dirt = new THREE.Color(0x6e5c42);
   const deepEdge = new THREE.Color(PALETTE.meadowDeep);
+  const moss = new THREE.Color(0x314228);
   const tone = new THREE.Color();
   let vi = 1;
   for (let r = 1; r <= rings; r++) {
@@ -556,9 +586,9 @@ function islandCapGeometry(spanX, spanZ) {
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
     const n = Math.sin(x * 0.42 + z * 0.28) + Math.sin(x * 1.15 - z * 0.7) * 0.7;
     tone.copy(meadow);
-    if (n > 0.55) tone.lerp(khaki, 0.4);
-    else if (n < -0.5) tone.lerp(deep, 0.28);
-    else tone.lerp(deep, 0.06);
+    if (n > 0.55) tone.lerp(khaki, 0.55);
+    else if (n < -0.35) tone.lerp(moss, 0.55);
+    else tone.lerp(deep, 0.22);
     if (Math.abs(x) < 2.6 && Math.abs(z) > 1.15) tone.lerp(dirt, 0.48 * (1 - Math.min(1, Math.abs(x) / 2.6)));
     if (Math.sin(x * 0.9 + 0.4) * Math.sin(z * 0.55) > 0.2) tone.lerp(sand, 0.62);
     if (u > 0.9) tone.lerp(deepEdge, 0.12);
@@ -820,8 +850,8 @@ function paintDirt(geo) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
   const base = new THREE.Color(PALETTE.road);
-  const dark = new THREE.Color(0x6e5e4a);
-  const light = new THREE.Color(0xb09878);
+  const dark = new THREE.Color(0x4e3e2e);
+  const light = new THREE.Color(0x8a6e4c);
   const tone = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
@@ -1084,10 +1114,11 @@ function buildIsland(map, reduceMotion) {
     groupB.traverse((obj) => {
       if (obj.userData && obj.userData.flutter) flags.push(obj);
     });
-    if (spec.kind === 'barracks') {
+    if (spec.kind === 'barracks' && spec.owner === 'player') {
       const tank = makeTank(ownerPaint(spec.owner));
       // Local +x is the building's right. The barrel stays on local −z, the road facing.
-      tank.position.set(1.15, 0, -0.35);
+      tank.scale.setScalar(1.65);
+      tank.position.set(0.95, 0, -1.25);
       groupB.add(tank);
     }
     group.add(groupB);
@@ -1327,8 +1358,8 @@ function buildIsland(map, reduceMotion) {
             pulse.emissiveIntensity = 0.35 + (reduceMotion ? 0 : 0.4 * Math.sin(time * 9));
           } else {
             // Shaded fillets crush to a black lip. Keep a dim olive floor.
-            pulse.emissive.setHex(0x4a5244);
-            pulse.emissiveIntensity = 0.62;
+            pulse.emissive.setHex(0x3a4038);
+            pulse.emissiveIntensity = 0.14;
           }
         }
         const dangerRing = mesh.userData.dangerRing;
@@ -1343,7 +1374,7 @@ function buildIsland(map, reduceMotion) {
       }
 
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
-      glowMat.opacity = 0.12;
+      glowMat.opacity = 0.92;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
@@ -1389,6 +1420,9 @@ function buildIsland(map, reduceMotion) {
         halo.scale.set(wide * 1.04, 1, 2.05);
         front.rotation.y = yaw;
         halo.rotation.y = yaw;
+        // The thick bow is the old candy arc. The hard band above is the thin front.
+        front.visible = false;
+        halo.visible = false;
       }
       for (let i = segs.length; i < tints.length; i++) {
         tints[i].visible = false;

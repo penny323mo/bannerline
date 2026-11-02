@@ -77,6 +77,7 @@ export function createBadges(host) {
         node.classList.toggle('player', b.owner === 'player');
         node.classList.toggle('enemy', b.owner === 'enemy');
         node.classList.toggle('squad', false);
+        node.classList.toggle('hq', b.kind === 'hq');
         const canUp = upgradeAffordance(b);
         node.classList.toggle('can-up', canUp);
         if (canUp) {
@@ -120,6 +121,7 @@ export function createBadges(host) {
         seen.add(s.id);
         const node = take(s.id);
         node.classList.add('squad');
+        node.classList.remove('hq');
         node.classList.toggle('player', s.owner === 'player');
         node.classList.toggle('enemy', s.owner === 'enemy');
         node.classList.toggle('can-up', false);

@@ -292,3 +292,13 @@
 - Pages. Live `static/app.js` is 597434 bytes, sha256 `d87836503884ba88752162be9feb5c9ad7e1ce252ad66695ac29ac65e4c74d0f`. That is the bundle this review asked to publish. GitHub Pages has built `main` at `d7d213c`, which contains the round 42 tree. `index.html` is 2246 bytes and `static/style.css` is 10850 bytes. No source change. No git commit.
 - The seven 390px audit items stay closed on `screenshots/fix-35/home.png` and `combat.png`. The flat cap, short yoke, loose squads, olive buildings, open road, front curve, river, and one-line counts stay as round 42 left them.
 - 67 tests passed.
+
+## Round 44 fixes
+
+- The round 35 look is superseded. Soldiers are small infantry again: scale 0.4 became 0.48, about a sixth of a tower, helmet 5.9 CSS px and body 22 CSS px at the player barracks. A count packs into a tight block (spacing 0.26, up to 16 figures). The flat cap, short yoke, olive dome, team band and arm, and the rifle at x 0.34 stay.
+- Ground. Dirt ellipses and the meadow are warm tan and green. The contact disc is a light stain. The vignette is a pale edge. The tank on the enemy bank is olive, so it no longer reads as a black slab on the sand. Water, sand banks, the road, and the front ribbon stay.
+- Buildings. muteTeam now keeps most of the faction colour. Headquarters crowns and caps, and the barracks slopes, are that colour. Walls stay olive-grey. The dish stays radius 0.18 and the tower radius stays 0.36. Shaded walls keep a dim olive emissive so a fillet does not crush to a hole.
+- Labels. Barracks and marching squads are 36px solid circles with the number only. The headquarters badge stays the wide status pill (司令部, count, 危 when it applies).
+- Combat FX. Opposing squads within range draw a bright ribbon, a muzzle flash at each end, and a smoke puff at the middle. Spark size stays 1.6.
+- Daylight. Exposure is 1.58, the hemisphere and ambient are warm, fog is a pale green, and pines are about 0.42 of their old scale so they sit at the edge. Home uses the same stage. The play camera and the home camera stay.
+- 67 tests passed. Rebuilt `static/app.js` (598855 bytes, sha256 `4cb3043d7081ce509f6974511ab2e5669a97345243c2170882b387e99d110bdb`) and `static/style.css` (11051 bytes, sha256 `32f0811b48c7d91d1a541d059a8030bb527396dc15a50e5b8d25c1694cdaa902`). Shots are `screenshots/fix-44/home.png` and `combat.png` at 390×844. No git commit.

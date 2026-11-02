@@ -5,8 +5,8 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-/** Rank size paired with the play camera so a helmet stays readable beside the pad. */
-export const SOLDIER_SCALE = 1.28;
+/** Small infantry. A figure is about a seventh of a headquarters tower. */
+export const SOLDIER_SCALE = 0.48;
 export const RANK_SPACING = 0.52;
 /** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
 export const HELMET_PLAYER = 0x3e6b32;
@@ -17,9 +17,9 @@ const _vel = new THREE.Vector3();
 
 export function visualCount(count) {
   const n = Math.max(0, Math.floor(count));
-  if (n <= 4) return n;
-  // One figure stands for several troops. The count badge keeps the real number.
-  return Math.min(9, 3 + Math.round(Math.sqrt(n) * 0.7));
+  if (n <= 6) return n;
+  // A dense block. The badge still carries the real headcount.
+  return Math.min(16, Math.round(Math.sqrt(n) * 2.4));
 }
 
 /** Short loose ranks. A few larger figures read as a squad, not a dot grid. */
@@ -300,35 +300,19 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const placed = [];
+    const cols = n >= 12 ? 5 : n >= 6 ? 4 : Math.max(1, n);
+    const spacing = 0.26;
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
-      // Each figure keeps its own offset. A column index rebuilds the rows.
-      let lx = 0;
-      let lz = 0;
-      if (!lead) {
-        for (let attempt = 0; attempt < 8; attempt++) {
-          const ang = i * 2.399963 + attempt * 0.85 + Math.sin(i * 3.7) * 0.4;
-          const rad = 0.95 + (i % 4) * 0.36 + attempt * 0.24;
-          lx = Math.cos(ang) * rad;
-          lz = Math.sin(ang) * rad * 0.72;
-          let clear = true;
-          for (let k = 0; k < placed.length; k++) {
-            const dx = lx - placed[k].x;
-            const dz = lz - placed[k].z;
-            if (dx * dx + dz * dz < 0.88 * 0.88) {
-              clear = false;
-              break;
-            }
-          }
-          if (clear) break;
-        }
-      }
-      placed.push({ x: lx, z: lz });
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const rowCount = Math.min(cols, n - row * cols);
+      const lx = (col - (rowCount - 1) / 2) * spacing;
+      const lz = row * spacing * 0.82;
       rotateXZ(lx, lz, yaw, _slot);
-      const bob = lead ? 1 : 0.74 + Math.abs(Math.sin(i * 2.4)) * 0.42;
-      const yawJ = lead ? yaw : yaw + Math.sin(i * 1.9) * 0.9;
-      const lean = lead ? 0 : Math.sin(i * 2.6) * 0.22;
+      const bob = lead ? 1 : 0.94 + (i % 3) * 0.03;
+      const yawJ = lead ? yaw : yaw + ((i % 5) - 2) * 0.08;
+      const lean = lead ? 0 : ((i % 3) - 1) * 0.05;
       const pose = lead ? 0 : (i % 2) + 1;
       push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean, pose);
     }

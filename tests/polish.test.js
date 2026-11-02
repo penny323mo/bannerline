@@ -346,9 +346,9 @@ test('a player barracks soldier reads at 390px', () => {
   assert.equal(projectToCss(hq.x, 0.25, hq.z, camera, width, height, foot), true);
   assert.equal(projectToCss(ehq.x, 2.05, ehq.z, camera, width, height, eRoof), true);
   const facePx = foot.y - roof.y;
-  assert.ok(SOLDIER_SCALE > 0.9 && SOLDIER_SCALE < 1.7, `scale ${SOLDIER_SCALE}`);
-  assert.ok(helmetPx >= 9 && helmetPx < 20, `helmet ${helmetPx.toFixed(1)}px`);
-  assert.ok(bodyPx >= 24, `body ${bodyPx.toFixed(1)}px`);
+  assert.ok(SOLDIER_SCALE > 0.32 && SOLDIER_SCALE < 0.55, `scale ${SOLDIER_SCALE}`);
+  assert.ok(helmetPx >= 4 && helmetPx < 8, `helmet ${helmetPx.toFixed(1)}px`);
+  assert.ok(bodyPx >= 14 && bodyPx < 24, `body ${bodyPx.toFixed(1)}px`);
   assert.ok(facePx >= 24, `headquarters face ${facePx.toFixed(1)}px`);
   assert.ok(eRoof.y > 70, `enemy roof ${eRoof.y.toFixed(1)}`);
   assert.ok(foot.y < 760, `player foot ${foot.y.toFixed(1)}`);

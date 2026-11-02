@@ -30,6 +30,29 @@ export function createFx(scene) {
   points.renderOrder = 4;
   scene.add(points);
 
+  const MAX_LINES = 24;
+  const linePos = new Float32Array(MAX_LINES * 18);
+  const lineCol = new Float32Array(MAX_LINES * 18);
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+  lineGeo.setAttribute('color', new THREE.BufferAttribute(lineCol, 3));
+  lineGeo.setDrawRange(0, 0);
+  // A flat ribbon. GL lines are a fraction of a CSS pixel at this camera.
+  const tracers = new THREE.Mesh(lineGeo, new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.95,
+    depthWrite: false,
+    depthTest: true,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  }));
+  tracers.frustumCulled = false;
+  tracers.renderOrder = 5;
+  scene.add(tracers);
+  const traceGreen = new THREE.Color(0xb6ff6a);
+  const traceRed = new THREE.Color(0xffb15a);
+
   const life = new Float32Array(POOL);
   const maxLife = new Float32Array(POOL);
   const vel = new Float32Array(POOL * 3);
@@ -64,6 +87,7 @@ export function createFx(scene) {
     setEnabled(on) {
       enabled = !!on;
       points.visible = enabled;
+      tracers.visible = enabled;
     },
     update(dt, state) {
       if (!enabled || !state) return;
@@ -152,6 +176,66 @@ export function createFx(scene) {
           }
         }
       }
+      let lines = 0;
+      for (let a = 0; a < squads.length; a++) {
+        const qa = squads[a];
+        if (!qa || qa.count <= 0) continue;
+        for (let b = a + 1; b < squads.length; b++) {
+          const qb = squads[b];
+          if (!qb || qb.count <= 0 || qa.owner === qb.owner) continue;
+          const dx = qb.x - qa.x;
+          const dz = qb.z - qa.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist > 4.4 || dist < 0.12 || lines >= MAX_LINES) continue;
+          const halfW = 0.11;
+          const inv = 1 / dist;
+          const hx = -dz * inv * halfW;
+          const hz = dx * inv * halfW;
+          const y = 0.62;
+          const ax = qa.x;
+          const az = qa.z;
+          const bx = qb.x;
+          const bz = qb.z;
+          const o = lines * 18;
+          const xyz = [
+            ax - hx, y, az - hz,
+            ax + hx, y, az + hz,
+            bx - hx, y, bz - hz,
+            ax + hx, y, az + hz,
+            bx + hx, y, bz + hz,
+            bx - hx, y, bz - hz,
+          ];
+          for (let k = 0; k < 18; k++) linePos[o + k] = xyz[k];
+          const from = qa.owner === 'player' ? traceGreen : traceRed;
+          const to = qb.owner === 'player' ? traceGreen : traceRed;
+          for (let v = 0; v < 6; v++) {
+            const c = v === 2 || v === 4 || v === 5 ? to : from;
+            const co = o + v * 3;
+            lineCol[co] = c.r;
+            lineCol[co + 1] = c.g;
+            lineCol[co + 2] = c.b;
+          }
+          lines += 1;
+          const mx = (qa.x + qb.x) * 0.5;
+          const mz = (qa.z + qb.z) * 0.5;
+          if (budget > 0) {
+            spawn(mx, 0.28, mz, smoke, 0.7, 0, 0.55, 0);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(qa.x, 0.5, qa.z, flash, 0.16, (dx / dist) * 3.2, 0.25, (dz / dist) * 3.2);
+            budget -= 1;
+          }
+          if (budget > 0) {
+            spawn(qb.x, 0.5, qb.z, flash, 0.16, (-dx / dist) * 3.2, 0.25, (-dz / dist) * 3.2);
+            budget -= 1;
+          }
+        }
+      }
+      lineGeo.setDrawRange(0, lines * 6);
+      lineGeo.attributes.position.needsUpdate = true;
+      lineGeo.attributes.color.needsUpdate = true;
+      tracers.visible = enabled && lines > 0;
       const step = Math.min(0.05, dt || 0.016);
       for (let i = 0; i < POOL; i++) {
         if (life[i] <= 0) continue;

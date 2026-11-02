@@ -69,20 +69,20 @@ export function createStage(canvas) {
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.32;
+  renderer.toneMappingExposure = 1.58;
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x465236, 48, 100);
+  scene.fog = new THREE.Fog(0xc5d4ae, 62, 140);
   scene.background = new THREE.Color(PALETTE.sky);
 
   const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
   frameDioramaCamera(camera);
 
-  scene.add(new THREE.HemisphereLight(0xfff6e4, 0x9aab6a, 0.85));
-  scene.add(new THREE.AmbientLight(0xfff8ee, 0.42));
+  scene.add(new THREE.HemisphereLight(0xfff6e4, 0xc6d4a0, 1.25));
+  scene.add(new THREE.AmbientLight(0xfff8ee, 0.72));
 
-  const sun = new THREE.DirectionalLight(0xffe2a8, 2.35);
+  const sun = new THREE.DirectionalLight(0xffe2a8, 2.55);
   sun.position.set(-9, 13, 8);
   sun.target.position.set(0, 0, 0);
   scene.add(sun);

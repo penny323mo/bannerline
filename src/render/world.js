@@ -25,10 +25,10 @@ function mat(color, extra = {}) {
   });
 }
 
-/** Most of the way toward the wall, so a trim stays a dull team edge. */
+/** A short step toward the wall, so a roof stays a clear team colour. */
 function muteTeam(hex) {
   const color = new THREE.Color(hex);
-  color.lerp(new THREE.Color(WALL), 0.74);
+  color.lerp(new THREE.Color(WALL), 0.18);
   return color.getHex();
 }
 
@@ -58,16 +58,16 @@ function tintZone(mesh, hex) {
   const oz = mesh.position.z;
   const sx = mesh.scale.x || 1;
   const sz = mesh.scale.z || 1;
-  const flankDirt = new THREE.Color(0x3a2c1c);
+  const flankDirt = new THREE.Color(0x8d7348);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i) * sx + ox;
     const z = pos.getZ(i) * sz + oz;
     const n = Math.sin(x * 1.55) + Math.cos(z * 1.25);
     const beside = Math.abs(x) > 0.85 && Math.abs(x) < 3.2 && Math.abs(z) > 0.85;
     _stainTone.copy(_stainBase);
-    if (beside && Math.sin(x * 2.1 + z * 1.6) > -0.05) _stainTone.lerp(flankDirt, 0.9);
-    else if (n > 0.1) _stainTone.lerp(_stainDirt, 0.9);
-    else if (n < -0.25) _stainTone.lerp(_stainDeep, 0.82);
+    if (beside && Math.sin(x * 2.1 + z * 1.6) > -0.05) _stainTone.lerp(flankDirt, 0.4);
+    else if (n > 0.1) _stainTone.lerp(_stainDirt, 0.35);
+    else if (n < -0.25) _stainTone.lerp(_stainDeep, 0.28);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
   colors.needsUpdate = true;
@@ -210,9 +210,13 @@ function makeHq(paint) {
   body.userData.slot = 'body';
   const plinth = roundMesh(1.92, 0.58, 1.2, 5, 0.26, 0, 0.42, 0, bodyMat);
   const tower = roundMesh(1.22, 2.15, 0.96, 6, 0.36, 0, 1.85, 0.02, bodyMat);
-  const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(0.9, 0.026, 0.038), 0, 2.5, 0.46),
-  ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.08 }));
+  const roofMat = mat(muteTeam(paint.main), { roughness: 0.48, metalness: 0.08 });
+  capNear.material = roofMat;
+  capTop.material = roofMat;
+  capNear.userData.slot = 'roof';
+  capTop.userData.slot = 'roof';
+  // Upper shaft in team colour. The grey wall stays on the lower storey.
+  const roof = roundMesh(1.38, 0.86, 1.12, 5, 0.22, 0, 2.48, 0.02, roofMat);
   roof.userData.slot = 'roof';
   const door = mergedMesh([
     baked(new THREE.BoxGeometry(0.46, 0.32, 0.06), 0, 0.3, -0.68),
@@ -271,9 +275,10 @@ function makeBarracks(paint) {
   const body = roundMesh(1.74, 0.58, 1.02, 6, 0.24, 0, 0.38, 0, wallMat);
   body.userData.slot = 'body';
   const shellMat = mat(WALL, { roughness: 0.8, metalness: 0.06 });
-  const slopeNear = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, -0.22, shellMat);
+  const roofMat = mat(muteTeam(paint.main), { roughness: 0.48, metalness: 0.08 });
+  const slopeNear = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, -0.22, roofMat);
   slopeNear.rotation.x = -0.45;
-  const slopeFar = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, 0.22, shellMat);
+  const slopeFar = roundMesh(1.58, 0.22, 0.56, 4, 0.08, 0, 0.88, 0.22, roofMat);
   slopeFar.rotation.x = 0.45;
   const shell = mergedMesh([
     baked(new THREE.BoxGeometry(0.1, 0.22, 0.9), -0.84, 0.86, 0),
@@ -283,8 +288,8 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.12, 0.07, 0.12), 0.46, 1.02, -0.02),
   ], shellMat);
   const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(0.72, 0.022, 0.034), 0, 1.02, 0.02),
-  ], mat(muteTeam(paint.main), { roughness: 0.55, metalness: 0.1 }));
+    baked(new THREE.BoxGeometry(1.55, 0.08, 0.78), 0, 0.98, 0),
+  ], roofMat);
   roof.userData.slot = 'roof';
   const ink = mergedMesh([
     baked(new THREE.BoxGeometry(0.7, 0.045, 0.04), 0, 0.18, -0.48),
@@ -327,10 +332,13 @@ function makeBarracks(paint) {
 /** Light tank. Local −z is the barrel, so the parent yaw (same helper as the building) aims it down the road. */
 function makeTank(paint) {
   const g = new THREE.Group();
+  const hullMat = mat(0x6d775c, { roughness: 0.55, metalness: 0.2 });
+  hullMat.emissive = new THREE.Color(0x5c654e);
+  hullMat.emissiveIntensity = 0.5;
   const hull = mergedMesh([
     baked(new THREE.BoxGeometry(0.62, 0.16, 0.95), 0, 0.22, 0),
     baked(new THREE.BoxGeometry(0.4, 0.12, 0.42), 0, 0.34, 0.06),
-  ], mat(0x4a5248, { roughness: 0.55, metalness: 0.28 }));
+  ], hullMat);
   const stripe = new THREE.Mesh(
     new THREE.BoxGeometry(0.36, 0.04, 0.28),
     mat(muteTeam(paint.main), { roughness: 0.5, metalness: 0.16 }),
@@ -342,10 +350,13 @@ function makeTank(paint) {
     mat(PALETTE.metal, { roughness: 0.35, metalness: 0.6 }),
   );
   barrel.position.set(0, 0.36, -0.55);
+  const trackMat = mat(0x5a5648, { roughness: 0.8, metalness: 0.18 });
+  trackMat.emissive = new THREE.Color(0x4a4638);
+  trackMat.emissiveIntensity = 0.4;
   const tracks = mergedMesh([
     baked(new THREE.BoxGeometry(0.12, 0.14, 1.02), -0.36, 0.12, 0),
     baked(new THREE.BoxGeometry(0.12, 0.14, 1.02), 0.36, 0.12, 0),
-  ], mat(PALETTE.ink, { roughness: 0.8, metalness: 0.2 }));
+  ], trackMat);
   g.add(hull, tracks, barrel, stripe);
   g.scale.setScalar(1);
   return g;
@@ -473,6 +484,7 @@ export function bridgeDeckGeometries(crossings) {
 }
 
 function pushTree(trunks, crowns, x, z, scale, color) {
+  scale *= 0.42;
   const wave = Math.sin(x * 12.7 + z * 4.3);
   const tall = 0.48 + Math.abs(Math.sin(z * 2.15 + x * 0.37)) * 1.35;
   const fat = 0.4 + Math.abs(Math.cos(x * 1.85 - z * 0.62)) * 0.95;
@@ -543,12 +555,12 @@ function islandCapGeometry(spanX, spanZ) {
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
     const n = Math.sin(x * 0.42 + z * 0.28) + Math.sin(x * 1.15 - z * 0.7) * 0.7;
     tone.copy(meadow);
-    if (n > 0.45) tone.lerp(khaki, 0.78);
-    else if (n < -0.35) tone.lerp(deep, 0.88);
-    else tone.lerp(deep, 0.22);
+    if (n > 0.55) tone.lerp(khaki, 0.4);
+    else if (n < -0.5) tone.lerp(deep, 0.28);
+    else tone.lerp(deep, 0.06);
     if (Math.abs(x) < 2.6 && Math.abs(z) > 1.15) tone.lerp(dirt, 0.48 * (1 - Math.min(1, Math.abs(x) / 2.6)));
     if (Math.sin(x * 0.9 + 0.4) * Math.sin(z * 0.55) > 0.2) tone.lerp(sand, 0.62);
-    if (u > 0.82) tone.lerp(deepEdge, 0.4);
+    if (u > 0.9) tone.lerp(deepEdge, 0.12);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -930,16 +942,16 @@ function buildIsland(map, reduceMotion) {
 
   // Dark worn patches sit in the open meadow beside the tan road.
   const dirtSpots = [
-    [-1.65, 4.4, 0.9, 1.35, 0x2a2218],
-    [1.75, 5.05, 0.75, 1.05, 0x3c2e20],
-    [-1.9, 1.65, 1.0, 1.2, 0x241c14],
-    [1.6, 1.4, 0.85, 1.0, 0x32261c],
-    [-1.75, -1.9, 0.95, 1.25, 0x261e16],
-    [1.8, -1.5, 0.8, 1.05, 0x3a2c1e],
-    [1.85, -4.55, 0.75, 1.15, 0x2e2418],
-    [-1.5, -4.4, 0.9, 1.3, 0x34281c],
-    [2.35, 2.55, 0.7, 0.85, 0x4a3824],
-    [-2.45, -2.65, 0.7, 0.9, 0x3e3020],
+    [-1.65, 4.4, 0.9, 1.35, 0x9a7c52],
+    [1.75, 5.05, 0.75, 1.05, 0xa88858],
+    [-1.9, 1.65, 1.0, 1.2, 0x8f7348],
+    [1.6, 1.4, 0.85, 1.0, 0xb08e5c],
+    [-1.75, -1.9, 0.95, 1.25, 0x96764c],
+    [1.8, -1.5, 0.8, 1.05, 0xa48050],
+    [1.85, -4.55, 0.75, 1.15, 0x8c7044],
+    [-1.5, -4.4, 0.9, 1.3, 0x9c7a50],
+    [2.35, 2.55, 0.7, 0.85, 0xb49460],
+    [-2.45, -2.65, 0.7, 0.9, 0x8e744a],
   ];
   const dirtParts = [];
   const dirtTone = new THREE.Color();
@@ -1094,9 +1106,9 @@ function buildIsland(map, reduceMotion) {
     }
   }
   addMerged(group, blobs, new THREE.MeshBasicMaterial({
-    color: 0x10140e,
+    color: 0x5c5344,
     transparent: true,
-    opacity: 0.88,
+    opacity: 0.28,
     depthWrite: false,
   }));
 
@@ -1313,7 +1325,9 @@ function buildIsland(map, reduceMotion) {
             pulse.emissive.setHex(capturing ? 0xff7a32 : ownerPaint(b.owner).glow);
             pulse.emissiveIntensity = 0.35 + (reduceMotion ? 0 : 0.4 * Math.sin(time * 9));
           } else {
-            pulse.emissiveIntensity = 0;
+            // Shaded fillets crush to a black lip. Keep a dim olive floor.
+            pulse.emissive.setHex(0x4a5244);
+            pulse.emissiveIntensity = 0.62;
           }
         }
         const dangerRing = mesh.userData.dangerRing;

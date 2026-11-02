@@ -17,9 +17,9 @@ const _vel = new THREE.Vector3();
 
 export function visualCount(count) {
   const n = Math.max(0, Math.floor(count));
-  if (n <= 6) return n;
-  // A dense block. The badge still carries the real headcount.
-  return Math.min(16, Math.round(Math.sqrt(n) * 2.4));
+  if (n <= 8) return n;
+  // One full block under the badge. The cap stays 16. The badge still carries the real headcount.
+  return 16;
 }
 
 /** Short loose ranks. A few larger figures read as a squad, not a dot grid. */
@@ -218,8 +218,8 @@ export function createCrowds(scene) {
   const green = [];
   const red = [];
   for (let v = 0; v < POSES; v++) {
-    const gMesh = new THREE.InstancedMesh(troopGeometry(0x5a6048, HELMET_PLAYER, v), troopMat, MAX);
-    const rMesh = new THREE.InstancedMesh(troopGeometry(0x645e4c, HELMET_ENEMY, v), troopMat, MAX);
+    const gMesh = new THREE.InstancedMesh(troopGeometry(0x3a4030, HELMET_PLAYER, v), troopMat, MAX);
+    const rMesh = new THREE.InstancedMesh(troopGeometry(0x403830, HELMET_ENEMY, v), troopMat, MAX);
     // Soldiers do not cast. A few hundred casters blow the 1024 shadow map.
     gMesh.castShadow = false;
     rMesh.castShadow = false;
@@ -300,8 +300,8 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const cols = n >= 12 ? 5 : n >= 6 ? 4 : Math.max(1, n);
-    const spacing = 0.26;
+    const cols = Math.min(4, Math.max(1, n));
+    const spacing = 0.16;
     for (let i = 0; i < n; i++) {
       const lead = track && i === 0;
       const row = Math.floor(i / cols);

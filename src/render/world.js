@@ -201,6 +201,7 @@ function makeHq(paint) {
   const bodyMat = mat(WALL, { roughness: 0.82, metalness: 0.06 });
   bodyMat.emissive = new THREE.Color(paint.glow);
   bodyMat.emissiveIntensity = 0;
+  const roofMat = mat(muteTeam(paint.main), { roughness: 0.48, metalness: 0.08 });
   const body = mergedMesh([
     baked(new THREE.BoxGeometry(2.2, 0.16, 0.12), 0, 0.86, 0.64),
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), -1.02, 0.9, 0),
@@ -209,13 +210,13 @@ function makeHq(paint) {
   ], bodyMat);
   body.userData.slot = 'body';
   const plinth = roundMesh(1.92, 0.58, 1.2, 5, 0.26, 0, 0.42, 0, bodyMat);
-  const tower = roundMesh(1.22, 2.15, 0.96, 6, 0.36, 0, 1.85, 0.02, bodyMat);
-  const roofMat = mat(muteTeam(paint.main), { roughness: 0.48, metalness: 0.08 });
+  const tower = roundMesh(1.22, 2.15, 0.96, 6, 0.36, 0, 1.85, 0.02, roofMat);
+  tower.userData.slot = 'roof';
   capNear.material = roofMat;
   capTop.material = roofMat;
   capNear.userData.slot = 'roof';
   capTop.userData.slot = 'roof';
-  // Upper shaft in team colour. The grey wall stays on the lower storey.
+  // The shaft and the crown share the muted team colour. The plinth stays the wall.
   const roof = roundMesh(1.38, 0.86, 1.12, 5, 0.22, 0, 2.48, 0.02, roofMat);
   roof.userData.slot = 'roof';
   const door = mergedMesh([
@@ -260,18 +261,18 @@ function makeBarracks(paint) {
   const sandMat = mat(PALETTE.sand, { roughness: 0.94, metalness: 0 });
   const sandPad = roundMesh(1.95, 0.32, 1.28, 4, 0.14, 0, 0.14, 0.05, sandMat);
   const sand = mergedMesh([
-    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, -0.55),
-    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, -0.55),
-    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, 0.15),
-    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, 0.15),
-    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, 0.7),
-    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, 0.7),
-    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), -0.55, 0.18, 0.78),
-    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.55, 0.18, 0.78),
-    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), -0.2, 0.18, -0.72),
-    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.35, 0.18, -0.72),
+    baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), -0.98, 0.26, -0.58),
+    baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), 0.98, 0.26, -0.58),
+    baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), -0.98, 0.26, 0.12),
+    baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), 0.98, 0.26, 0.12),
+    baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), -0.98, 0.26, 0.74),
+    baked(new THREE.BoxGeometry(0.52, 0.34, 0.36), 0.98, 0.26, 0.74),
+    baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), -0.55, 0.26, 0.86),
+    baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), 0.55, 0.26, 0.86),
+    baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), -0.18, 0.26, -0.82),
+    baked(new THREE.BoxGeometry(0.46, 0.3, 0.5), 0.38, 0.26, -0.82),
   ], sandMat);
-  const wallMat = mat(WALL, { roughness: 0.84, metalness: 0.05 });
+  const wallMat = mat(muteTeam(paint.main), { roughness: 0.72, metalness: 0.06 });
   const body = roundMesh(1.74, 0.58, 1.02, 6, 0.24, 0, 0.38, 0, wallMat);
   body.userData.slot = 'body';
   const shellMat = mat(WALL, { roughness: 0.8, metalness: 0.06 });
@@ -368,7 +369,7 @@ function paintGroup(group, owner) {
     if (!obj.material || !obj.userData.slot) return;
     const slot = obj.userData.slot;
     if (slot === 'body') {
-      obj.material.color.setHex(WALL);
+      obj.material.color.setHex(muteTeam(paint.main));
       if (obj.material.emissive) obj.material.emissive.setHex(paint.glow);
     } else if (slot === 'roof') obj.material.color.setHex(muteTeam(paint.main));
     else if (slot === 'flag') obj.material.color.setHex(paint.flag);

@@ -302,3 +302,10 @@
 - Combat FX. Opposing squads within range draw a bright ribbon, a muzzle flash at each end, and a smoke puff at the middle. Spark size stays 1.6.
 - Daylight. Exposure is 1.58, the hemisphere and ambient are warm, fog is a pale green, and pines are about 0.42 of their old scale so they sit at the edge. Home uses the same stage. The play camera and the home camera stay.
 - 67 tests passed. Rebuilt `static/app.js` (598855 bytes, sha256 `4cb3043d7081ce509f6974511ab2e5669a97345243c2170882b387e99d110bdb`) and `static/style.css` (11051 bytes, sha256 `32f0811b48c7d91d1a541d059a8030bb527396dc15a50e5b8d25c1694cdaa902`). Shots are `screenshots/fix-44/home.png` and `combat.png` at 390×844. No git commit.
+
+## Round 45 fixes
+
+- Squads. The round 44 density gap is closed. Scale stays 0.48. A count above 8 draws 16 figures, and those 16 sit in 4 columns at spacing 0.16, one block under the badge. Cloth is darker (player `0x3a4030`, enemy `0x403830`) so the block separates from the meadow. `colsFor` and `RANK_SPACING` still place the garrison. The flat cap, short yoke, olive dome, team band and arm, and the rifle at x 0.34 stay.
+- Buildings. The headquarters shaft and the barracks body use `muteTeam(paint.main)`, so the tower and the bunker read as team colour rather than a grey shaft with a coloured lid. The plinth stays the wall colour. Sandbag boxes on the barracks are larger, so they read at 390. Palette hexes, the dish radius 0.18, and the tower radius 0.36 stay. A capture repaints the body slot with the same muted team colour.
+- Combat FX. The tracer ribbon half-width is 0.4 and it sits at y 1.1, so the beam reads at 390. A second smoke at the clash midpoint uses ttl 1.2 and stays above that ribbon. Spark size stays 1.6.
+- 67 tests passed. Rebuilt `static/app.js` (598884 bytes, sha256 `92b3524387af393ea38dcbd405aea551df447f399d8764e453bafce9807f8a43`) and `static/style.css` (11051 bytes, sha256 `32f0811b48c7d91d1a541d059a8030bb527396dc15a50e5b8d25c1694cdaa902`). Shots are `screenshots/fix-45/home.png` and `combat.png` at 390×844. No git commit.

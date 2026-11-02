@@ -187,11 +187,11 @@ export function createFx(scene) {
           const dz = qb.z - qa.z;
           const dist = Math.hypot(dx, dz);
           if (dist > 4.4 || dist < 0.12 || lines >= MAX_LINES) continue;
-          const halfW = 0.11;
+          const halfW = 0.4;
           const inv = 1 / dist;
           const hx = -dz * inv * halfW;
           const hz = dx * inv * halfW;
-          const y = 0.62;
+          const y = 1.1;
           const ax = qa.x;
           const az = qa.z;
           const bx = qb.x;
@@ -220,6 +220,12 @@ export function createFx(scene) {
           const mz = (qa.z + qb.z) * 0.5;
           if (budget > 0) {
             spawn(mx, 0.28, mz, smoke, 0.7, 0, 0.55, 0);
+            budget -= 1;
+          }
+          // The short puff dies before the clash frame, and a puff on the ground
+          // sits under the count badge. This one stays up above the ribbon.
+          if (budget > 0) {
+            spawn(mx, 1.85, mz, smoke, 1.2, 0, 0.22, 0);
             budget -= 1;
           }
           if (budget > 0) {

@@ -210,3 +210,13 @@
 
 - The round 31 review found no CRITICAL, MAJOR, or MINOR issues. The eight loop-r30 art items stay closed on the 390×844 home and combat shots. The home card top is at y=560. Home pills show emblems and hide empty counts. Map thumbs are olive terrain with a bent blue river. The island mixes olive, khaki, and dirt. The stream is a blue ribbon with sand banks. Soldier cloth is khaki, with team colour on the helmet and one armband. Building walls are olive-grey, with team colour on the roof trim and the flag. A match shows one hint, 「點自己建築出兵」.
 - 67 tests passed. No source or bundle change. `static/app.js` stays 561983 bytes and `static/style.css` stays 10056 bytes.
+
+## Round 32 fixes
+
+- The battlefield ground fills the 390×844 frame. The oval cliff and the water ring are gone, and trees and rocks continue past the play lane. Home and combat both show grass at the screen edges.
+- The play camera is closer (fov 48 at (0.15, 10, 14), looking at (0, 0.4, 1)). The lane fills the portrait width. Headquarters are tall towers with a team-coloured roof band, a dish, and a flag. Barracks keep an olive body, a sandbag ring, and a team roof. Screen picks still reach every building.
+- A garrison draws a few larger figures in a loose rank. The badge keeps the real count. Cloth stays khaki, with team colour on the helmet band and one armband. Soldier scale is 1.18.
+- A bowed green-and-red glow follows the territory edge and sits on the bank, off the water. The hard band keeps z scale 1.2 and the tint keeps z scale 1.75. Contact discs darken the bases, and a vignette darkens the frame edges. Software devices still skip the shadow map.
+- Map thumbs are 110px. The home card top is at y=507. 易 / 中 / 難 and 出戰 stay.
+- A match puts 據點號令 on the left of one translucent bar and the 我軍 / 敵軍 counts together on the right. 揀地圖 and mute stay as icon buttons.
+- 67 tests passed. Rebuilt `static/app.js` (563647 bytes) and `static/style.css` (10780 bytes).

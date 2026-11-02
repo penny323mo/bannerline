@@ -6,8 +6,8 @@ import { PALETTE } from './palette.js';
 
 const MAX = 480;
 /** Rank size paired with the play camera so a helmet stays readable beside the pad. */
-export const SOLDIER_SCALE = 1.52;
-export const RANK_SPACING = 0.38;
+export const SOLDIER_SCALE = 1.18;
+export const RANK_SPACING = 0.52;
 /** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
 export const HELMET_PLAYER = 0x3e6b32;
 export const HELMET_ENEMY = 0x7c2a22;
@@ -17,15 +17,15 @@ const _vel = new THREE.Vector3();
 
 export function visualCount(count) {
   const n = Math.max(0, Math.floor(count));
-  if (n <= 12) return n;
-  // Dense ranks. A full board plus marching squads can pass 200 bodies under the 480 cap.
-  return Math.min(56, 12 + Math.round((n - 12) * 0.8));
+  if (n <= 4) return n;
+  // One figure stands for several troops. The count badge keeps the real number.
+  return Math.min(9, 3 + Math.round(Math.sqrt(n) * 0.7));
 }
 
-/** Wider ranks stay short, so a garrison fits between the pad and the stream. */
+/** Short loose ranks. A few larger figures read as a squad, not a dot grid. */
 export function colsFor(n) {
-  if (n > 24) return 8;
-  if (n > 10) return 5;
+  if (n > 8) return 4;
+  if (n > 4) return 3;
   return Math.max(1, n);
 }
 
@@ -90,11 +90,10 @@ export function soldierGeometry() {
   legL.translate(-0.07, 0.14, 0.05);
   const legR = shade(limb(0.042, 0.05, 0.28, 6), 0.16);
   legR.translate(0.07, 0.14, 0.05);
-  const torso = shade(limb(0.2, 0.16, 0.28, 8), 0.42);
-  torso.translate(0, 0.42, 0);
-  // Wide shoulder disc sits under the helmet so a high camera shows khaki cloth, not only the dome.
-  const shoulders = shade(new THREE.CylinderGeometry(0.22, 0.23, 0.07, 8), 0.38);
-  shoulders.translate(0, 0.6, 0);
+  const torso = shade(limb(0.13, 0.15, 0.32, 8), 0.42);
+  torso.translate(0, 0.4, 0);
+  const shoulders = shade(new THREE.CylinderGeometry(0.16, 0.15, 0.06, 8), 0.38);
+  shoulders.translate(0, 0.54, 0);
   const armL = shade(limb(0.03, 0.034, 0.2, 6), 0.9);
   armL.translate(-0.15, 0.4, -0.06);
   const armR = shade(limb(0.03, 0.032, 0.18, 6), 0.26);
@@ -103,7 +102,10 @@ export function soldierGeometry() {
   head.translate(0, 0.58, 0);
   const helmet = shade(new THREE.SphereGeometry(0.092, 10, 8), 1);
   helmet.translate(0, 0.66, -0.012);
-  const brim = shade(new THREE.BoxGeometry(0.24, 0.028, 0.16), 0.78);
+  const band = shade(new THREE.TorusGeometry(0.078, 0.016, 6, 10), 0.88);
+  band.rotateX(Math.PI / 2);
+  band.translate(0, 0.64, -0.012);
+  const brim = shade(new THREE.BoxGeometry(0.2, 0.026, 0.14), 0.78);
   brim.translate(0, 0.6, -0.05);
   // Thick barrel on local −z. Length stays short so a rank cannot stripe the road.
   const rifle = shade(new THREE.BoxGeometry(0.06, 0.052, 0.28), 0.08);
@@ -112,7 +114,7 @@ export function soldierGeometry() {
   stock.translate(0.15, 0.32, -0.06);
   const pack = shade(new THREE.BoxGeometry(0.09, 0.11, 0.06), 0.2);
   pack.translate(0, 0.34, 0.09);
-  const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, brim, rifle, stock, pack]);
+  const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, band, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;
 }
@@ -197,9 +199,26 @@ export function createCrowds(scene) {
   red.frustumCulled = false;
   green.count = 0;
   red.count = 0;
-  scene.add(green, red);
+  const padGeo = new THREE.CircleGeometry(0.22, 8);
+  padGeo.rotateX(-Math.PI / 2);
+  const pads = new THREE.InstancedMesh(
+    padGeo,
+    new THREE.MeshBasicMaterial({
+      color: 0x1a2016,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false,
+    }),
+    MAX,
+  );
+  pads.castShadow = false;
+  pads.receiveShadow = false;
+  pads.frustumCulled = false;
+  pads.count = 0;
+  scene.add(green, red, pads);
 
   const dummy = new THREE.Object3D();
+  let pi = 0;
   const yawCache = new Map();
   const prevPos = new Map();
   let gi = 0;
@@ -224,6 +243,15 @@ export function createCrowds(scene) {
     dummy.scale.setScalar(scale);
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
+    if (pi < MAX) {
+      dummy.position.y = 0.03;
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(scale * 0.72, 1, scale * 0.46);
+      dummy.updateMatrix();
+      pads.setMatrixAt(pi, dummy.matrix);
+      pi += 1;
+      dummy.rotation.set(0, yaw, 0);
+    }
     if (owner === 'player') gi += 1;
     else ri += 1;
     if (trackNose) {
@@ -243,8 +271,8 @@ export function createCrowds(scene) {
       const r = Math.floor(i / cols);
       const rows = Math.ceil(n / cols);
       const rowCount = r === rows - 1 ? n - r * cols : cols;
-      const lx = (c - (rowCount - 1) / 2) * spacing;
-      const lz = r * spacing;
+      const lx = (c - (rowCount - 1) / 2) * spacing + (r % 2) * spacing * 0.28;
+      const lz = r * spacing * 0.86 + ((i * 5) % 3 - 1) * spacing * 0.08;
       rotateXZ(lx, lz, yaw, _slot);
       const bob = 1 + ((i * 17) % 5) * 0.015;
       push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yaw, SOLDIER_SCALE * bob, track && i === 0);
@@ -264,6 +292,7 @@ export function createCrowds(scene) {
     update(state) {
       gi = 0;
       ri = 0;
+      pi = 0;
       noseMesh = null;
       noseIndex = -1;
       let tracked = false;
@@ -325,8 +354,10 @@ export function createCrowds(scene) {
 
       green.count = gi;
       red.count = ri;
+      pads.count = pi;
       green.instanceMatrix.needsUpdate = true;
       red.instanceMatrix.needsUpdate = true;
+      pads.instanceMatrix.needsUpdate = true;
     },
   };
 }

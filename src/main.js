@@ -439,6 +439,29 @@ function mapThumb(map) {
   g.fillStyle = cssHex(0x2a4e68);
   riverPoly(thick * 0.22, bow * 0.15);
 
+  function frontBand(yOff, color) {
+    const steps = 12;
+    g.fillStyle = color;
+    g.globalAlpha = 0.92;
+    g.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const x = (W * i) / steps;
+      const wave = Math.sin((i / steps) * Math.PI) * 16;
+      g.lineTo(x, waterAt.y + wave + yOff);
+    }
+    for (let i = steps; i >= 0; i--) {
+      const x = (W * i) / steps;
+      const wave = Math.sin((i / steps) * Math.PI) * 16;
+      g.lineTo(x, waterAt.y + wave + yOff + 4);
+    }
+    g.closePath();
+    g.fill();
+    g.globalAlpha = 1;
+  }
+  const land = thick / 2 + shore + 10;
+  frontBand(land, cssHex(PALETTE.player.main));
+  frontBand(-land - 4, cssHex(PALETTE.enemy.main));
+
   const nodes = map.nodes || {};
   const roadW = Math.max(11, 0.72 * scaleX);
   g.fillStyle = cssHex(PALETTE.road);

@@ -6,26 +6,24 @@ import { PALETTE } from './palette.js';
  * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  // Three-quarter over the island. Screen-right is world +x:
-  // camera sits on +z, up is +y, look is toward −z.
-  // Low enough that a barracks helmet and the near bunker have a face,
-  // with both headquarters, the road, and the stream still in the portrait.
+  // Closer three-quarter. Screen-right is world +x.
+  // The lane fills the portrait width, and both headquarters stay in frame.
   camera.fov = 48;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.15, 23, 16);
+  camera.position.set(0.15, 10, 14);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0, 1.3);
+  camera.lookAt(0, 0.4, 1);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
 
-/** Menu frame. The home card covers the lower half, so both bases sit above it. */
+/** Menu frame. The home card covers the lower band, so both bases sit above it. */
 export function frameHomeCamera(camera, aspect) {
-  camera.fov = 52;
+  camera.fov = 36;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.2, 24, 22);
+  camera.position.set(0.2, 12, 24);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0, 8);
+  camera.lookAt(0, 0, 5);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }
@@ -75,7 +73,7 @@ export function createStage(canvas) {
   renderer.setClearColor(PALETTE.sky, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(PALETTE.sky, 55, 110);
+  scene.fog = new THREE.Fog(0x465236, 48, 100);
   scene.background = new THREE.Color(PALETTE.sky);
 
   const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 90);
@@ -84,8 +82,8 @@ export function createStage(canvas) {
   scene.add(new THREE.HemisphereLight(0xfff6e4, 0x9aab6a, 0.85));
   scene.add(new THREE.AmbientLight(0xfff8ee, 0.42));
 
-  const sun = new THREE.DirectionalLight(0xfff1c4, 2.15);
-  sun.position.set(-7.5, 18, 9.2);
+  const sun = new THREE.DirectionalLight(0xffe2a8, 2.35);
+  sun.position.set(-9, 13, 8);
   sun.target.position.set(0, 0, 0);
   scene.add(sun);
   scene.add(sun.target);

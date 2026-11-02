@@ -136,17 +136,22 @@ function makeHq(paint) {
   bodyMat.emissive = new THREE.Color(paint.glow);
   bodyMat.emissiveIntensity = 0;
   const body = mergedMesh([
-    baked(new THREE.BoxGeometry(2.05, 0.52, 1.28), 0, 0.42, 0),
-    baked(new THREE.BoxGeometry(1.15, 0.5, 0.82), 0, 1.12, 0.02),
-    baked(new THREE.BoxGeometry(0.72, 0.22, 0.52), 0, 1.46, 0.02),
-  ], bodyMat);
-  body.userData.slot = 'body';
-  const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(1.15, 0.08, 0.42), 0, 0.8, 0.02),
     baked(new THREE.BoxGeometry(2.2, 0.16, 0.12), 0, 0.86, 0.64),
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), -1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(0.14, 0.22, 1.2), 1.02, 0.9, 0),
     baked(new THREE.BoxGeometry(1.7, 0.08, 0.1), 0, 0.84, -0.6),
+    baked(new THREE.BoxGeometry(2.05, 0.52, 1.28), 0, 0.42, 0),
+    baked(new THREE.BoxGeometry(1.22, 2.15, 0.96), 0, 1.85, 0.02),
+    baked(new THREE.BoxGeometry(1.05, 0.42, 0.78), 0, 3.12, 0.02),
+  ], bodyMat);
+  body.userData.slot = 'body';
+  const roof = mergedMesh([
+    baked(new THREE.BoxGeometry(1.38, 0.14, 1.08), 0, 2.95, 0.02),
+    baked(new THREE.BoxGeometry(1.18, 0.1, 0.88), 0, 3.38, 0.02),
+    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), -0.48, 3.5, -0.32),
+    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), 0.48, 3.5, -0.32),
+    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), -0.48, 3.5, 0.36),
+    baked(new THREE.BoxGeometry(0.16, 0.18, 0.16), 0.48, 3.5, 0.36),
   ], mat(paint.main, { roughness: 0.62, metalness: 0.08 }));
   roof.userData.slot = 'roof';
   const door = mergedMesh([
@@ -157,16 +162,18 @@ function makeHq(paint) {
     baked(new THREE.BoxGeometry(0.5, 0.04, 0.05), 0, 0.3, -0.7),
   ], mat(PALETTE.ink, { roughness: 0.8, metalness: 0.12 }));
   const metal = mergedMesh([
-    baked(new THREE.CylinderGeometry(0.045, 0.06, 0.7, 6), 0.22, 1.72, 0.02),
-    baked(new THREE.CylinderGeometry(0.34, 0.4, 0.06, 10), 0.22, 1.99, 0.02, 0.4, 0.15, 0.5),
-    baked(new THREE.TorusGeometry(0.2, 0.012, 6, 14), 0.22, 2.02, 0.04, 1.05, 0.2, 0),
-    baked(new THREE.BoxGeometry(0.03, 0.85, 0.03), -0.48, 1.85, -0.08),
-    baked(new THREE.BoxGeometry(0.32, 0.025, 0.025), -0.48, 2.2, -0.08),
-    baked(new THREE.CylinderGeometry(0.018, 0.022, 0.9, 5), 0.78, 2.2, 0.05),
-    baked(new THREE.BoxGeometry(0.16, 0.02, 0.02), 0.78, 2.55, 0.05),
+    baked(new THREE.CylinderGeometry(0.045, 0.06, 0.55, 6), 0.22, 3.72, 0.02),
+    baked(new THREE.CylinderGeometry(0.34, 0.4, 0.06, 10), 0.22, 3.98, 0.02, 0.4, 0.15, 0.5),
+    baked(new THREE.TorusGeometry(0.2, 0.012, 6, 14), 0.22, 4.02, 0.04, 1.05, 0.2, 0),
+    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, -0.48),
+    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), 0.62, 1.85, -0.48),
+    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), -0.62, 1.85, 0.5),
+    baked(new THREE.BoxGeometry(0.08, 2.05, 0.08), 0.62, 1.85, 0.5),
+    baked(new THREE.CylinderGeometry(0.018, 0.022, 0.7, 5), 0.72, 3.7, 0.05),
+    baked(new THREE.BoxGeometry(0.16, 0.02, 0.02), 0.72, 4.02, 0.05),
   ], mat(PALETTE.metal, { roughness: 0.38, metalness: 0.55 }));
   const flag = pennant(paint.flag);
-  flag.position.set(0.78, 2.49, 0);
+  flag.position.set(0.72, 3.95, 0.05);
   const pip = makePip(1.42);
   const danger = new THREE.Mesh(
     new THREE.TorusGeometry(1.38, 0.045, 6, 28),
@@ -192,10 +199,16 @@ function makeBarracks(paint) {
   const g = new THREE.Group();
   const sand = mergedMesh([
     baked(new THREE.BoxGeometry(2.05, 0.1, 1.35), 0, 0.06, 0.05),
-    baked(new THREE.BoxGeometry(0.22, 0.12, 0.16), -0.85, 0.16, -0.55),
-    baked(new THREE.BoxGeometry(0.22, 0.12, 0.16), 0.85, 0.16, -0.55),
-    baked(new THREE.BoxGeometry(0.22, 0.12, 0.16), -0.85, 0.16, 0.45),
-    baked(new THREE.BoxGeometry(0.22, 0.12, 0.16), 0.85, 0.16, 0.45),
+    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, -0.55),
+    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, -0.55),
+    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, 0.15),
+    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, 0.15),
+    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), -0.95, 0.16, 0.7),
+    baked(new THREE.BoxGeometry(0.34, 0.16, 0.22), 0.95, 0.16, 0.7),
+    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), -0.55, 0.18, 0.78),
+    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.55, 0.18, 0.78),
+    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), -0.2, 0.18, -0.72),
+    baked(new THREE.BoxGeometry(0.28, 0.14, 0.36), 0.35, 0.18, -0.72),
   ], mat(PALETTE.sand, { roughness: 0.94, metalness: 0 }));
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(1.62, 0.46, 0.92),
@@ -214,9 +227,10 @@ function makeBarracks(paint) {
     baked(new THREE.BoxGeometry(0.1, 0.28, 0.95), 0.86, 0.84, 0),
   ], mat(WALL, { roughness: 0.8, metalness: 0.06 }));
   const roof = mergedMesh([
-    baked(new THREE.BoxGeometry(1.5, 0.07, 0.18), 0, 0.98, 0),
-    baked(new THREE.BoxGeometry(0.18, 0.08, 0.16), -0.35, 0.96, 0.05),
-    baked(new THREE.BoxGeometry(0.18, 0.08, 0.16), 0.4, 0.96, -0.12),
+    baked(new THREE.BoxGeometry(1.72, 0.1, 0.28), 0, 1.02, 0),
+    baked(new THREE.BoxGeometry(1.55, 0.08, 0.16), 0, 1.1, 0.02),
+    baked(new THREE.BoxGeometry(0.22, 0.1, 0.2), -0.4, 1.08, 0.08),
+    baked(new THREE.BoxGeometry(0.22, 0.1, 0.2), 0.42, 1.08, -0.1),
   ], mat(paint.main, { roughness: 0.62, metalness: 0.12 }));
   roof.userData.slot = 'roof';
   const ink = mergedMesh([
@@ -331,6 +345,43 @@ export function frontierBandGeometry() {
   return geo;
 }
 
+/** Bowed emissive ribbon. Local +z is the player half, matching the hard band. */
+function frontLineGeometry() {
+  const steps = 18;
+  const positions = new Float32Array((steps + 1) * 2 * 3);
+  const colors = new Float32Array((steps + 1) * 2 * 3);
+  const green = new THREE.Color(PALETTE.player.main);
+  const red = new THREE.Color(PALETTE.enemy.main);
+  for (let i = 0; i <= steps; i++) {
+    const u = i / steps;
+    const x = -0.5 + u;
+    const bow = -Math.sin(u * Math.PI) * 0.62;
+    const o = i * 6;
+    positions[o] = x;
+    positions[o + 1] = 0;
+    positions[o + 2] = bow + 0.16;
+    positions[o + 3] = x;
+    positions[o + 4] = 0.02;
+    positions[o + 5] = bow - 0.16;
+    colors[o] = green.r;
+    colors[o + 1] = green.g;
+    colors[o + 2] = green.b;
+    colors[o + 3] = red.r;
+    colors[o + 4] = red.g;
+    colors[o + 5] = red.b;
+  }
+  const indices = [];
+  for (let i = 0; i < steps; i++) {
+    const a = i * 2;
+    indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.setIndex(indices);
+  return geo;
+}
+
 function makeGlow(geo, material) {
   const mesh = new THREE.Mesh(geo, material);
   mesh.visible = false;
@@ -408,10 +459,10 @@ function islandCapGeometry(spanX, spanZ) {
   const colors = new Float32Array(count * 3);
   const meadow = new THREE.Color(PALETTE.meadow);
   const deep = new THREE.Color(PALETTE.meadowDeep);
-  const shade = new THREE.Color(0x3a4630);
   const khaki = new THREE.Color(0x6a6244);
   const sand = new THREE.Color(PALETTE.sand);
   const dirt = new THREE.Color(0x6e5c42);
+  const deepEdge = new THREE.Color(PALETTE.meadowDeep);
   const tone = new THREE.Color();
   let vi = 1;
   for (let r = 1; r <= rings; r++) {
@@ -431,11 +482,11 @@ function islandCapGeometry(spanX, spanZ) {
     const u = Math.hypot(x / (spanX * 0.5 || 1), z / (spanZ * 0.5 || 1));
     const n = Math.sin(x * 1.7 + z * 0.8) * Math.cos(z * 1.3 - x * 0.6) + Math.sin(x * 0.45) * 0.35;
     tone.copy(meadow).lerp(deep, 0.35);
-    if (n > 0.45) tone.lerp(khaki, 0.5);
-    else if (n < -0.15) tone.lerp(deep, 0.7);
-    if (Math.abs(x) < 1.2 && Math.abs(z) > 1.05) tone.lerp(dirt, 0.5 * (1 - Math.abs(x) / 1.2));
-    if (Math.sin(x * 2.1 + 1.3) * Math.sin(z * 1.35) > 0.72) tone.lerp(sand, 0.4);
-    if (u > 0.7) tone.lerp(shade, Math.min(1, (u - 0.7) / 0.3));
+    if (n > 0.25) tone.lerp(khaki, 0.72);
+    else if (n < -0.05) tone.lerp(deep, 0.85);
+    if (Math.abs(x) < 1.6 && Math.abs(z) > 1.05) tone.lerp(dirt, 0.65 * (1 - Math.abs(x) / 1.6));
+    if (Math.sin(x * 2.1 + 1.3) * Math.sin(z * 1.35) > 0.45) tone.lerp(sand, 0.62);
+    if (u > 0.86) tone.lerp(deepEdge, 0.12);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -734,17 +785,8 @@ function addEdges(group, map, roadMat) {
 function buildIsland(map, reduceMotion) {
   const group = new THREE.Group();
   const box = boundsOf(map);
-  const spanX = Math.max(9.6, (box.maxX - box.minX) * 1.32);
-  const spanZ = Math.max(17.6, (box.maxZ - box.minZ) * 1.2);
-  const cliff = new THREE.Mesh(
-    new THREE.CylinderGeometry(1, 1.08, 0.5, 28),
-    mat(PALETTE.meadowDeep, { roughness: 0.95, metalness: 0 }),
-  );
-  cliff.scale.set(spanX, 1, spanZ);
-  cliff.position.y = -0.32;
-  cliff.receiveShadow = true;
-  cliff.castShadow = false;
-  group.add(cliff);
+  const spanX = Math.max(48, (box.maxX - box.minX) * 4.2);
+  const spanZ = Math.max(64, (box.maxZ - box.minZ) * 3.6);
   const cap = new THREE.Mesh(
     islandCapGeometry(spanX * 0.98, spanZ * 0.98),
     mat(0xffffff, { vertexColors: true, roughness: 0.94, metalness: 0 }),
@@ -820,7 +862,25 @@ function buildIsland(map, reduceMotion) {
     const spot = edgeSpots[i];
     pushTree(trunks, crowns, spot[0], spot[1], spot[2], i % 2 ? PALETTE.leafDeep : PALETTE.leaf);
   }
-  const rocks = rocksFor(map);
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2 + 0.4;
+    const rad = 9 + (i % 6) * 0.85;
+    const x = Math.cos(a) * rad * 1.2;
+    const z = Math.sin(a) * rad * 0.95;
+    if (Math.abs(x) < 2.1 && Math.abs(z) < 10) continue;
+    if (Math.abs(z) < 1.7) continue;
+    pushTree(trunks, crowns, x, z, 0.75 + (i % 4) * 0.12, i % 3 ? PALETTE.leaf : PALETTE.leafDeep);
+  }
+  const rocks = rocksFor(map).slice();
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 + 0.15;
+    const rad = 10.5 + (i % 4) * 1.1;
+    rocks.push({
+      x: Math.cos(a) * rad * 1.15,
+      z: Math.sin(a) * rad * 0.9,
+      s: 0.7 + (i % 3) * 0.28,
+    });
+  }
   if (rocks.length) {
     const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
     const rockParts = [];
@@ -855,7 +915,7 @@ function buildIsland(map, reduceMotion) {
     exitDir(map, spec.node, dir);
     groupB.position.set(p.x, 0.06, p.z);
     groupB.rotation.y = yawForFacing(dir.x, dir.z);
-    const fit = spec.kind === 'hq' ? 0.84 : 0.82;
+    const fit = spec.kind === 'hq' ? 0.92 : 0.98;
     groupB.userData.baseScale = fit;
     groupB.scale.setScalar(fit);
     groupB.userData.owner = spec.owner;
@@ -870,7 +930,7 @@ function buildIsland(map, reduceMotion) {
     }
     group.add(groupB);
     buildings.set(spec.id, groupB);
-    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 0.95 : 0.72, 10);
+    const blob = new THREE.CircleGeometry(spec.kind === 'hq' ? 1.45 : 1.15, 12);
     blob.rotateX(-Math.PI / 2);
     // Sun sits toward −x and +z. The contact blob falls the other way.
     blob.translate(p.x + 0.28, 0.04, p.z - 0.22);
@@ -879,9 +939,29 @@ function buildIsland(map, reduceMotion) {
   addMerged(group, blobs, new THREE.MeshBasicMaterial({
     color: PALETTE.ink,
     transparent: true,
-    opacity: 0.34,
+    opacity: 0.62,
     depthWrite: false,
   }));
+
+  const frontMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.95,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const haloMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.38,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const frontGeo = frontLineGeometry();
+  const fronts = [];
+  const halos = [];
 
   const glowMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
@@ -895,7 +975,7 @@ function buildIsland(map, reduceMotion) {
   const tintMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.18,
     depthWrite: false,
     depthTest: true,
     side: THREE.DoubleSide,
@@ -911,6 +991,14 @@ function buildIsland(map, reduceMotion) {
     const tint = makeGlow(bandGeo, tintMat);
     group.add(tint);
     tints.push(tint);
+  }
+  for (let i = 0; i < glows.length; i++) {
+    const halo = makeGlow(frontGeo, haloMat);
+    group.add(halo);
+    halos.push(halo);
+    const front = makeGlow(frontGeo, frontMat);
+    group.add(front);
+    fronts.push(front);
   }
 
   const boxed = boxMapZones(map.zones);
@@ -1083,13 +1171,15 @@ function buildIsland(map, reduceMotion) {
       }
 
       const segs = frontierFrom(boxed, ownerScratch, frontierBuf);
-      glowMat.opacity = 1;
+      glowMat.opacity = 0.22;
       for (let i = 0; i < glows.length; i++) {
         const seg = segs[i];
         const band = glows[i];
         if (!seg) {
           band.visible = false;
           tints[i].visible = false;
+          fronts[i].visible = false;
+          halos[i].visible = false;
           continue;
         }
         const alongX = seg.axis !== 'z';
@@ -1112,8 +1202,25 @@ function buildIsland(map, reduceMotion) {
         tint.position.set(cx + ox, 0.1, cz + oz);
         tint.scale.set(span, 1, 1.75);
         tint.rotation.y = yaw;
+        const front = fronts[i];
+        const halo = halos[i];
+        front.visible = true;
+        halo.visible = true;
+        // Sit the curve on the bank with the lip, so the colour stays off the water.
+        const gx = cx + ox * 1.15;
+        const gz = cz + oz * 1.15;
+        front.position.set(gx, 0.4, gz);
+        halo.position.set(gx, 0.32, gz);
+        front.scale.set(span, 1, 1.15);
+        halo.scale.set(span * 1.02, 1, 1.55);
+        front.rotation.y = yaw;
+        halo.rotation.y = yaw;
       }
-      for (let i = segs.length; i < tints.length; i++) tints[i].visible = false;
+      for (let i = segs.length; i < tints.length; i++) {
+        tints[i].visible = false;
+        fronts[i].visible = false;
+        halos[i].visible = false;
+      }
 
       placeMarker(ring, selectedId, state);
       if (!reduceMotion && ring.visible) ring.rotation.y = time * 0.8;
@@ -1169,7 +1276,7 @@ function skyDome() {
 export function createWorld(scene) {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   scene.add(skyDome());
-  const fieldGeo = new THREE.CircleGeometry(26, 48);
+  const fieldGeo = new THREE.PlaneGeometry(180, 220, 24, 28);
   const fieldPos = fieldGeo.attributes.position;
   const fieldColors = new Float32Array(fieldPos.count * 3);
   const meadowA = new THREE.Color(PALETTE.meadow);
@@ -1181,7 +1288,6 @@ export function createWorld(scene) {
     const y = fieldPos.getY(i);
     const n = Math.sin(x * 0.55) * Math.cos(y * 0.47) + Math.sin((x + y) * 0.23) * 0.4;
     meadowTone.copy(n > 0.35 ? meadowC : n < -0.25 ? meadowB : meadowA);
-    meadowTone.multiplyScalar(0.82);
     fieldColors[i * 3] = meadowTone.r;
     fieldColors[i * 3 + 1] = meadowTone.g;
     fieldColors[i * 3 + 2] = meadowTone.b;
@@ -1192,16 +1298,9 @@ export function createWorld(scene) {
     mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }),
   );
   field.rotation.x = -Math.PI / 2;
-  field.position.y = -0.66;
+  field.position.y = -0.05;
   field.receiveShadow = true;
   scene.add(field);
-  const shore = new THREE.Mesh(
-    new THREE.RingGeometry(16.5, 26, 40),
-    mat(PALETTE.water, { roughness: 0.4, metalness: 0.04 }),
-  );
-  shore.rotation.x = -Math.PI / 2;
-  shore.position.y = -0.64;
-  scene.add(shore);
 
   const holder = new THREE.Group();
   scene.add(holder);

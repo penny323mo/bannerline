@@ -103,46 +103,47 @@ export function soldierGeometry(variant = 0) {
   legL.translate(-0.07, 0.23, 0.02);
   const legR = shade(limb(0.04, 0.05, 0.46, 6), 0.16);
   legR.translate(0.07, 0.23, -0.02);
-  const torso = shade(limb(0.11, 0.135, 0.46, 8), 0.42);
-  torso.translate(0, 0.58, 0);
-  const shoulders = shade(new THREE.CylinderGeometry(0.168, 0.14, 0.055, 8), 0.38);
+  // Jacket wider than the dome, tall enough that the body is the silhouette.
+  const torso = shade(limb(0.145, 0.165, 0.48, 8), 0.42);
+  torso.translate(0, 0.56, 0);
+  const shoulders = shade(new THREE.CylinderGeometry(0.19, 0.15, 0.07, 8), 0.38);
   shoulders.translate(0, 0.78, 0);
-  const armL = shade(limb(0.028, 0.034, 0.3, 6), 0.9);
-  armL.translate(-0.15, 0.58, -0.04);
-  const armR = shade(limb(0.026, 0.03, 0.28, 6), 0.26);
-  armR.translate(0.15, 0.56, -0.05);
-  const head = shade(limb(0.042, 0.046, 0.08, 8), 0.55);
-  head.translate(0, 0.86, 0);
-  const helmet = shade(new THREE.SphereGeometry(0.07, 10, 8), 1);
-  helmet.scale(1, 0.94, 1);
-  helmet.translate(0, 0.94, -0.01);
-  const band = shade(new THREE.TorusGeometry(0.066, 0.016, 6, 10), 0.88);
+  const armL = shade(limb(0.036, 0.042, 0.32, 6), 0.9);
+  armL.translate(-0.2, 0.58, -0.05);
+  const armR = shade(limb(0.032, 0.036, 0.3, 6), 0.26);
+  armR.translate(0.2, 0.56, -0.06);
+  const head = shade(limb(0.04, 0.044, 0.07, 8), 0.55);
+  head.translate(0, 0.82, 0);
+  const helmet = shade(new THREE.SphereGeometry(0.064, 10, 8), 1);
+  helmet.scale(1, 1.06, 1);
+  helmet.translate(0, 0.88, -0.01);
+  const band = shade(new THREE.TorusGeometry(0.058, 0.013, 6, 10), 0.88);
   band.rotateX(Math.PI / 2);
-  band.translate(0, 0.91, -0.01);
-  const brim = shade(new THREE.BoxGeometry(0.15, 0.016, 0.09), 0.72);
-  brim.translate(0, 0.88, -0.045);
+  band.translate(0, 0.86, -0.01);
+  const brim = shade(new THREE.BoxGeometry(0.12, 0.014, 0.07), 0.72);
+  brim.translate(0, 0.84, -0.04);
   // Rifle on local −z. Length stays short so a rank cannot stripe the road.
   const rifle = shade(new THREE.BoxGeometry(0.04, 0.036, 0.42), 0.08);
-  rifle.translate(0.12, 0.52, -0.28);
+  rifle.translate(0.22, 0.5, -0.3);
   const stock = shade(new THREE.BoxGeometry(0.05, 0.06, 0.08), 0.12);
-  stock.translate(0.12, 0.46, -0.06);
-  const pack = shade(new THREE.BoxGeometry(0.09, 0.12, 0.06), 0.2);
-  pack.translate(0, 0.54, 0.09);
+  stock.translate(0.22, 0.44, -0.08);
+  const pack = shade(new THREE.BoxGeometry(0.12, 0.14, 0.07), 0.2);
+  pack.translate(0, 0.52, 0.12);
   if (variant === 1) {
     // A long stride and a rifle swung out so both clear the body from above.
     around(legL, -0.07, 0.46, 0.02, 1.25, 0.1);
     around(legR, 0.07, 0.46, -0.02, -1.05, 0);
-    around(armL, -0.15, 0.72, -0.04, -0.85, 0.25);
-    around(armR, 0.15, 0.7, -0.05, 0.45, -0.35);
-    around(rifle, 0.12, 0.52, -0.08, 0.15, -1.05);
-    around(torso, 0, 0.58, 0, 0.18, 0.28);
+    around(armL, -0.2, 0.72, -0.05, -0.85, 0.25);
+    around(armR, 0.2, 0.7, -0.06, 0.45, -0.35);
+    around(rifle, 0.22, 0.5, -0.1, 0.15, -1.15);
+    around(torso, 0, 0.56, 0, 0.18, 0.28);
   } else if (variant === 2) {
     around(legL, -0.07, 0.46, 0.02, -1.0, 0);
     around(legR, 0.07, 0.46, -0.02, 1.2, -0.12);
-    around(armL, -0.15, 0.72, -0.04, 0.9, -0.2);
-    around(armR, 0.15, 0.7, -0.05, -0.35, 0.4);
-    around(rifle, 0.12, 0.52, -0.08, -0.2, 0.95);
-    around(torso, 0, 0.58, 0, 0.22, -0.42);
+    around(armL, -0.2, 0.72, -0.05, 0.9, -0.2);
+    around(armR, 0.2, 0.7, -0.06, -0.35, 0.4);
+    around(rifle, 0.22, 0.5, -0.1, -0.2, 1.05);
+    around(torso, 0, 0.56, 0, 0.22, -0.42);
   }
   const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, band, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
@@ -297,23 +298,35 @@ export function createCrowds(scene) {
   function formation(owner, anchorX, anchorZ, yaw, count, track) {
     const n = visualCount(count);
     if (n <= 0) return;
-    const cols = colsFor(n);
-    const spacing = RANK_SPACING;
+    const placed = [];
     for (let i = 0; i < n; i++) {
-      const c = i % cols;
-      const r = Math.floor(i / cols);
-      const rows = Math.ceil(n / cols);
-      const rowCount = r === rows - 1 ? n - r * cols : cols;
       const lead = track && i === 0;
-      const scatter = lead ? 0 : 1;
-      const lx = (c - (rowCount - 1) / 2) * spacing * 1.7
-        + scatter * Math.sin(i * 2.17 + r * 1.3) * spacing * 1.05;
-      const lz = r * spacing * 0.72
-        + scatter * Math.cos(i * 1.63) * spacing * 0.95;
+      // Each figure keeps its own offset. A column index rebuilds the rows.
+      let lx = 0;
+      let lz = 0;
+      if (!lead) {
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const ang = i * 2.399963 + attempt * 0.85 + Math.sin(i * 3.7) * 0.4;
+          const rad = 0.95 + (i % 4) * 0.36 + attempt * 0.24;
+          lx = Math.cos(ang) * rad;
+          lz = Math.sin(ang) * rad * 0.72;
+          let clear = true;
+          for (let k = 0; k < placed.length; k++) {
+            const dx = lx - placed[k].x;
+            const dz = lz - placed[k].z;
+            if (dx * dx + dz * dz < 0.88 * 0.88) {
+              clear = false;
+              break;
+            }
+          }
+          if (clear) break;
+        }
+      }
+      placed.push({ x: lx, z: lz });
       rotateXZ(lx, lz, yaw, _slot);
-      const bob = lead ? 1 : 0.84 + Math.abs(Math.sin(i * 2.4)) * 0.3;
-      const yawJ = lead ? yaw : yaw + Math.sin(i * 1.9) * 0.62;
-      const lean = lead ? 0 : Math.sin(i * 2.6) * 0.16;
+      const bob = lead ? 1 : 0.74 + Math.abs(Math.sin(i * 2.4)) * 0.42;
+      const yawJ = lead ? yaw : yaw + Math.sin(i * 1.9) * 0.9;
+      const lean = lead ? 0 : Math.sin(i * 2.6) * 0.22;
       const pose = lead ? 0 : (i % 2) + 1;
       push(owner, anchorX + _slot.x, 0.02, anchorZ + _slot.z, yawJ, SOLDIER_SCALE * bob, lead, lean, pose);
     }

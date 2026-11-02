@@ -259,3 +259,9 @@
 - Ground and light. The sand bank is wider (`BANK_OUT` 0.98) and pale, so it sits beside the water. The river centre stays `0x6eb4d4`, with a lighter streak and a darker trough. Territory discs and dirt patches break the meadow. A dark contact disc sits on the near side of each headquarters, and the combat shot is rendered with the warm sun shadow on.
 - Pages. The reviewed bundle was already live: `static/app.js` 567200 bytes, sha256 `39205eda2fb377ed`. This round rebuilds a new bundle in the tree. No git commit.
 - 67 tests passed. Rebuilt `static/app.js` (597044 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.
+
+## Round 38 fixes
+
+- Soldiers. Each figure takes its own offset around the anchor, with a gap so neighbours do not stack into a column. The helmet sphere is radius 0.064. The jacket is wider than that dome, so the torso is the mass in the 390 shot. Stride poses still swing a leg and the rifle clear of the body. The olive dome and the team colour on the band and one arm stay. The tracked marcher stays on the standing pose. Scale stays 1.28.
+- Ground and water. The river centre keeps `0x6eb4d4`. A wide pale glint runs down the channel, and the edges of the water stay darker. Dark dirt patches sit in the meadow beside the tan road. The contact disc under the near headquarters stays, and the combat shot is rendered with the warm sun shadow on.
+- 67 tests passed. Rebuilt `static/app.js` (597385 bytes) and `static/style.css` (10850 bytes). Shots are `screenshots/fix-35/home.png` and `combat.png` at 390×844.

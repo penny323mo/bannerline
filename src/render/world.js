@@ -56,14 +56,18 @@ function tintZone(mesh, hex) {
   _stainBase.setHex(hex);
   const ox = mesh.position.x;
   const oz = mesh.position.z;
+  const sx = mesh.scale.x || 1;
+  const sz = mesh.scale.z || 1;
+  const flankDirt = new THREE.Color(0x3a2c1c);
   for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const z = pos.getZ(i);
-    const n = Math.sin(x * 2.4 + ox * 0.55) + Math.cos(z * 3.1 + oz * 0.4);
+    const x = pos.getX(i) * sx + ox;
+    const z = pos.getZ(i) * sz + oz;
+    const n = Math.sin(x * 1.55) + Math.cos(z * 1.25);
+    const beside = Math.abs(x) > 0.85 && Math.abs(x) < 3.2 && Math.abs(z) > 0.85;
     _stainTone.copy(_stainBase);
-    if (n > 0.2) _stainTone.lerp(_stainDirt, 0.9);
-    else if (n < -0.45) _stainTone.lerp(_stainDeep, 0.8);
-    else if (Math.sin(x * 6.5 + z * 4 + ox) > 0.35) _stainTone.lerp(_stainDirt, 0.72);
+    if (beside && Math.sin(x * 2.1 + z * 1.6) > -0.05) _stainTone.lerp(flankDirt, 0.9);
+    else if (n > 0.1) _stainTone.lerp(_stainDirt, 0.9);
+    else if (n < -0.25) _stainTone.lerp(_stainDeep, 0.82);
     colors.setXYZ(i, _stainTone.r, _stainTone.g, _stainTone.b);
   }
   colors.needsUpdate = true;
@@ -577,11 +581,13 @@ function streamRibbon(span) {
     { off: -(WATER_HALF + BANK_OUT), y: 0.14, hex: 0xe7d7a8, sand: true },
     { off: -(WATER_HALF + BANK_OUT * 0.42), y: 0.125, hex: 0xf3e6c0, sand: true },
     { off: -WATER_HALF, y: 0.108, hex: 0xd9c49a, sand: true },
-    { off: -WATER_HALF + 0.18, y: 0.08, hex: 0xb9dcea },
-    { off: -0.16, y: 0.062, hex: 0x8ec8e0 },
-    { off: 0, y: 0.05, hex: 0x6eb4d4 },
-    { off: 0.16, y: 0.062, hex: PALETTE.stream },
-    { off: WATER_HALF - 0.18, y: 0.08, hex: 0x9ed0e4 },
+    { off: -WATER_HALF + 0.16, y: 0.086, hex: 0x245878 },
+    { off: -0.34, y: 0.072, hex: 0x4e93b4 },
+    { off: -0.16, y: 0.058, hex: 0x9fd8ee },
+    { off: -0.04, y: 0.05, hex: 0x6eb4d4 },
+    { off: 0.08, y: 0.05, hex: 0xd7f1fb },
+    { off: 0.22, y: 0.06, hex: 0x7ec4e2 },
+    { off: WATER_HALF - 0.16, y: 0.086, hex: PALETTE.stream },
     { off: WATER_HALF, y: 0.108, hex: 0xd9c49a, sand: true },
     { off: WATER_HALF + BANK_OUT * 0.42, y: 0.125, hex: 0xf3e6c0, sand: true },
     { off: WATER_HALF + BANK_OUT, y: 0.14, hex: 0xe7d7a8, sand: true },
@@ -599,11 +605,12 @@ function streamRibbon(span) {
       positions[p + 1] = band.y;
       positions[p + 2] = bow + band.off;
       tone.setHex(band.hex);
-      if (Math.abs(band.off) < 0.02) {
-        const glint = Math.pow(Math.max(0, Math.sin(x * 1.35 + 0.6)), 1.35);
-        tone.lerp(new THREE.Color(0xe7f6fb), 0.28 + glint * 0.58);
-      } else if (Math.abs(Math.abs(band.off) - (WATER_HALF - 0.12)) < 0.03) {
-        tone.lerp(new THREE.Color(0xd7eef6), 0.22 + 0.28 * (0.5 + 0.5 * Math.sin(x * 2.1)));
+      if (!band.sand) {
+        const across = Math.max(0, 1 - Math.abs(band.off) / 0.4);
+        const wave = 0.5 + 0.5 * Math.sin(x * 1.15 + 0.6);
+        const rip = 0.5 + 0.5 * Math.sin(x * 3.3 + band.off * 7);
+        tone.lerp(new THREE.Color(0xf5fcff), across * (0.42 + 0.48 * wave));
+        tone.lerp(new THREE.Color(0x163f58), (1 - across) * 0.45 + (1 - rip) * across * 0.18);
       }
       colors[p] = tone.r;
       colors[p + 1] = tone.g;
@@ -921,32 +928,35 @@ function buildIsland(map, reduceMotion) {
     zoneMeshes.set(z.buildingId, mesh);
   }
 
+  // Dark worn patches sit in the open meadow beside the tan road.
   const dirtSpots = [
-    [2.35, 4.7, 1.2, 0x8d6840],
-    [-2.55, 3.9, 0.95, 0x6b4e32],
-    [1.5, 7.05, 0.8, 0x967044],
-    [-2.1, 6.7, 0.7, 0x7a5636],
-    [2.9, -4.5, 1.1, 0x8a623c],
-    [-2.4, -5.4, 0.9, 0x6a4c30],
-    [3.2, -6.7, 0.75, 0x947048],
-    [-3.3, 2.15, 0.72, 0x7c5a38],
-    [3.5, 2.2, 0.68, 0x886038],
+    [-1.65, 4.4, 0.9, 1.35, 0x2a2218],
+    [1.75, 5.05, 0.75, 1.05, 0x3c2e20],
+    [-1.9, 1.65, 1.0, 1.2, 0x241c14],
+    [1.6, 1.4, 0.85, 1.0, 0x32261c],
+    [-1.75, -1.9, 0.95, 1.25, 0x261e16],
+    [1.8, -1.5, 0.8, 1.05, 0x3a2c1e],
+    [1.85, -4.55, 0.75, 1.15, 0x2e2418],
+    [-1.5, -4.4, 0.9, 1.3, 0x34281c],
+    [2.35, 2.55, 0.7, 0.85, 0x4a3824],
+    [-2.45, -2.65, 0.7, 0.9, 0x3e3020],
   ];
   const dirtParts = [];
   const dirtTone = new THREE.Color();
   const dirtMeadow = new THREE.Color(PALETTE.meadow);
   for (let i = 0; i < dirtSpots.length; i++) {
     const spot = dirtSpots[i];
-    const geo = new THREE.CircleGeometry(spot[2], 16);
+    const geo = new THREE.CircleGeometry(1, 18);
     geo.rotateX(-Math.PI / 2);
-    geo.translate(spot[0], 0.065, spot[1]);
+    geo.scale(spot[2], 1, spot[3]);
+    geo.translate(spot[0], 0.1, spot[1]);
     const pos = geo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
-    dirtTone.setHex(spot[3]);
+    dirtTone.setHex(spot[4]);
     for (let v = 0; v < pos.count; v++) {
-      const edge = Math.min(1, Math.hypot(pos.getX(v) - spot[0], pos.getZ(v) - spot[1]) / spot[2]);
+      const edge = Math.min(1, Math.hypot((pos.getX(v) - spot[0]) / spot[2], (pos.getZ(v) - spot[1]) / spot[3]));
       const tone = dirtTone.clone();
-      if (edge > 0.45) tone.lerp(dirtMeadow, (edge - 0.45) / 0.55);
+      if (edge > 0.78) tone.lerp(dirtMeadow, (edge - 0.78) / 0.22);
       colors[v * 3] = tone.r;
       colors[v * 3 + 1] = tone.g;
       colors[v * 3 + 2] = tone.b;

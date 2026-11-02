@@ -65,15 +65,21 @@ const _stainBase = new THREE.Color();
 const _stainDirt = new THREE.Color(0x8d6840);
 const _stainDeep = new THREE.Color(0x3a4a2c);
 const _stainTone = new THREE.Color();
-const _tuft = new THREE.Color(0x12361c);
-const _wornTan = new THREE.Color(0xc48a48);
+const _tuft = new THREE.Color(0x2f6a32);
+const _wornTan = new THREE.Color(0xd2ae74);
+const _paleTuft = new THREE.Color(0xdff3b0);
+const _shadeTuft = new THREE.Color(0x3c6834);
 
-/** Dark tuft in the open grass left of the red block. Tan patch right of the tank. */
+/** Dark grass left of the red block. Flat tan right of the tank. Two tufts in the open middle. */
 function applyMeadowMarks(tone, x, z) {
   const tuft = Math.hypot((x + 4.9) / 1.05, (z + 3.15) / 0.85);
-  if (tuft < 1) tone.lerp(_tuft, 1 - tuft * 0.06);
+  if (tuft < 1) tone.lerp(_tuft, 1 - tuft * 0.1);
   const worn = Math.hypot((x - 3.2) / 1.55, (z - 4.65) / 1.25);
-  if (worn < 1) tone.lerp(_wornTan, 1 - worn * 0.06);
+  if (worn < 1) tone.lerp(_wornTan, 1 - worn * 0.1);
+  const pale = Math.hypot((x + 2.15) / 0.95, (z + 1.05) / 0.65);
+  if (pale < 1) tone.lerp(_paleTuft, 1 - pale * 0.12);
+  const shade = Math.hypot((x - 1.45) / 0.7, (z + 0.7) / 0.5);
+  if (shade < 1) tone.lerp(_shadeTuft, 1 - shade * 0.12);
 }
 
 function meadowMarkGeometry(x, z, rx, rz, hex) {
@@ -88,7 +94,8 @@ function meadowMarkGeometry(x, z, rx, rz, hex) {
   for (let i = 0; i < pos.count; i++) {
     const u = Math.min(1, Math.hypot(pos.getX(i) / rx, pos.getZ(i) / rz));
     tone.copy(core);
-    if (u > 0.62) tone.lerp(edge, (u - 0.62) / 0.38);
+    // Flat interior. A hot centre reads as a glow, so only the rim meets the meadow.
+    if (u > 0.78) tone.lerp(edge, (u - 0.78) / 0.22);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -1182,8 +1189,10 @@ function buildIsland(map, reduceMotion) {
   cap.castShadow = false;
   group.add(cap);
   addMerged(group, [
-    meadowMarkGeometry(-4.9, -3.15, 1.05, 0.85, 0x12361c),
-    meadowMarkGeometry(3.2, 4.65, 1.55, 1.25, 0xc48a48),
+    meadowMarkGeometry(-4.9, -3.15, 1.05, 0.85, 0x2f6a32),
+    meadowMarkGeometry(3.2, 4.65, 1.55, 1.25, 0xd2ae74),
+    meadowMarkGeometry(-2.15, -1.05, 0.95, 0.65, 0xdff3b0),
+    meadowMarkGeometry(1.45, -0.7, 0.7, 0.5, 0x3c6834),
   ], mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 
   const ownerById = {};

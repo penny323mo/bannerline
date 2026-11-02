@@ -138,8 +138,8 @@ function buildSoldier(soldierRoot, rifleRoot) {
   rifle.computeBoundingBox();
   const rifleSize = rifle.boundingBox.getSize(_size);
   const rifleScale = 0.72 / Math.max(rifleSize.z, 0.001);
-  rifle.scale(rifleScale * 2.2, rifleScale * 1.7, rifleScale * 1.35);
-  // Angle the barrel out of the chest. A later shove puts it in front of the torso.
+  // 1.1 keeps the barrel just past the hands. 2.2 made a spear longer than the man.
+  rifle.scale(rifleScale * 1.1, rifleScale * 1.7, rifleScale * 0.85);
   rifle.rotateY(0.85);
   rifle.computeBoundingBox();
   const hand = findNamed(soldierRoot, 'HandR');
@@ -162,12 +162,12 @@ function buildSoldier(soldierRoot, rifleRoot) {
   const cx = (fitted.min.x + fitted.max.x) * 0.5;
   const cz = (fitted.min.z + fitted.max.z) * 0.5;
   merged.translate(-cx, -fitted.min.y, -cz);
-  // Local −Z is the facing axis. The dark gun has to clear the chest on the front rank.
+  // A short nudge so the muzzle clears the hand. A 0.4 shove read as a spear.
   const gunPos = merged.getAttribute('position');
   const gunCol = merged.getAttribute('color');
   for (let i = 0; i < gunPos.count; i++) {
     const lum = gunCol.getX(i) * 0.2126 + gunCol.getY(i) * 0.7152 + gunCol.getZ(i) * 0.0722;
-    if (lum < 0.2) gunPos.setZ(i, gunPos.getZ(i) - 0.4);
+    if (lum < 0.2) gunPos.setZ(i, gunPos.getZ(i) - 0.06);
   }
   merged.computeVertexNormals();
   return merged;
@@ -684,6 +684,8 @@ function forestSpots(box) {
     if (Math.abs(z) < 0.55) continue;
     if (Math.hypot(x, z - 6.5) < 1.7) continue;
     if (Math.hypot(x + 4.9, z + 3.15) < 1.85) continue;
+    if (Math.hypot(x + 2.15, z + 1.05) < 1.45) continue;
+    if (Math.hypot(x - 1.45, z + 0.7) < 1.15) continue;
     spots.push({ x, z, s: 1.28 + (i % 3) * 0.12 });
   }
   for (let i = 0; i < 8; i++) {
@@ -693,6 +695,8 @@ function forestSpots(box) {
     if (Math.abs(z) < 0.55) continue;
     if (Math.abs(x) < 1.6) continue;
     if (Math.hypot(x + 4.9, z + 3.15) < 1.85) continue;
+    if (Math.hypot(x + 2.15, z + 1.05) < 1.45) continue;
+    if (Math.hypot(x - 1.45, z + 0.7) < 1.15) continue;
     spots.push({ x, z: z + 0.35, s: 1.12 + (i % 2) * 0.1 });
   }
   for (let i = 0; i < 9; i++) {
@@ -700,6 +704,8 @@ function forestSpots(box) {
     const z = box.minZ + 1.1 + t * (box.maxZ - box.minZ) * 0.48;
     const x = box.maxX - 1.15 - t * 0.4;
     if (Math.abs(z) < 0.55) continue;
+    if (Math.hypot(x + 2.15, z + 1.05) < 1.45) continue;
+    if (Math.hypot(x - 1.45, z + 0.7) < 1.15) continue;
     spots.push({ x, z, s: 1.32 + (i % 3) * 0.1 });
   }
   // Second ring, just outside the first, so each edge is a dark green band.
@@ -721,6 +727,8 @@ function forestSpots(box) {
     // Keep the open tan patch on the lower right free of trunks.
     if (Math.hypot(x + 4.9, z + 3.15) < 1.85) continue;
     if (Math.hypot(x - 3.2, z - 4.65) < 1.7) continue;
+    if (Math.hypot(x + 2.15, z + 1.05) < 1.45) continue;
+    if (Math.hypot(x - 1.45, z + 0.7) < 1.15) continue;
     spots.push({ x, z: z - (i % 2) * 0.32, s: 1.46 + (i % 3) * 0.16 });
   }
   return spots;

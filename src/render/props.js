@@ -137,8 +137,9 @@ function buildSoldier(soldierRoot, rifleRoot) {
   rifle.rotateY(-Math.PI / 2);
   rifle.computeBoundingBox();
   const rifleSize = rifle.boundingBox.getSize(_size);
-  const rifleScale = 0.62 / Math.max(rifleSize.z, 0.001);
-  rifle.scale(rifleScale, rifleScale, rifleScale);
+  const rifleScale = 0.72 / Math.max(rifleSize.z, 0.001);
+  rifle.scale(rifleScale * 2.2, rifleScale * 1.7, rifleScale);
+  rifle.rotateY(0.55);
   rifle.computeBoundingBox();
   const hand = findNamed(soldierRoot, 'HandR');
   hand.getWorldPosition(_v);
@@ -147,7 +148,7 @@ function buildSoldier(soldierRoot, rifleRoot) {
     _v.y - (rifle.boundingBox.min.y + rifle.boundingBox.max.y) * 0.5,
     _v.z - rifle.boundingBox.min.z,
   );
-  parts.push(colorize(rifle, 0x2a2e28));
+  parts.push(colorize(rifle, 0x1a1c18));
   const merged = mergeGeometries(parts);
   merged.rotateY(Math.PI);
   merged.computeBoundingBox();
@@ -173,7 +174,8 @@ function preparedGeometry(root, tint) {
     geo.applyMatrix4(obj.matrixWorld);
     const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     const color = mat && mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
-    if (tint) color.lerp(new THREE.Color(tint), 0.45);
+    const lum = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+    if (tint && lum >= 0.25) color.lerp(new THREE.Color(tint), 0.45);
     parts.push(posColor(geo, color.getHex()));
   });
   const geo = mergeGeometries(parts);

@@ -533,7 +533,7 @@ export function bridgeDeckGeometries(crossings) {
   for (let i = 0; i < crossings.length; i++) {
     const x = crossings[i].x;
     const z = crossings[i].z;
-    const plank = new THREE.BoxGeometry(0.92, 0.08, 2.2);
+    const plank = new THREE.BoxGeometry(0.92, 0.08, 2.2, 8, 1, 28);
     plank.translate(x, 0.16, z);
     parts.push(plank);
     for (const side of [-0.42, 0.42]) {
@@ -882,8 +882,9 @@ function paintDirt(geo) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
   const base = new THREE.Color(PALETTE.road);
-  const dark = new THREE.Color(0x4e3e2e);
-  const light = new THREE.Color(0x8a6e4c);
+  base.lerp(new THREE.Color(0x6a4e32), 0.7);
+  const dark = new THREE.Color(0x3f2c1a);
+  const light = new THREE.Color(0x8d6844);
   const tone = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
@@ -896,8 +897,9 @@ function paintDirt(geo) {
       tone.lerp(dark, 0.55);
     }
     const groove = Math.sin(z * 18 + x * 2.4);
-    if (groove > 0.25) tone.lerp(dark, 0.88);
-    else if (groove < -0.45) tone.lerp(light, 0.65);
+    const rut = Math.sin(x * 16 + z * 0.6);
+    if (groove > 0.45 || rut > 0.72) tone.lerp(dark, 0.82);
+    else if (groove < -0.35) tone.lerp(light, 0.75);
     colors[i * 3] = tone.r;
     colors[i * 3 + 1] = tone.g;
     colors[i * 3 + 2] = tone.b;
@@ -930,6 +932,24 @@ function roundedStrip(length, width, radius, height) {
   return geo;
 }
 
+/** Subdivided deck so the dirt sine has vertices to draw as ruts. */
+function dirtGrid(length, width, x0, z0, x1, z1, y) {
+  const segL = Math.max(4, Math.round(length / 0.1));
+  const geo = new THREE.PlaneGeometry(width, length, 8, segL);
+  geo.rotateX(-Math.PI / 2);
+  const holder = new THREE.Mesh(geo);
+  holder.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+  const dx = x1 - x0;
+  const dz = z1 - z0;
+  const len = Math.hypot(dx, dz) || 1;
+  _dir.set(dx / len, 0, dz / len);
+  holder.quaternion.setFromUnitVectors(LOCAL_Z, _dir);
+  holder.updateMatrix();
+  geo.applyMatrix4(holder.matrix);
+  paintDirt(geo);
+  return geo;
+}
+
 function bakeStrip(length, width, radius, height, x0, z0, x1, z1, y) {
   const geo = roundedStrip(length, width, radius, height);
   const holder = new THREE.Mesh(geo);
@@ -952,9 +972,7 @@ function addEdges(group, map, roadMat) {
     const seg = segs[i];
     const len = Math.hypot(seg.x1 - seg.x0, seg.z1 - seg.z0);
     if (len < 0.15) continue;
-    const road = bakeStrip(len, ROAD_W, 0.3, ROAD_H, seg.x0, seg.z0, seg.x1, seg.z1, seg.y);
-    paintDirt(road);
-    parts.push(road);
+    parts.push(dirtGrid(len, ROAD_W, seg.x0, seg.z0, seg.x1, seg.z1, seg.y + 0.03));
     shoulderParts.push(bakeStrip(
       len,
       ROAD_W + 0.7,
@@ -968,7 +986,7 @@ function addEdges(group, map, roadMat) {
     ));
   }
   addMerged(group, parts, roadMat, { cast: false, receive: false });
-  addMerged(group, shoulderParts, mat(0xe6d3a8, { roughness: 0.96, metalness: 0 }), { cast: false, receive: false });
+  addMerged(group, shoulderParts, mat(0x6b5138, { roughness: 0.96, metalness: 0 }), { cast: false, receive: false });
 }
 
 function buildIsland(map, reduceMotion) {
@@ -1066,8 +1084,27 @@ function buildIsland(map, reduceMotion) {
   addEdges(group, map, roadMat);
 
   // Decks sit on the crossings, after the road, so the plank is the surface you see.
+  const decks = bridgeDeckGeometries(streamCrossings(map));
+  const planks = [];
+  const rails = [];
+  for (let i = 0; i < decks.length; i++) {
+    if (i % 3 === 0) {
+      paintDirt(decks[i]);
+      planks.push(decks[i]);
+    } else {
+      rails.push(decks[i]);
+    }
+  }
+  addMerged(group, planks, mat(0xffffff, {
+    vertexColors: true,
+    roughness: 0.94,
+    metalness: 0,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  }));
   const bridgeMat = mat(PALETTE.bridge, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  addMerged(group, bridgeDeckGeometries(streamCrossings(map)), bridgeMat);
+  addMerged(group, rails, bridgeMat);
 
   const trunks = [];
   const crowns = {};

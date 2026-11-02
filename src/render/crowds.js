@@ -31,6 +31,24 @@ function enemyBank(x, z) {
   return { x, z };
 }
 
+/** Team colour stays off vertices darker than about 0.25, so the shotgun stays dark metal. */
+function tintSoldierGeo(source, tintHex) {
+  const geo = source.clone();
+  const attr = geo.getAttribute('color');
+  if (!attr) return geo;
+  const team = new THREE.Color(tintHex);
+  const tone = new THREE.Color();
+  for (let i = 0; i < attr.count; i++) {
+    tone.setRGB(attr.getX(i), attr.getY(i), attr.getZ(i));
+    const lum = tone.r * 0.2126 + tone.g * 0.7152 + tone.b * 0.0722;
+    if (lum < 0.25) continue;
+    tone.multiply(team);
+    attr.setXYZ(i, tone.r, tone.g, tone.b);
+  }
+  attr.needsUpdate = true;
+  return geo;
+}
+
 /** Short loose ranks. A few larger figures read as a squad, not a dot grid. */
 export function colsFor(n) {
   if (n > 8) return 4;
@@ -423,21 +441,23 @@ export function createCrowds(scene) {
       pads.instanceMatrix.needsUpdate = true;
     },
     useSoldier(geo) {
+      const greenGeo = tintSoldierGeo(geo, 0x2f9e5b);
+      const redGeo = tintSoldierGeo(geo, 0xc43c32);
       const greenMat = new THREE.MeshStandardMaterial({
-        color: 0x2f9e5b,
+        color: 0xffffff,
         roughness: 0.78,
         metalness: 0.04,
         vertexColors: true,
       });
       const redMat = new THREE.MeshStandardMaterial({
-        color: 0xc43c32,
+        color: 0xffffff,
         roughness: 0.78,
         metalness: 0.04,
         vertexColors: true,
       });
       for (let v = 0; v < POSES; v++) {
-        green[v].geometry = geo;
-        red[v].geometry = geo;
+        green[v].geometry = greenGeo;
+        red[v].geometry = redGeo;
         green[v].material = greenMat;
         red[v].material = redMat;
       }

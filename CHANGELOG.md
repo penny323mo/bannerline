@@ -179,3 +179,10 @@
 - Home cards are taller painted maps in a riveted metal frame, with a larger embossed title and a thicker 出戰.
 - Spamming the enemy headquarters on 中 is not a win before 60s. 難 holds headquarters assaults until t=60, so an idle game and a full dump are still playing at 60s. A measured 難 win stays inside 120–240s.
 - 66 tests passed. Rebuilt `static/app.js` (558358 bytes) and `static/style.css` (9423 bytes).
+
+## Round 27 fixes
+
+- The play camera is a lower three-quarter (fov 48 at (0.15, 23, 16), looking at (0, 0, 1.3)). At 390×844 a player-barracks helmet is about 9.5 CSS px, the body is about 32 CSS px tall, and the player headquarters roof and foot are about 29 CSS px apart. The enemy headquarters roof sits near screen y 177 and the player headquarters foot near screen y 590, so both bunkers, the road, and the stream stay in frame. Soldier scale is 1.52 and rank spacing is 0.38. Screen-right stays world +x. The home camera is unchanged.
+- The frontier hard band uses z scale 1.2 and the tint uses z scale 1.75. On this camera that lip is about 9 CSS px across the stream. Zone colour stays on the slabs, and the grey deck stays on the water.
+- The selected 易 / 中 / 難 segment has a light top inset and a dark bottom inset. Map cards keep their own selection edge.
+- 66 tests passed. Rebuilt `static/app.js` (558362 bytes) and `static/style.css` (9597 bytes).

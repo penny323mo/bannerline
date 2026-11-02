@@ -6,13 +6,15 @@ import { PALETTE } from './palette.js';
  * Screen-right is world +x. camera.up stays (0, 1, 0); the view is angled, not straight down.
  */
 export function frameDioramaCamera(camera, aspect) {
-  // High three-quarter over the whole island. Screen-right is world +x:
+  // Three-quarter over the island. Screen-right is world +x:
   // camera sits on +z, up is +y, look is toward −z.
-  camera.fov = 38;
+  // Low enough that a barracks helmet and the near bunker have a face,
+  // with both headquarters, the road, and the stream still in the portrait.
+  camera.fov = 48;
   if (Number.isFinite(aspect) && aspect > 0) camera.aspect = aspect;
-  camera.position.set(0.15, 28, 8);
+  camera.position.set(0.15, 23, 16);
   camera.up.set(0, 1, 0);
-  camera.lookAt(0, 0, 0.4);
+  camera.lookAt(0, 0, 1.3);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 }

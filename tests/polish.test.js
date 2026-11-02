@@ -242,6 +242,9 @@ test('the frontier band is green on the player side and red on the enemy side', 
   }
   assert.ok(playerSide >= 2 && enemySide >= 2);
   geo.dispose();
+  const worldSrc = readFileSync(new URL('../src/render/world.js', import.meta.url), 'utf8');
+  assert.match(worldSrc, /band\.scale\.set\(span, 1, 1\.2\)/);
+  assert.match(worldSrc, /tint\.scale\.set\(span, 1, 1\.75\)/);
 });
 
 test('palette and soldiers match the military art brief', () => {
@@ -285,10 +288,10 @@ test('palette and soldiers match the military art brief', () => {
   geo.dispose();
 });
 
-test('a player barracks soldier reads as a small helmet at 390px', () => {
+test('a player barracks soldier reads at 390px', () => {
   const width = 390;
   const height = 844;
-  const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 140);
+  const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 140);
   frameDioramaCamera(camera, width / height);
   const bar = NODES['player-bar'];
   const spot = garrisonAnchor('player', 'barracks', bar.x, bar.z, 30);
@@ -309,12 +312,16 @@ test('a player barracks soldier reads as a small helmet at 390px', () => {
   let rMaxX = -Infinity;
   let rMinY = Infinity;
   let rMaxY = -Infinity;
+  let bMinY = Infinity;
+  let bMaxY = -Infinity;
   for (let i = 0; i < pos.count; i++) {
     const shade = col.getX(i);
     const x = ax + pos.getX(i) * SOLDIER_SCALE;
     const y = 0.02 + pos.getY(i) * SOLDIER_SCALE;
     const z = az + pos.getZ(i) * SOLDIER_SCALE;
     if (!projectToCss(x, y, z, camera, width, height, out)) continue;
+    bMinY = Math.min(bMinY, out.y);
+    bMaxY = Math.max(bMaxY, out.y);
     if (shade >= 0.95) {
       hMinX = Math.min(hMinX, out.x);
       hMaxX = Math.max(hMaxX, out.x);
@@ -329,9 +336,23 @@ test('a player barracks soldier reads as a small helmet at 390px', () => {
   }
   const helmetPx = Math.min(hMaxX - hMinX, hMaxY - hMinY);
   const barrelPx = Math.min(rMaxX - rMinX, rMaxY - rMinY);
-  assert.ok(SOLDIER_SCALE > 0.5 && SOLDIER_SCALE < 0.75, `scale ${SOLDIER_SCALE}`);
-  assert.ok(helmetPx > 2 && helmetPx < 12, `helmet ${helmetPx.toFixed(1)}px`);
-  assert.ok(barrelPx > 0.5 && barrelPx < 8, `barrel ${barrelPx.toFixed(1)}px`);
+  const bodyPx = bMaxY - bMinY;
+  const hq = NODES['player-hq'];
+  const ehq = NODES['enemy-hq'];
+  const roof = { x: 0, y: 0 };
+  const foot = { x: 0, y: 0 };
+  const eRoof = { x: 0, y: 0 };
+  assert.equal(projectToCss(hq.x, 2.05, hq.z, camera, width, height, roof), true);
+  assert.equal(projectToCss(hq.x, 0.25, hq.z, camera, width, height, foot), true);
+  assert.equal(projectToCss(ehq.x, 2.05, ehq.z, camera, width, height, eRoof), true);
+  const facePx = foot.y - roof.y;
+  assert.ok(SOLDIER_SCALE > 0.9 && SOLDIER_SCALE < 1.7, `scale ${SOLDIER_SCALE}`);
+  assert.ok(helmetPx >= 9 && helmetPx < 20, `helmet ${helmetPx.toFixed(1)}px`);
+  assert.ok(bodyPx >= 24, `body ${bodyPx.toFixed(1)}px`);
+  assert.ok(facePx >= 24, `headquarters face ${facePx.toFixed(1)}px`);
+  assert.ok(eRoof.y > 70, `enemy roof ${eRoof.y.toFixed(1)}`);
+  assert.ok(foot.y < 760, `player foot ${foot.y.toFixed(1)}`);
+  assert.ok(barrelPx > 1 && barrelPx < 14, `barrel ${barrelPx.toFixed(1)}px`);
   geo.dispose();
   const fxSrc = readFileSync(new URL('../src/render/fx.js', import.meta.url), 'utf8');
   const size = Number((fxSrc.match(/size:\s*([0-9.]+)/) || [])[1]);

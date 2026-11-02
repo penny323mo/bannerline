@@ -576,10 +576,18 @@ body {
   color: var(--muted);
 }
 
-#maps button.is-on,
-#diffs button.is-on {
+#maps button.is-on {
   border-color: var(--green);
   box-shadow: inset 0 0 0 1px var(--green);
+}
+
+#diffs button.is-on {
+  border-color: var(--green);
+  background: linear-gradient(180deg, #3d4e48 0%, #24302c 46%, #17211e 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(236, 246, 238, 0.72),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px var(--green);
 }
 
 #start {

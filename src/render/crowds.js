@@ -5,9 +5,9 @@ import { rotateXZ, yawForFacing } from '../sim/facing.js';
 import { PALETTE } from './palette.js';
 
 const MAX = 480;
-/** Miniatures, about a third of the previous rank, so a full map fits the portrait. */
-export const SOLDIER_SCALE = 0.65;
-export const RANK_SPACING = 0.24;
+/** Rank size paired with the play camera so a helmet stays readable beside the pad. */
+export const SOLDIER_SCALE = 1.52;
+export const RANK_SPACING = 0.38;
 /** Olive and deep red helmets. Pastel helmets read as salmon and mint from above. */
 export const HELMET_PLAYER = 0x3e6b32;
 export const HELMET_ENEMY = 0x7c2a22;

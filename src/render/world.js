@@ -944,12 +944,13 @@ function buildIsland(map, reduceMotion) {
         const yaw = alongX ? flip : Math.PI / 2 + flip;
         band.visible = true;
         band.position.set(cx, 0.22, cz);
-        band.scale.set(span, 1, 4.4);
+        // Z is the lip across the frontier. A wide scale paints a stripe over the stream.
+        band.scale.set(span, 1, 1.2);
         band.rotation.y = yaw;
         const tint = tints[i];
         tint.visible = true;
         tint.position.set(cx, 0.08, cz);
-        tint.scale.set(span, 1, 6.4);
+        tint.scale.set(span, 1, 1.75);
         tint.rotation.y = yaw;
       }
       for (let i = segs.length; i < tints.length; i++) tints[i].visible = false;

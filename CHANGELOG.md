@@ -191,3 +191,8 @@
 
 - A headquarters rank stays on its own pad, on the far side of that pad's barracks. On 對岸 and 長路 the enemy barracks pill no longer covers the headquarters soldiers. On 雙橋 each flank rank stands on the home side of the stream, so the barracks pill across the bridge misses that rank.
 - 67 tests passed. Rebuilt `static/app.js` (558477 bytes). `static/style.css` stays 9597 bytes.
+
+## Round 29 fixes
+
+- The round 29 review found no CRITICAL, MAJOR, or MINOR issues. Headquarters ranks stay on their own pads, clear of the barracks pills. The 390px frame, the frontier lip, the painted home cards, the bevelled 易 / 中 / 難 segment, the siege sparks, and the 60s 中 / 難 holds stay closed.
+- 67 tests passed. No source or bundle change. `static/app.js` stays 558477 bytes and `static/style.css` stays 9597 bytes.

@@ -1,0 +1,4 @@
+You are the coder. cd /workspace/sidequest/top-force-like. The reviewer passed round 29 from code alone, but the live 390px build still misses Penny's approved art bar. Read /workspace/sidequest/top-force-like/review/loop-r30/coder-audit.md and fix every item (all are MAJOR). Compare against /workspace/sidequest/top-force-like/review/art-mockup-v2/02-home-390x844.png and 01-combat-390x844.png. Keep matching /workspace/sidequest/top-force-like/PLAN.md. Rebuild static/ if the app serves a bundle. Take 390x844 screenshots of home and an opening battle into screenshots/fix-30/ and look at them before finishing. Do not edit reviews/ or prompts/. Run the tests. Append '## Round 30 fixes' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/sidequest/top-force-like/.orch/fix-30.done containing the word DONE.
+ORCH_SENTINEL=/workspace/sidequest/top-force-like/.orch/fix-30.done

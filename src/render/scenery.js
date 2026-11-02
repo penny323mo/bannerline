@@ -20,11 +20,19 @@ export const CROSSING_TREES = [
 
 export const CROSSING_ROCKS = [
   { x: 2.55, z: 6.4, s: 0.85 },
+  { x: 2.15, z: 6.15, s: 0.42 },
   { x: -2.7, z: -6.5, s: 0.7 },
+  { x: -2.25, z: -6.15, s: 0.38 },
   { x: 3.4, z: -0.2, s: 0.55 },
+  { x: 3.05, z: 0.25, s: 0.32 },
   { x: -3.45, z: 2.4, s: 0.62 },
+  { x: -3.05, z: 2.05, s: 0.34 },
   { x: 3.15, z: -6.2, s: 0.48 },
   { x: -3.05, z: -2.4, s: 0.4 },
+  { x: -1.15, z: 6.85, s: 0.36 },
+  { x: 3.55, z: 4.35, s: 0.44 },
+  { x: -2.35, z: -4.15, s: 0.4 },
+  { x: 1.95, z: -4.55, s: 0.3 },
 ];
 
 export function islandBounds(map) {
@@ -70,9 +78,10 @@ export function rocksFor(map) {
   if (map.id === 'crossing') return CROSSING_ROCKS;
   const zones = map.zones || [];
   const out = [];
-  for (let i = 0; i < zones.length; i += 2) {
+  for (let i = 0; i < zones.length; i++) {
     const z = zones[i];
     out.push({ x: z.x + z.rx * 0.62, z: z.z - z.rz * 0.72, s: 0.5 });
+    out.push({ x: z.x - z.rx * 0.55, z: z.z + z.rz * 0.42, s: 0.34 });
   }
   return out;
 }
@@ -81,7 +90,7 @@ export function rocksFor(map) {
 export function streamBand(map) {
   const box = islandBounds(map);
   const width = Math.max(6.4, box.maxX - box.minX + 0.8);
-  return { x: 0, z: 0, halfWidth: width / 2, depth: 0.58 };
+  return { x: 0, z: 0, halfWidth: width / 2, depth: 1.28 };
 }
 
 function crossZ0(a, b) {

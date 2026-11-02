@@ -230,6 +230,38 @@ body {
   display: none;
 }
 
+#app.is-home .brand,
+#app.is-home .hud-actions {
+  display: none;
+}
+
+#app.is-home .scores {
+  flex: 1 1 auto;
+  width: 100%;
+  justify-content: space-between;
+  margin-left: 0;
+}
+
+.scores.is-preview .pill {
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 12px;
+}
+
+.scores.is-preview .pill::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  background: var(--green-glow);
+  clip-path: polygon(50% 0, 100% 24%, 82% 100%, 18% 100%, 0 24%);
+}
+
+.scores.is-preview .pill.foe::before {
+  background: var(--red-glow);
+  clip-path: polygon(50% 0, 63% 35%, 100% 35%, 70% 58%, 82% 100%, 50% 76%, 18% 100%, 30% 58%, 0 35%, 37% 35%);
+}
+
 .pill {
   display: inline-flex;
   align-items: baseline;
@@ -390,7 +422,7 @@ body {
 }
 
 .card { padding: 26px 22px 20px; }
-.home-card { width: min(100%, 360px); padding: 12px 12px 12px; text-align: left; }
+.home-card { width: min(100%, 360px); padding: 8px 8px 8px; text-align: left; }
 
 #sheet.win .card { border-color: var(--green); }
 #sheet.lose .card { border-color: var(--red-glow); }
@@ -469,19 +501,19 @@ body {
   z-index: 4;
   display: grid;
   place-items: end center;
-  padding: 8px 12px calc(78px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(26, 34, 32, 0) 0%, rgba(26, 34, 32, 0.15) 42%, rgba(26, 34, 32, 0.55) 100%);
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(26, 34, 32, 0) 58%, rgba(26, 34, 32, 0.28) 100%);
 }
 
 #home[hidden] { display: none; }
 
 .home-card h1 {
   display: table;
-  margin: 6px auto 0;
-  padding: 8px 18px 7px;
-  font-size: 28px;
+  margin: 0 auto;
+  padding: 4px 14px 3px;
+  font-size: 22px;
   line-height: 1.1;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-align: center;
   color: #f6efe2;
   background: linear-gradient(180deg, #7a6852 0%, #3a2e24 48%, #241c16 100%);
@@ -491,9 +523,9 @@ body {
 }
 
 .subname {
-  margin: 0 0 8px;
+  margin: 2px 0 4px;
   text-align: center;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--muted);
@@ -521,7 +553,7 @@ body {
 #diffs {
   flex-direction: row;
   gap: 0;
-  margin-top: 10px;
+  margin-top: 6px;
   overflow: hidden;
   border: 1px solid var(--edge);
   background: #141c1a;
@@ -529,9 +561,9 @@ body {
 
 #maps button,
 #diffs button {
-  min-height: 48px;
+  min-height: 44px;
   text-align: center;
-  padding: 6px 4px 8px;
+  padding: 2px 2px 4px;
 }
 
 #maps button {
@@ -542,7 +574,7 @@ body {
 
 .map-thumb {
   width: 100%;
-  height: 104px;
+  height: 58px;
   display: block;
   border: 1px solid #6e7874;
   border-radius: 2px;
@@ -569,11 +601,7 @@ body {
 #diffs button:last-child { border-right: none; }
 
 #maps button small {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
+  display: none;
 }
 
 #maps button.is-on {
@@ -592,9 +620,9 @@ body {
 
 #start {
   width: 100%;
-  min-height: 60px;
-  margin-top: 12px;
-  font-size: 26px;
+  min-height: 48px;
+  margin-top: 8px;
+  font-size: 22px;
   letter-spacing: 0.22em;
   color: #f4fff6;
   border: 2px solid #e7ffe8;

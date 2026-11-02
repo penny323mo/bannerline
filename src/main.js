@@ -9,7 +9,7 @@ import { createWorld } from './render/world.js';
 import { NODES } from './sim/mapdata.js';
 import { DIFFICULTIES, MAP_LIST } from './sim/maps.js';
 import { buildingById, createMatch, playerHold, retargetSquad, sendSquad, sideStrength, squadById, stepMatch } from './sim/match.js';
-import { COACH_KEY, coachSeenValue } from './sim/settings.js';
+import { COACH_KEY } from './sim/settings.js';
 import { applyUpgrade, quoteUpgrade } from './sim/upgrades.js';
 import { squadMarkX } from './render/pointer-math.js';
 import { PALETTE, ownerPaint } from './render/palette.js';
@@ -73,15 +73,8 @@ function dismissCoach() {
 }
 
 function syncCoach() {
-  if (!coachEl) return;
-  let seen = false;
-  try {
-    seen = coachSeenValue(localStorage.getItem(COACH_KEY));
-  } catch {
-    seen = false;
-  }
-  const show = !seen && state && state.status === 'playing' && homeEl.hidden;
-  coachEl.hidden = !show;
+  // The bottom hint is the one play instruction. A second bar repeats it.
+  if (coachEl) coachEl.hidden = true;
 }
 
 function warnHq() {
@@ -114,7 +107,7 @@ function setHint(mode) {
   }
   if (mode === 'drag') hintEl.textContent = '鬆手就出兵';
   else if (mode === 'selected') hintEl.textContent = '可以升級，或者拖去目標出兵';
-  else hintEl.textContent = '點自己建築，可以升級或者出兵';
+  else hintEl.textContent = '點自己建築出兵';
 }
 
 function showSheet(kind) {
@@ -147,6 +140,7 @@ function applyFrame() {
 
 function showHome(on) {
   homeEl.hidden = !on;
+  if (app) app.classList.toggle('is-home', !!on);
   if (scoresEl) {
     scoresEl.hidden = false;
     scoresEl.classList.toggle('is-preview', !!on);
@@ -381,19 +375,20 @@ function mapThumb(map) {
     };
   }
 
-  g.fillStyle = cssHex(PALETTE.water);
-  g.fillRect(0, 0, W, H);
   g.fillStyle = cssHex(PALETTE.meadow);
-  g.beginPath();
-  g.ellipse(W / 2, H / 2, W * 0.46, H * 0.46, 0, 0, Math.PI * 2);
-  g.fill();
+  g.fillRect(0, 0, W, H);
   g.fillStyle = cssHex(PALETTE.meadowDeep);
-  g.globalAlpha = 0.35;
+  g.fillRect(0, 0, W, H * 0.16);
+  g.fillRect(0, H * 0.84, W, H * 0.16);
+  g.fillRect(0, 0, W * 0.12, H);
+  g.fillRect(W * 0.88, 0, W * 0.12, H);
+  g.globalAlpha = 0.55;
+  g.fillStyle = cssHex(PALETTE.sand);
   g.beginPath();
-  g.ellipse(W * 0.32, H * 0.62, W * 0.16, H * 0.1, 0, 0, Math.PI * 2);
+  g.ellipse(W * 0.5, H * 0.28, W * 0.08, H * 0.07, 0, 0, Math.PI * 2);
   g.fill();
   g.beginPath();
-  g.ellipse(W * 0.68, H * 0.38, W * 0.14, H * 0.08, 0, 0, Math.PI * 2);
+  g.ellipse(W * 0.46, H * 0.74, W * 0.1, H * 0.06, 0, 0, Math.PI * 2);
   g.fill();
   g.globalAlpha = 1;
 
@@ -401,7 +396,7 @@ function mapThumb(map) {
   const buildings = map.buildings || [];
   for (let i = 0; i < buildings.length; i++) ownerById[buildings[i].id] = buildings[i].owner;
   const zones = map.zones || [];
-  g.globalAlpha = 0.42;
+  g.globalAlpha = 0.22;
   for (let i = 0; i < zones.length; i++) {
     const z = zones[i];
     const owner = ownerById[z.buildingId];
@@ -415,16 +410,34 @@ function mapThumb(map) {
   g.globalAlpha = 1;
 
   const band = streamBand(map);
-  const waterAt = pt({ x: 0, z: 0 });
-  const thick = Math.max(16, band.depth * scaleY * 1.6);
+  const waterAt = pt({ x: band.x, z: band.z });
+  const thick = Math.max(18, Math.min(H * 0.2, band.depth * scaleY * 0.55));
+  const bow = Math.max(5, thick * 0.35);
+  const shore = thick * 0.42;
+  function riverPoly(half, dy) {
+    const steps = 10;
+    g.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const x = (W * i) / steps;
+      const wave = Math.sin((i / steps) * Math.PI) * bow;
+      g.lineTo(x, waterAt.y - half + wave + dy);
+    }
+    for (let i = steps; i >= 0; i--) {
+      const x = (W * i) / steps;
+      const wave = Math.sin((i / steps) * Math.PI) * bow;
+      g.lineTo(x, waterAt.y + half + wave + dy);
+    }
+    g.closePath();
+    g.fill();
+  }
+  g.fillStyle = cssHex(PALETTE.sand);
+  riverPoly(thick / 2 + shore, 0);
+  g.fillStyle = cssHex(0x6a5c44);
+  riverPoly(thick / 2 + shore * 0.45, 0);
   g.fillStyle = cssHex(PALETTE.stream);
-  g.fillRect(0, waterAt.y - thick / 2, W, thick);
-  g.fillStyle = cssHex(PALETTE.player.main);
-  g.globalAlpha = 0.55;
-  g.fillRect(0, waterAt.y + thick / 2 - 3, W, 3);
-  g.fillStyle = cssHex(PALETTE.enemy.main);
-  g.fillRect(0, waterAt.y - thick / 2, W, 3);
-  g.globalAlpha = 1;
+  riverPoly(thick / 2, 0);
+  g.fillStyle = cssHex(0x2a4e68);
+  riverPoly(thick * 0.22, bow * 0.15);
 
   const nodes = map.nodes || {};
   const roadW = Math.max(11, 0.72 * scaleX);
@@ -522,13 +535,13 @@ function mapThumb(map) {
     if (b.kind === 'hq') {
       g.fillStyle = cssHex(PALETTE.sand);
       g.fillRect(at.x - u * 1.25, at.y - u * 0.2, u * 2.5, u * 0.85);
-      g.fillStyle = cssHex(paint.deep);
+      g.fillStyle = cssHex(PALETTE.concrete);
       g.fillRect(at.x - u * 0.95, at.y - u * 0.55, u * 1.9, u * 0.55);
+      g.fillRect(at.x - u * 0.7, at.y - u * 0.95, u * 1.4, u * 0.45);
       g.fillStyle = cssHex(paint.main);
-      g.fillRect(at.x - u * 0.7, at.y - u * 0.95, u * 1.4, u * 0.7);
-      g.fillStyle = cssHex(paint.deep);
-      g.fillRect(at.x - u * 0.08, at.y - u * 1.7, u * 0.16, u * 0.75);
+      g.fillRect(at.x - u * 0.78, at.y - u * 1.02, u * 1.56, u * 0.16);
       g.fillStyle = cssHex(PALETTE.metal);
+      g.fillRect(at.x - u * 0.08, at.y - u * 1.7, u * 0.16, u * 0.75);
       g.beginPath();
       g.arc(at.x + u * 0.55, at.y - u * 1.25, Math.max(3.5, u * 0.28), 0, Math.PI * 2);
       g.fill();
@@ -538,12 +551,15 @@ function mapThumb(map) {
       g.fillStyle = cssHex(PALETTE.sand);
       g.fillRect(at.x - u * 1.45, at.y - u * 0.05, u * 0.28, u * 0.4);
       g.fillRect(at.x + u * 1.17, at.y - u * 0.05, u * 0.28, u * 0.4);
-      g.fillStyle = cssHex(paint.deep);
+      g.fillStyle = cssHex(PALETTE.concrete);
       g.fillRect(at.x - u * 1.15, at.y - u * 0.15, u * 2.3, u * 0.45);
+      g.fillRect(at.x - u * 1.05, at.y - u * 0.42, u * 2.1, u * 0.32);
       g.fillStyle = cssHex(paint.main);
-      g.fillRect(at.x - u * 1.05, at.y - u * 0.55, u * 2.1, u * 0.5);
+      g.fillRect(at.x - u * 1.12, at.y - u * 0.58, u * 2.24, u * 0.16);
       g.fillStyle = cssHex(PALETTE.ink);
       g.fillRect(at.x - u * 0.28, at.y - u * 0.22, u * 0.56, u * 0.28);
+      g.fillStyle = cssHex(paint.flag);
+      g.fillRect(at.x - u * 0.95, at.y - u * 0.78, u * 0.28, u * 0.16);
     }
   }
   return thumb;

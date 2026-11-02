@@ -196,3 +196,12 @@
 
 - The round 29 review found no CRITICAL, MAJOR, or MINOR issues. Headquarters ranks stay on their own pads, clear of the barracks pills. The 390px frame, the frontier lip, the painted home cards, the bevelled 易 / 中 / 難 segment, the siege sparks, and the 60s 中 / 難 holds stay closed.
 - 67 tests passed. No source or bundle change. `static/app.js` stays 558477 bytes and `static/style.css` stays 9597 bytes.
+
+## Round 30 fixes
+
+- The home card sits in the lower part of the 390×844 frame. Its top edge is at y=559. The tagline and the 「揀地圖 · 揀難度」 line are gone, and the map thumbs are 58px. 易 / 中 / 難 and 出戰 stay. On home the top-left title is hidden, and the 我軍 / 敵軍 pills show an emblem and no empty count. A match shows the title and the numbers again.
+- Each map card is olive ground, a bent blue river with sand banks, the dirt road, pines, and a grey bunker or hangar with a team-coloured roof and flag.
+- The island cap varies olive, khaki, and dirt, with sand shoulders along the road, more rocks, and denser trees at the flanks. The stream is a wider blue ribbon with sand banks and a slight bow. The frontier lip keeps z scale 1.2 and tint 1.75, and it sits on the near bank so the team colours are off the water.
+- Soldier cloth is khaki. Team colour stays on the helmet and one armband. Building walls are olive-grey. Team colour stays on the roof trim and the flag.
+- A match shows one hint, 「點自己建築出兵」.
+- 67 tests passed. Rebuilt `static/app.js` (561983 bytes) and `static/style.css` (10056 bytes).

@@ -90,9 +90,12 @@ export function soldierGeometry() {
   legL.translate(-0.07, 0.14, 0.05);
   const legR = shade(limb(0.042, 0.05, 0.28, 6), 0.16);
   legR.translate(0.07, 0.14, 0.05);
-  const torso = shade(limb(0.1, 0.125, 0.3, 8), 0.4);
-  torso.translate(0, 0.36, 0);
-  const armL = shade(limb(0.03, 0.034, 0.2, 6), 0.28);
+  const torso = shade(limb(0.2, 0.16, 0.28, 8), 0.42);
+  torso.translate(0, 0.42, 0);
+  // Wide shoulder disc sits under the helmet so a high camera shows khaki cloth, not only the dome.
+  const shoulders = shade(new THREE.CylinderGeometry(0.22, 0.23, 0.07, 8), 0.38);
+  shoulders.translate(0, 0.6, 0);
+  const armL = shade(limb(0.03, 0.034, 0.2, 6), 0.9);
   armL.translate(-0.15, 0.4, -0.06);
   const armR = shade(limb(0.03, 0.032, 0.18, 6), 0.26);
   armR.translate(0.15, 0.4, -0.08);
@@ -109,20 +112,21 @@ export function soldierGeometry() {
   stock.translate(0.15, 0.32, -0.06);
   const pack = shade(new THREE.BoxGeometry(0.09, 0.11, 0.06), 0.2);
   pack.translate(0, 0.34, 0.09);
-  const geo = mergeGeometries([legL, legR, torso, armL, armR, head, helmet, brim, rifle, stock, pack]);
+  const geo = mergeGeometries([legL, legR, torso, shoulders, armL, armR, head, helmet, brim, rifle, stock, pack]);
   geo.computeVertexNormals();
   return geo;
 }
 
-/** Grey shade on soldierGeometry becomes uniform, helmet, skin, and rifle. */
-function troopGeometry(uniformHex, helmetHex) {
+/** Grey shade on soldierGeometry becomes khaki cloth, a team armband, helmet, skin, and rifle. */
+function troopGeometry(uniformHex, helmetHex, accentHex) {
   const geo = soldierGeometry();
   const src = geo.getAttribute('color');
   const colors = new Float32Array(src.count * 3);
   const uniform = new THREE.Color(uniformHex);
-  const deep = uniform.clone().multiplyScalar(0.42);
+  const deep = uniform.clone().multiplyScalar(0.62);
   const helmet = new THREE.Color(helmetHex);
   const brim = helmet.clone().multiplyScalar(0.62);
+  const accent = new THREE.Color(accentHex);
   const skin = new THREE.Color(0xc4a882);
   const rifle = new THREE.Color(0x2c332e);
   const cloth = new THREE.Color();
@@ -130,6 +134,7 @@ function troopGeometry(uniformHex, helmetHex) {
     const v = src.getX(i);
     let tone = uniform;
     if (v >= 0.95) tone = helmet;
+    else if (v >= 0.85) tone = accent;
     else if (v >= 0.7) tone = brim;
     else if (v >= 0.5) tone = skin;
     else if (v <= 0.14) tone = rifle;
@@ -174,12 +179,12 @@ export function createCrowds(scene) {
     metalness: 0.04,
   });
   const green = new THREE.InstancedMesh(
-    troopGeometry(PALETTE.player.main, HELMET_PLAYER),
+    troopGeometry(0x5a6048, HELMET_PLAYER, PALETTE.player.main),
     troopMat(),
     MAX,
   );
   const red = new THREE.InstancedMesh(
-    troopGeometry(PALETTE.enemy.main, HELMET_ENEMY),
+    troopGeometry(0x645e4c, HELMET_ENEMY, PALETTE.enemy.main),
     troopMat(),
     MAX,
   );

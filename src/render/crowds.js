@@ -43,7 +43,7 @@ function enemyBank(x, z) {
  */
 export function drawAnchor(owner, x, z, count = 0) {
   if (owner === 'enemy') return enemyBank(x, z, count);
-  if (z < 4.2 && z > -0.5) return { x: 0.05, z: 1.85 };
+  if (z < 4.2 && z > -0.5) return { x: 0.05, z: 1.55 };
   return { x, z };
 }
 
@@ -60,7 +60,7 @@ export function formationLocal(owner, index, n) {
     : Math.min(4, count);
   // Six across. Rows are far enough apart that a block of 30 or 40 reads as ranks, not one line.
   const colGap = mass ? (enemy ? 0.36 : 0.34) : 0.42;
-  const rowGap = mass ? (enemy ? 0.38 : 0.46) : 0.36;
+  const rowGap = mass ? (enemy ? 0.38 : 0.58) : 0.36;
   const row = Math.floor(index / cols);
   const col = index % cols;
   const rowCount = Math.min(cols, count - row * cols);

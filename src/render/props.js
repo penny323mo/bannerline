@@ -144,10 +144,13 @@ function buildSoldier(soldierRoot, rifleRoot) {
   rifle.computeBoundingBox();
   const hand = findNamed(soldierRoot, 'HandR');
   hand.getWorldPosition(_v);
+  // After rotateY(0.85) the muzzle still points toward +Z and +X. 0.12 is the same pre-fit space as the 0.22 hand offset.
+  const barrelX = Math.sin(0.85);
+  const barrelZ = Math.cos(0.85);
   rifle.translate(
-    _v.x + 0.22 - (rifle.boundingBox.min.x + rifle.boundingBox.max.x) * 0.5,
+    _v.x + 0.22 - (rifle.boundingBox.min.x + rifle.boundingBox.max.x) * 0.5 + barrelX * 0.12,
     _v.y - (rifle.boundingBox.min.y + rifle.boundingBox.max.y) * 0.5,
-    _v.z - rifle.boundingBox.min.z,
+    _v.z - rifle.boundingBox.min.z + barrelZ * 0.12,
   );
   parts.push(colorize(rifle, 0x1a1c18));
   const merged = mergeGeometries(parts);

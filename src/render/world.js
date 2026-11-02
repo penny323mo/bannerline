@@ -71,8 +71,8 @@ const _paleTuft = new THREE.Color(0xdff3b0);
 const _shadeTuft = new THREE.Color(0x3c6834);
 const _farLight = new THREE.Color(0xa6d25e);
 const _farDark = new THREE.Color(0x3d7a36);
-const _lawnLight = new THREE.Color(0x9bc85a);
-const _lawnDark = new THREE.Color(0x4e8a3c);
+const _lawnLight = new THREE.Color(0xd4f0a4);
+const _lawnDark = new THREE.Color(0x3f7a34);
 
 /** Rim offset in world units. Three and seven lobes, so the outline is not an ellipse. */
 function grassNudge(theta) {
@@ -103,9 +103,9 @@ function applyMeadowMarks(tone, x, z) {
   if (farLight < 1) tone.lerp(_farLight, 1 - farLight * 0.1);
   const farDark = blobU(x, z, -0.05, -14.2, 1.32, 1.0, 0.28);
   if (farDark < 1) tone.lerp(_farDark, 1 - farDark * 0.1);
-  const lawnLight = blobU(x, z, -4.1, -6.95, 1.35, 0.9, 0.28);
+  const lawnLight = blobU(x, z, -3.2, -4.8, 0.85, 0.55, 0.28);
   if (lawnLight < 1) tone.lerp(_lawnLight, 1 - lawnLight * 0.1);
-  const lawnDark = blobU(x, z, 1.85, -5.4, 0.9, 0.6, 0.28);
+  const lawnDark = blobU(x, z, 2.6, -3.4, 0.55, 0.45, 0.28);
   if (lawnDark < 1) tone.lerp(_lawnDark, 1 - lawnDark * 0.1);
 }
 
@@ -1232,8 +1232,8 @@ function buildIsland(map, reduceMotion) {
     meadowMarkGeometry(1.45, -0.7, 0.7, 0.5, 0x3c6834),
     meadowMarkGeometry(-6.6, -13.4, 1.55, 1.1, 0xa6d25e, 0.07, 0.28),
     meadowMarkGeometry(-0.05, -14.2, 1.32, 1.0, 0x3d7a36, 0.082, 0.28),
-    meadowMarkGeometry(-4.1, -6.95, 1.35, 0.9, 0x9bc85a, 0.074, 0.28),
-    meadowMarkGeometry(1.85, -5.4, 0.9, 0.6, 0x4e8a3c, 0.086, 0.28),
+    meadowMarkGeometry(-3.2, -4.8, 0.85, 0.55, 0xd4f0a4, 0.074, 0.28),
+    meadowMarkGeometry(2.6, -3.4, 0.55, 0.45, 0x3f7a34, 0.086, 0.28),
   ], mat(0xffffff, { vertexColors: true, roughness: 0.96, metalness: 0 }), { cast: false, receive: true });
 
   const ownerById = {};
